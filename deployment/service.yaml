@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar-injector-webhook-svc
+  labels:
+    app: sidecar-injector
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    app: sidecar-injector
