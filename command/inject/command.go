@@ -11,8 +11,10 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
+    
+    "github.com/hashicorp/consul-k8s/helper/cert"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault-k8s/inject"
 	"github.com/mitchellh/cli"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -50,7 +52,6 @@ func (c *Command) init() {
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagAgentImage, "vault-agent-image", inject.DefaultAgentImage,
 		"Docker image for Vault Agent. Defaults to Vault Agent 0.0.1")
-	c.help = flags.Usage(help, c.flagSet)
 }
 
 func (c *Command) Run(args []string) int {
@@ -94,20 +95,15 @@ func (c *Command) Run(args []string) int {
 	go c.certWatcher(ctx, certCh, clientset)
 
 	// Build the HTTP handler and server
-	injector := connectinject.Handler{
-		ImageConsul:       c.flagConsulImage,
-		ImageEnvoy:        c.flagEnvoyImage,
+	injector := inject.Handler{
+		ImageAgent:        c.flagAgentImage,
 		RequireAnnotation: !c.flagDefaultInject,
-		AuthMethod:        c.flagACLAuthMethod,
-		CentralConfig:     c.flagCentralConfig,
-		DefaultProtocol:   c.flagDefaultProtocol,
 		Log:               hclog.Default().Named("handler"),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
-	mux.HandleFunc("/health/live", c.handleLive)
-	var handler http.Handler = mux
+    var handler http.Handler = mux
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,

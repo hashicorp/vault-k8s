@@ -3,13 +3,13 @@ package main
 import (
 	"os"
 
-	cmdInject "github.com/hashicorp/consul-k8s/command/inject"
-	cmdVersion "github.com/hashicorp/consul-k8s/command/version"
+	cmdInject "github.com/hashicorp/vault-k8s/command/inject"
+	cmdVersion "github.com/hashicorp/vault-k8s/command/version"
 	"github.com/hashicorp/vault-k8s/version"
 	"github.com/mitchellh/cli"
 )
 
-// Commands is the mapping of all available consul-k8s commands.
+// Commands is the mapping of all available vault-k8s commands.
 var Commands map[string]cli.CommandFactory
 
 func init() {
