@@ -23,18 +23,18 @@ const (
 )
 
 const (
-	annotationService = "vault.hashicorp.com/service"
-	annotationPort =    "vault.hashicorp.com/service-port"
-    annotationTLSSkipVerify = "vault.hashicorp.com/tls-skip-verify"
-    annotationTLSSecret = "vault.hashicorp.com/tls-secret"
-    annotationTLSCACert = "vault.hashicorp.com/ca-cert"
-    annotationTLSClientCert = "vault.hashicorp.com/client-cert"
-    annotationTLSClientKey = "vault.hashicorp.com/client-key"
-    annotationClientMaxRetries = "vault.hashicorp.com/client-max-retries"
-    annotationClientTimeout = "vault.hashicorp.com/client-timeout"
+	annotationService          = "vault.hashicorp.com/service"
+	annotationPort             = "vault.hashicorp.com/service-port"
+	annotationTLSSkipVerify    = "vault.hashicorp.com/tls-skip-verify"
+	annotationTLSSecret        = "vault.hashicorp.com/tls-secret"
+	annotationTLSCACert        = "vault.hashicorp.com/ca-cert"
+	annotationTLSClientCert    = "vault.hashicorp.com/client-cert"
+	annotationTLSClientKey     = "vault.hashicorp.com/client-key"
+	annotationClientMaxRetries = "vault.hashicorp.com/client-max-retries"
+	annotationClientTimeout    = "vault.hashicorp.com/client-timeout"
 
-	annotationAgentStatus =  "vault.hashicorp.com/agent-inject-status"
-	annotationAgentInject =  "vault.hashicorp.com/agent-inject"
+	annotationAgentStatus = "vault.hashicorp.com/agent-inject-status"
+	annotationAgentInject = "vault.hashicorp.com/agent-inject"
 )
 
 var (

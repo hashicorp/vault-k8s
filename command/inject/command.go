@@ -11,8 +11,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-    
-    "github.com/hashicorp/consul-k8s/helper/cert"
+
+	"github.com/hashicorp/consul-k8s/helper/cert"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/inject"
 	"github.com/mitchellh/cli"
@@ -24,14 +24,14 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen          string
-	flagAutoName        string // MutatingWebhookConfiguration for updating
-	flagAutoHosts       string // SANs for the auto-generated TLS cert.
-	flagCertFile        string // TLS cert for listening (PEM)
-	flagKeyFile         string // TLS cert private key (PEM)
-	flagDefaultInject   bool   // True to inject by default
-	flagAgentImage      string // Docker image for Vault Agent
-	flagSet             *flag.FlagSet
+	flagListen        string
+	flagAutoName      string // MutatingWebhookConfiguration for updating
+	flagAutoHosts     string // SANs for the auto-generated TLS cert.
+	flagCertFile      string // TLS cert for listening (PEM)
+	flagKeyFile       string // TLS cert private key (PEM)
+	flagDefaultInject bool   // True to inject by default
+	flagAgentImage    string // Docker image for Vault Agent
+	flagSet           *flag.FlagSet
 
 	once sync.Once
 	help string
@@ -103,7 +103,7 @@ func (c *Command) Run(args []string) int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
-    var handler http.Handler = mux
+	var handler http.Handler = mux
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,
