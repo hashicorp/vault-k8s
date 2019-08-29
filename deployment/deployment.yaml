@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar-injector
+  labels:
+    app: sidecar-injector
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    app: sidecar-injector
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: sidecar-injector
+  labels:
+    app: sidecar-injector
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: sidecar-injector
+    spec:
+      containers:
+        - name: sidecar-injector
+          image: hashicorp/webhook:0.0.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - -tlsCertFile=/etc/webhook/certs/cert.pem
+            - -tlsKeyFile=/etc/webhook/certs/key.pem
+            - 2>&1
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+              readOnly: true
+      volumes:
+        - name: webhook-certs
+          secret:
+            secretName: sidecar-injector-certs
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: sidecar-injector-conf
+  labels:
+    app: sidecar-injector
+webhooks:
+  - name: vault.hashicorp.com
+    clientConfig:
+      service:
+        name: sidecar-injector
+        namespace: demo
+        path: "/mutate"
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - operations: [ "CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods", "deployments"]
+    namespaceSelector:
+      matchLabels:
+        sidecar-injector: enabled
