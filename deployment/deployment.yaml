@@ -55,12 +55,9 @@ webhooks:
         name: sidecar-injector
         namespace: demo
         path: "/mutate"
-      caBundle: ${CA_BUNDLE}
+      caBundle: ""
     rules:
       - operations: [ "CREATE", "UPDATE"]
         apiGroups: [""]
         apiVersions: ["v1"]
-        resources: ["pods", "deployments"]
-    namespaceSelector:
-      matchLabels:
-        sidecar-injector: enabled
+        resources: ["pods"]

@@ -3,6 +3,8 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: sleep
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
   labels:
     app: sidecar-injector
 spec:
@@ -10,6 +12,7 @@ spec:
   template:
     metadata:
       annotations:
+        vault.hashicorp.com/agent-inject: "true"
       labels:
         app: sleep
     spec:
