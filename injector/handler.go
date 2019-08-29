@@ -1,48 +1,47 @@
-package inject
+package injector
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"strconv"
-
 	"github.com/hashicorp/go-hclog"
 	"github.com/mattbaird/jsonpatch"
+	"io/ioutil"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"log"
+	"net/http"
+	"strconv"
 )
 
 const (
-	DefaultAgentImage = "vault-agent:1.5.0"
+	DefaultAgentImage = "nginx:1.12.2"
 )
 
 const (
-	annotationService          = "vault.hashicorp.com/service"
-	annotationPort             = "vault.hashicorp.com/service-port"
-	annotationTLSSkipVerify    = "vault.hashicorp.com/tls-skip-verify"
-	annotationTLSSecret        = "vault.hashicorp.com/tls-secret"
-	annotationTLSCACert        = "vault.hashicorp.com/ca-cert"
-	annotationTLSClientCert    = "vault.hashicorp.com/client-cert"
-	annotationTLSClientKey     = "vault.hashicorp.com/client-key"
-	annotationClientMaxRetries = "vault.hashicorp.com/client-max-retries"
-	annotationClientTimeout    = "vault.hashicorp.com/client-timeout"
-
+	// annotationStatus is the key of the annotation that is added to
+	// a pod after an injection is done.
 	annotationAgentStatus = "vault.hashicorp.com/agent-inject-status"
+
+	// annotationInject is the key of the annotation that controls whether
+	// injection is explicitly enabled or disabled for a pod. This should
+	// be set to a truthy or falsy value, as parseable by strconv.ParseBool
 	annotationAgentInject = "vault.hashicorp.com/agent-inject"
+
+	// annotationService is the name of the service to proxy. This defaults
+	// to the name of the first container.
+	annotationService = "vault.hashicorp.com/service"
+
+	// annotationPort is the name or value of the port to proxy incoming
+	// connections to.
+	annotationPort = "vault.hashicorp.com/service-port"
 )
 
 var (
-	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
-	deserializer = codecs.UniversalDeserializer()
-
-	// kubeSystemNamespaces is a list of namespaces that are considered
-	// "system" level namespaces and are always skipped (never injected).
+	codecs               = serializer.NewCodecFactory(runtime.NewScheme())
+	deserializer         = codecs.UniversalDeserializer()
 	kubeSystemNamespaces = []string{
 		metav1.NamespaceSystem,
 		metav1.NamespacePublic,
@@ -51,6 +50,7 @@ var (
 
 // Handler is the HTTP handler for admission webhooks.
 type Handler struct {
+	// ImageAgent is the name of the Vault Agent image
 	ImageAgent string
 
 	// RequireAnnotation means that the annotation must be given to inject.
@@ -120,6 +120,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		log.Printf("Could not unmarshal request to pod: %s", err)
+		log.Printf("%s", req.Object.Raw)
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -172,7 +173,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			fmt.Sprintf("/spec/containers/%d/env", i))...)
 	}
 
-	// Add the sidecar
 	agentContainer, err := h.containerSidecar(&pod)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
@@ -312,25 +312,4 @@ func admissionError(err error) *v1beta1.AdmissionResponse {
 			Message: err.Error(),
 		},
 	}
-}
-
-func findServiceAccountVolumeMount(pod *corev1.Pod) (corev1.VolumeMount, error) {
-	// Find the volume mount that is mounted at the known
-	// service account token location
-	var volumeMount corev1.VolumeMount
-	for _, container := range pod.Spec.Containers {
-		for _, vm := range container.VolumeMounts {
-			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
-				volumeMount = vm
-				break
-			}
-		}
-	}
-
-	// Return an error if volumeMount is still empty
-	if (corev1.VolumeMount{}) == volumeMount {
-		return volumeMount, errors.New("Unable to find service account token volumeMount")
-	}
-
-	return volumeMount, nil
 }

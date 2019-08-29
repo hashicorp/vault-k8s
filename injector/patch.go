@@ -1,4 +1,4 @@
-package inject
+package injector
 
 import (
 	"strings"

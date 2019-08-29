@@ -1,0 +1,6 @@
+FROM golang:1.12.7
+ENV GO111MODULE=on
+WORKDIR /go/src/github.com/hashicorp/webhook
+ADD . .
+RUN go get ./...
+RUN CGO_ENABLED=0 GOOS=linux go build -a -o webhook .
