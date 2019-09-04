@@ -6,7 +6,7 @@ import (
 
 func (h *Handler) containerSidecar(pod *corev1.Pod) (corev1.Container, error) {
 	return corev1.Container{
-		Name:  "sidecar-nginx",
+		Name:  "vault-agent",
 		Image: h.ImageAgent,
 		Env: []corev1.EnvVar{
 			{
@@ -16,15 +16,11 @@ func (h *Handler) containerSidecar(pod *corev1.Pod) (corev1.Container, error) {
 				},
 			},
 		},
-		Ports: []corev1.ContainerPort{
-			{
-				ContainerPort: 80,
-			},
-		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      "nginx-conf",
-				MountPath: "/etc/nginx",
+				Name:      "vault-secrets",
+				MountPath: "/vault/secrets",
+				ReadOnly:  false,
 			},
 		},
 	}, nil

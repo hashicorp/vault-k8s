@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultAgentImage = "nginx:1.12.2"
+	DefaultAgentImage = "hashicorp/vault-agent:0.0.1"
 )
 
 const (
