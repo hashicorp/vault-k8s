@@ -1,13 +1,10 @@
 package injector
 
 import (
-	//"fmt"
-	//"strconv"
-	//"strings"
-
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 func (h *Handler) getSecretAnnotations(pod *corev1.Pod) []corev1.EnvVar {
@@ -15,7 +12,7 @@ func (h *Handler) getSecretAnnotations(pod *corev1.Pod) []corev1.EnvVar {
 	for name, value := range pod.Annotations {
 		if strings.Contains(name, "vault-agent-secret") {
 			annotation := strings.Replace(
-				string.ToUpper(strings.Trim(name, "vault-agent-secret")),
+				strings.ToUpper(strings.Trim(name, "vault-agent-secret")),
 				"-", "_", -1,
 			)
 
