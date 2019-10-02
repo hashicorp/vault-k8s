@@ -38,6 +38,14 @@ deploy: image docker-login
 clean:
 	-rm -rf $(BUILD_DIR) 
 
+test: unit-test acc-test
+
+unit-test:
+	go test ./...
+
+acc-test:
+	bats test/acceptance/
+
 .PHONY: mod
 mod:
 	@go mod tidy
