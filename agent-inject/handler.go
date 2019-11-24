@@ -1,0 +1,199 @@
+package agent_inject
+
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/hashicorp/go-hclog"
+	"github.com/mattbaird/jsonpatch"
+	"k8s.io/client-go/kubernetes"
+	"strings"
+
+	"github.com/hashicorp/vault-k8s/agent-inject/agent"
+	"io/ioutil"
+	"k8s.io/api/admission/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"net/http"
+)
+
+var (
+	codecs               = serializer.NewCodecFactory(runtime.NewScheme())
+	deserializer         = codecs.UniversalDeserializer()
+	kubeSystemNamespaces = []string{
+		metav1.NamespaceSystem,
+		metav1.NamespacePublic,
+	}
+)
+
+// Handler is the HTTP handler for admission webhooks.
+type Handler struct {
+	// RequireAnnotation means that the annotation must be given to inject.
+	// If this is false, injection is default.
+	RequireAnnotation bool
+	VaultAddress      string
+	ImageVault        string
+	Clientset         *kubernetes.Clientset
+	// Log
+	Log hclog.Logger
+}
+
+// Handle is the http.HandlerFunc implementation that actually handles the
+// webhook request for admission control. This should be registered or
+// served via an HTTP server.
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+	h.Log.Info("Request received", "Method", r.Method, "URL", r.URL)
+
+	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
+		msg := fmt.Sprintf("Invalid content-type: %q", ct)
+		http.Error(w, msg, http.StatusBadRequest)
+		h.Log.Error("error on request", "error", msg, "Code", http.StatusBadRequest)
+		return
+	}
+
+	var body []byte
+	if r.Body != nil {
+		var err error
+		if body, err = ioutil.ReadAll(r.Body); err != nil {
+			msg := fmt.Sprintf("error reading request body: %s", err)
+			http.Error(w, msg, http.StatusBadRequest)
+			h.Log.Error("error on request", "Error", msg, "Code", http.StatusBadRequest)
+			return
+		}
+	}
+	if len(body) == 0 {
+		msg := "Empty request body"
+		http.Error(w, msg, http.StatusBadRequest)
+		h.Log.Error("error on request", "Error", msg, "Code", http.StatusBadRequest)
+		return
+	}
+
+	var admReq v1beta1.AdmissionReview
+	var admResp v1beta1.AdmissionReview
+	if _, _, err := deserializer.Decode(body, nil, &admReq); err != nil {
+		h.Log.Error("could not decode admission request", "Error", err)
+		admResp.Response = admissionError(err)
+	} else {
+		admResp.Response = h.Mutate(admReq.Request)
+	}
+
+	resp, err := json.Marshal(&admResp)
+	if err != nil {
+		msg := fmt.Sprintf("error marshalling admission response: %s", err)
+		http.Error(w, msg, http.StatusInternalServerError)
+		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(resp); err != nil {
+		h.Log.Error("error writing response", "Error", err)
+	}
+}
+
+// Mutate takes an admission request and performs mutation if necessary,
+// returning the final API response.
+func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	// Decode the pod from the request
+	var pod corev1.Pod
+	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
+		h.Log.Info("could not unmarshal request to pod: %s", err)
+		h.Log.Info("%s", req.Object.Raw)
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
+	}
+
+	// Build the basic response
+	resp := &v1beta1.AdmissionResponse{
+		Allowed: true,
+		UID:     req.UID,
+	}
+
+	h.Log.Info("checking namespaces..")
+	if systemNamespace(req.Namespace) {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace),
+			},
+		}
+	}
+
+	h.Log.Info("checking if should inject agent..")
+	inject, err := agent.ShouldInject(&pod)
+	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error checking if should inject agent: %s", err),
+			},
+		}
+	} else if !inject {
+		return resp
+	}
+
+	h.Log.Info("setting default annotations..")
+	var patches []jsonpatch.JsonPatchOperation
+	err = agent.DefaultAnnotations(&pod, h.ImageVault, h.VaultAddress, req.Namespace, &patches)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error adding default annotations: %s", err),
+			},
+		}
+	}
+
+	h.Log.Info("creating new agent..")
+	agentSidecar, err := agent.New(&pod, &patches)
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error creating new agent sidecar: %s", err),
+			},
+		}
+	}
+
+	h.Log.Info("validating agent configuration..")
+	err = agentSidecar.Validate()
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error validating agent configuration: %s", err),
+			},
+		}
+	}
+
+	h.Log.Info("creating patches for the pod..")
+	patch, err := agentSidecar.Patch()
+	if err != nil {
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: fmt.Sprintf("error creating patch for agent: %s", err),
+			},
+		}
+	}
+
+	resp.Patch = patch
+	patchType := v1beta1.PatchTypeJSONPatch
+	resp.PatchType = &patchType
+
+	return resp
+}
+
+func systemNamespace(namespace string) bool {
+	for _, systemNS := range kubeSystemNamespaces {
+		if systemNS == namespace {
+			return true
+		}
+	}
+	return false
+}
+
+func admissionError(err error) *v1beta1.AdmissionResponse {
+	return &v1beta1.AdmissionResponse{
+		Result: &metav1.Status{
+			Message: err.Error(),
+		},
+	}
+}
