@@ -9,7 +9,7 @@ const (
 	DefaultContainerArg = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
 )
 
-// ContainerInitSidecar creates a new container to be added
+// ContainerSidecar creates a new container to be added
 // to the pod being mutated.
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	runAsUser := int64(100)
