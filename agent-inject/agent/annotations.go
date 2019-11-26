@@ -48,7 +48,7 @@ const (
 
 	// AnnotationAgentPrePopulateOnly controls whether an init container is the only
 	// injected container.  If true, no sidecar container will be injected at runtime
-	// of the application a.
+	// of the application.
 	AnnotationAgentPrePopulateOnly = "vault.hashicorp.com/agent-pre-populate-only"
 
 	// AnnotationAgentConfigMap is the name of the configuration map where Vault Agent
