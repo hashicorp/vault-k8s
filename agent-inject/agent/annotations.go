@@ -124,10 +124,6 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentImage] = image
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentStatus]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentStatus] = ""
-	}
-
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace] = namespace
 	}
@@ -135,11 +131,17 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 	return nil
 }
 
+// secrets parses annotations with the pattern "vault.hashicorp.com/agent-inject-secret-".
+// Everything following the final dash becomes the name of the secret,
+// and the value is the path in Vault.
+//
+// For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
+// name: foobar, value: db/creds/foobar
 func secrets(annotations map[string]string) []Secret {
 	var secrets []Secret
 	for name, path := range annotations {
 		if strings.Contains(name, AnnotationAgentInjectSecret) {
-			raw := strings.Replace(name, AnnotationAgentInjectSecret, "", -1)
+			raw := strings.ReplaceAll(name, AnnotationAgentInjectSecret, "")
 			name := strings.ToLower(raw)
 
 			var template string

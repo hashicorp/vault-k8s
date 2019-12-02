@@ -21,7 +21,6 @@ func TestDefaultAnnotationsCanSet(t *testing.T) {
 	}{
 		{annotationKey: AnnotationVaultService, annotationValue: "http://foobar:8200"},
 		{annotationKey: AnnotationAgentImage, annotationValue: "foobar-image"},
-		{annotationKey: AnnotationAgentStatus, annotationValue: ""},
 		{annotationKey: AnnotationAgentRequestNamespace, annotationValue: "test"},
 	}
 

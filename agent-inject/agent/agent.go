@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultImage = "vault:1.3.1	"
 )
 
 type Agent struct {
