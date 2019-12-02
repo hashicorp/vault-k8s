@@ -114,21 +114,15 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 
 	h.Log.Info("checking namespaces..")
 	if systemNamespace(req.Namespace) {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace),
-			},
-		}
+		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
+		return admissionError(err)
 	}
 
 	h.Log.Info("checking if should inject agent..")
 	inject, err := agent.ShouldInject(&pod)
 	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error checking if should inject agent: %s", err),
-			},
-		}
+		err := fmt.Errorf("error checking if should inject agent: %s", err)
+		return admissionError(err)
 	} else if !inject {
 		return resp
 	}
@@ -137,41 +131,29 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	var patches []jsonpatch.JsonPatchOperation
 	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, req.Namespace)
 	if err != nil {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error adding default annotations: %s", err),
-			},
-		}
+		err := fmt.Errorf("error adding default annotations: %s", err)
+		return admissionError(err)
 	}
 
 	h.Log.Info("creating new agent..")
 	agentSidecar, err := agent.New(&pod, &patches)
 	if err != nil {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error creating new agent sidecar: %s", err),
-			},
-		}
+		err := fmt.Errorf("error creating new agent sidecar: %s", err)
+		return admissionError(err)
 	}
 
 	h.Log.Info("validating agent configuration..")
 	err = agentSidecar.Validate()
 	if err != nil {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error validating agent configuration: %s", err),
-			},
-		}
+		err := fmt.Errorf("error validating agent configuration: %s", err)
+		return admissionError(err)
 	}
 
 	h.Log.Info("creating patches for the pod..")
 	patch, err := agentSidecar.Patch()
 	if err != nil {
-		return &v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: fmt.Sprintf("error creating patch for agent: %s", err),
-			},
-		}
+		err := fmt.Errorf("error creating patch for agent: %s", err)
+		return admissionError(err)
 	}
 
 	resp.Patch = patch
