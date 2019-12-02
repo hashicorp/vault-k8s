@@ -37,8 +37,7 @@ type Handler struct {
 	VaultAddress      string
 	ImageVault        string
 	Clientset         *kubernetes.Clientset
-	// Log
-	Log hclog.Logger
+	Log               hclog.Logger
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
