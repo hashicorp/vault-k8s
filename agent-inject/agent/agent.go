@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mattbaird/jsonpatch"
-	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"strings"
+
+	"github.com/mattbaird/jsonpatch"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (

@@ -1,9 +1,10 @@
 package agent
 
 import (
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
 )
 
 func testPod(annotations map[string]string) *corev1.Pod {

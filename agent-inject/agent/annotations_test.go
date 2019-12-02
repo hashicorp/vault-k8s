@@ -1,9 +1,10 @@
 package agent
 
 import (
-	"github.com/mattbaird/jsonpatch"
 	"strings"
 	"testing"
+
+	"github.com/mattbaird/jsonpatch"
 )
 
 func TestDefaultAnnotationsCanSet(t *testing.T) {

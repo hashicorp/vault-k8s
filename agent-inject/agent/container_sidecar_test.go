@@ -2,8 +2,9 @@ package agent
 
 import (
 	"fmt"
-	"github.com/mattbaird/jsonpatch"
 	"testing"
+
+	"github.com/mattbaird/jsonpatch"
 )
 
 func TestContainerSidecar(t *testing.T) {

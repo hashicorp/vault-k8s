@@ -2,9 +2,10 @@ package agent
 
 import (
 	"encoding/json"
-	"github.com/mattbaird/jsonpatch"
 	"strings"
 	"testing"
+
+	"github.com/mattbaird/jsonpatch"
 )
 
 func TestNewConfig(t *testing.T) {

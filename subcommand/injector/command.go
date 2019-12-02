@@ -6,6 +6,10 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/go-hclog"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
@@ -13,14 +17,11 @@ import (
 	k8sflags "github.com/hashicorp/vault-k8s/subcommand/flags"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
-	"net/http"
-	"strings"
-	"time"
 
-
-	"k8s.io/client-go/kubernetes"
 	"sync"
 	"sync/atomic"
+
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"

@@ -71,7 +71,7 @@ type Template struct {
 	RightDelim     string `json:"right_delimiter,omitempty"`
 }
 
-func (a *Agent) newTemplatesConfigs() []*Template {
+func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
 		template := secret.Template
@@ -119,7 +119,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 				},
 			},
 		},
-		Templates: a.newTemplatesConfigs(),
+		Templates: a.newTemplateConfigs(),
 	}
 
 	return config.render()

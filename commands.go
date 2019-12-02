@@ -4,9 +4,10 @@ import (
 	cmdInjector "github.com/hashicorp/vault-k8s/subcommand/injector"
 	cmdVersion "github.com/hashicorp/vault-k8s/subcommand/version"
 
+	"os"
+
 	"github.com/hashicorp/vault-k8s/version"
 	"github.com/mitchellh/cli"
-	"os"
 )
 
 var Commands map[string]cli.CommandFactory

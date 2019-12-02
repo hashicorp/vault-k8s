@@ -2,6 +2,7 @@ package flags
 
 import (
 	"flag"
+
 	"github.com/hashicorp/consul/command/flags"
 )
 

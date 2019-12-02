@@ -2,6 +2,10 @@ package agent_inject
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/mattbaird/jsonpatch"
@@ -10,9 +14,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
-	"net/http/httptest"
-	"testing"
 )
 
 func TestHandlerHandle(t *testing.T) {

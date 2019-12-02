@@ -1,9 +1,10 @@
 package agent
 
 import (
+	"strings"
+
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
-	"strings"
 )
 
 func addVolumes(target, volumes []corev1.Volume, base string) []jsonpatch.JsonPatchOperation {
