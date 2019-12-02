@@ -135,9 +135,9 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 	return nil
 }
 
-func (a *Agent) secrets() []Secret {
+func secrets(annotations map[string]string) []Secret {
 	var secrets []Secret
-	for name, path := range a.Annotations {
+	for name, path := range annotations {
 		if strings.Contains(name, AnnotationAgentInjectSecret) {
 			raw := strings.Replace(name, AnnotationAgentInjectSecret, "", -1)
 			name := strings.ToLower(raw)
@@ -145,7 +145,7 @@ func (a *Agent) secrets() []Secret {
 			var template string
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 
-			if val, ok := a.Annotations[templateName]; ok {
+			if val, ok := annotations[templateName]; ok {
 				template = val
 			}
 
@@ -156,47 +156,12 @@ func (a *Agent) secrets() []Secret {
 }
 
 func (a *Agent) inject() (bool, error) {
-	if val, ok := a.Annotations[AnnotationAgentInject]; !ok {
-		return false, nil
-	} else {
-		return strconv.ParseBool(val)
-	}
-}
-
-func (a *Agent) image() string {
-	raw, ok := a.Annotations[AnnotationAgentImage]
-	if !ok || raw == "" {
-		return DefaultVaultImage
+	raw, ok := a.Annotations[AnnotationAgentInject]
+	if !ok {
+		return true, nil
 	}
 
-	return raw
-}
-
-func (a *Agent) namespace() string {
-	raw, ok := a.Annotations[AnnotationAgentRequestNamespace]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) status() string {
-	raw, ok := a.Annotations[AnnotationAgentStatus]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) configMap() string {
-	raw, ok := a.Annotations[AnnotationAgentConfigMap]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
+	return strconv.ParseBool(raw)
 }
 
 func (a *Agent) prePopulate() (bool, error) {
@@ -204,6 +169,7 @@ func (a *Agent) prePopulate() (bool, error) {
 	if !ok {
 		return true, nil
 	}
+
 	return strconv.ParseBool(raw)
 }
 
@@ -212,25 +178,8 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 	if !ok {
 		return false, nil
 	}
+
 	return strconv.ParseBool(raw)
-}
-
-func (a *Agent) role() string {
-	raw, ok := a.Annotations[AnnotationVaultRole]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) address() string {
-	raw, ok := a.Annotations[AnnotationVaultService]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
 }
 
 func (a *Agent) tlsSkipVerify() (bool, error) {
@@ -238,77 +187,6 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 	if !ok {
 		return true, nil
 	}
+
 	return strconv.ParseBool(raw)
-}
-
-func (a *Agent) tlsSecret() string {
-	raw, ok := a.Annotations[AnnotationVaultTLSSecret]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) tlsServerName() string {
-	raw, ok := a.Annotations[AnnotationVaultTLSServerName]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) caCert() string {
-	raw, ok := a.Annotations[AnnotationVaultCACert]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) caKey() string {
-	raw, ok := a.Annotations[AnnotationVaultCAKey]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) clientCert() string {
-	raw, ok := a.Annotations[AnnotationVaultClientCert]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) clientKey() string {
-	raw, ok := a.Annotations[AnnotationVaultClientKey]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) clientMaxRetries() string {
-	raw, ok := a.Annotations[AnnotationVaultClientMaxRetries]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
-}
-
-func (a *Agent) clientTimeout() string {
-	raw, ok := a.Annotations[AnnotationVaultClientTimeout]
-	if !ok || raw == "" {
-		return ""
-	}
-
-	return raw
 }

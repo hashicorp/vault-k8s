@@ -59,15 +59,48 @@ func New(pod *corev1.Pod, patches *[]jsonpatch.JsonPatchOperation) (Agent, error
 
 	agent := Agent{
 		Annotations:        pod.Annotations,
+		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:          pod.Annotations[AnnotationAgentImage],
+		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
 		Patches:            patches,
 		Pod:                pod,
+		Secrets:            secrets(pod.Annotations),
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
+		Status:             pod.Annotations[AnnotationAgentStatus],
+		Vault: Vault{
+			Address:          pod.Annotations[AnnotationVaultService],
+			CACert:           pod.Annotations[AnnotationVaultCACert],
+			CAKey:            pod.Annotations[AnnotationVaultCAKey],
+			ClientCert:       pod.Annotations[AnnotationVaultClientCert],
+			ClientKey:        pod.Annotations[AnnotationVaultClientKey],
+			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
+			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
+			Role:             pod.Annotations[AnnotationVaultRole],
+			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
+			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
+		},
 	}
 
-	err := agent.parse()
+	var err error
+	agent.Inject, err = agent.inject()
 	if err != nil {
-		return agent, fmt.Errorf("error parsing agent sidecar: %s", err)
+		return agent, err
+	}
+
+	agent.PrePopulate, err = agent.prePopulate()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.PrePopulateOnly, err = agent.prePopulateOnly()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.Vault.TLSSkipVerify, err = agent.tlsSkipVerify()
+	if err != nil {
+		return agent, err
 	}
 
 	return agent, nil
@@ -176,47 +209,6 @@ func (a *Agent) Patch() ([]byte, error) {
 		}
 	}
 	return patches, nil
-}
-
-func (a *Agent) parse() error {
-	a.Namespace = a.namespace()
-	a.Status = a.status()
-	a.ImageName = a.image()
-	a.Secrets = a.secrets()
-	a.ConfigMapName = a.configMap()
-	a.Vault.Role = a.role()
-	a.Vault.Address = a.address()
-	a.Vault.CACert = a.caCert()
-	a.Vault.CAKey = a.caKey()
-	a.Vault.ClientCert = a.clientCert()
-	a.Vault.ClientKey = a.clientKey()
-	a.Vault.ClientMaxRetries = a.clientMaxRetries()
-	a.Vault.ClientTimeout = a.clientTimeout()
-	a.Vault.TLSServerName = a.tlsServerName()
-	a.Vault.TLSSecret = a.tlsSecret()
-
-	var err error
-	a.Inject, err = a.inject()
-	if err != nil {
-		return err
-	}
-
-	a.PrePopulate, err = a.prePopulate()
-	if err != nil {
-		return err
-	}
-
-	a.PrePopulateOnly, err = a.prePopulateOnly()
-	if err != nil {
-		return err
-	}
-
-	a.Vault.TLSSkipVerify, err = a.tlsSkipVerify()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func serviceaccount(pod *corev1.Pod) (string, string) {
