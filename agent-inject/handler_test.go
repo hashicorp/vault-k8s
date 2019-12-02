@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
-	"github.com/hashicorp/vault-k8s/agent-inject/patch"
 	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/require"
 	"k8s.io/api/admission/v1beta1"
@@ -135,7 +134,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},
@@ -179,7 +178,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},
@@ -228,7 +227,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},
@@ -273,7 +272,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},
@@ -315,7 +314,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},
@@ -357,7 +356,7 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/metadata/annotations/" + patch.EscapeJSONPointer(agent.AnnotationAgentStatus),
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
 		},

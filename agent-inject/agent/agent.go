@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/vault-k8s/agent-inject/patch"
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
@@ -140,14 +139,14 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
-	*a.Patches = append(*a.Patches, patch.AddVolume(
+	*a.Patches = append(*a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		[]corev1.Volume{a.ContainerVolume()},
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
 	if a.ConfigMapName != "" {
-		*a.Patches = append(*a.Patches, patch.AddVolume(
+		*a.Patches = append(*a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
 			"/spec/volumes")...)
@@ -155,7 +154,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add TLS Secret if one was provided
 	if a.Vault.TLSSecret != "" {
-		*a.Patches = append(*a.Patches, patch.AddVolume(
+		*a.Patches = append(*a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
 			"/spec/volumes")...)
@@ -163,7 +162,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	//Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
-		*a.Patches = append(*a.Patches, patch.AddVolumeMount(
+		*a.Patches = append(*a.Patches, addVolumeMounts(
 			container.VolumeMounts,
 			[]corev1.VolumeMount{a.ContainerVolumeMount()},
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
@@ -175,7 +174,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		*a.Patches = append(*a.Patches, patch.AddContainer(
+		*a.Patches = append(*a.Patches, addContainers(
 			a.Pod.Spec.InitContainers,
 			[]corev1.Container{container},
 			"/spec/initContainers")...)
@@ -187,14 +186,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		*a.Patches = append(*a.Patches, patch.AddContainer(
+		*a.Patches = append(*a.Patches, addContainers(
 			a.Pod.Spec.Containers,
 			[]corev1.Container{container},
 			"/spec/containers")...)
 	}
 
 	// Add annotations so that we know we're injected
-	*a.Patches = append(*a.Patches, patch.UpdateAnnotation(
+	*a.Patches = append(*a.Patches, updateAnnotations(
 		a.Pod.Annotations,
 		map[string]string{AnnotationAgentStatus: "injected"})...)
 

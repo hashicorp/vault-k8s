@@ -1,17 +1,16 @@
-package patch
+package agent
 
 import (
-	"strings"
-
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
+	"strings"
 )
 
-func AddVolume(target, add []corev1.Volume, base string) []jsonpatch.JsonPatchOperation {
+func addVolumes(target, volumes []corev1.Volume, base string) []jsonpatch.JsonPatchOperation {
 	var result []jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
-	for _, v := range add {
+	for _, v := range volumes {
 		value = v
 		path := base
 		if first {
@@ -30,11 +29,11 @@ func AddVolume(target, add []corev1.Volume, base string) []jsonpatch.JsonPatchOp
 	return result
 }
 
-func AddVolumeMount(target, add []corev1.VolumeMount, base string) []jsonpatch.JsonPatchOperation {
+func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []jsonpatch.JsonPatchOperation {
 	var result []jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
-	for _, v := range add {
+	for _, v := range mounts {
 		value = v
 		path := base
 		if first {
@@ -53,11 +52,11 @@ func AddVolumeMount(target, add []corev1.VolumeMount, base string) []jsonpatch.J
 	return result
 }
 
-func AddContainer(target, add []corev1.Container, base string) []jsonpatch.JsonPatchOperation {
+func addContainers(target, containers []corev1.Container, base string) []jsonpatch.JsonPatchOperation {
 	var result []jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
-	for _, container := range add {
+	for _, container := range containers {
 		value = container
 		path := base
 		if first {
@@ -77,19 +76,19 @@ func AddContainer(target, add []corev1.Container, base string) []jsonpatch.JsonP
 	return result
 }
 
-func UpdateAnnotation(target, add map[string]string) []jsonpatch.JsonPatchOperation {
+func updateAnnotations(target, annotations map[string]string) []jsonpatch.JsonPatchOperation {
 	var result []jsonpatch.JsonPatchOperation
 	if len(target) == 0 {
 		result = append(result, jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      "/metadata/annotations",
-			Value:     add,
+			Value:     annotations,
 		})
 
 		return result
 	}
 
-	for key, value := range add {
+	for key, value := range annotations {
 		result = append(result, jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      "/metadata/annotations/" + EscapeJSONPointer(key),
