@@ -9,9 +9,8 @@ import (
 func TestDefaultAnnotationsCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
 
-	err := DefaultAnnotations(pod, "foobar-image", "http://foobar:8200", "test", patches)
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test")
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -42,9 +41,8 @@ func TestDefaultAnnotationsCanSet(t *testing.T) {
 func TestDefaultAnnotationsDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
 
-	err := DefaultAnnotations(pod, "", "http://foobar:8200", "test", patches)
+	err := Init(pod, "", "http://foobar:8200", "test")
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -72,9 +70,8 @@ func TestDefaultAnnotationsDefaults(t *testing.T) {
 func TestDefaultAnnotationsError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
 
-	err := DefaultAnnotations(pod, "image", "", "namespace", patches)
+	err := Init(pod, "image", "", "namespace")
 	if err == nil {
 		t.Error("expected error no address, got none")
 	}
@@ -84,7 +81,7 @@ func TestDefaultAnnotationsError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = DefaultAnnotations(pod, "image", "address", "", patches)
+	err = Init(pod, "image", "address", "")
 	if err == nil {
 		t.Error("expected error for no namespace, got none")
 	}

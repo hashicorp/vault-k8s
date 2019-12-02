@@ -135,7 +135,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 
 	h.Log.Info("setting default annotations..")
 	var patches []jsonpatch.JsonPatchOperation
-	err = agent.DefaultAnnotations(&pod, h.ImageVault, h.VaultAddress, req.Namespace, &patches)
+	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, req.Namespace)
 	if err != nil {
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"github.com/mattbaird/jsonpatch"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"strconv"
@@ -98,10 +97,10 @@ const (
 	AnnotationVaultRole = "vault.hashicorp.com/role"
 )
 
-// DefaultAnnotations are the expected annotations required to create a new instance
+// Init are the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
-func DefaultAnnotations(pod *corev1.Pod, image, address, namespace string, patches *[]jsonpatch.JsonPatchOperation) error {
+func Init(pod *corev1.Pod, image, address, namespace string) error {
 	if address == "" {
 		return errors.New("address for Vault required")
 	}
