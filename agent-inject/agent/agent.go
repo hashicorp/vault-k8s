@@ -78,7 +78,7 @@ func New(pod *corev1.Pod, patches *[]jsonpatch.JsonPatchOperation) (Agent, error
 func ShouldInject(pod *corev1.Pod) (bool, error) {
 	raw, ok := pod.Annotations[AnnotationAgentInject]
 	if !ok {
-		return false, fmt.Errorf("no inject annotation found")
+		return false, nil
 	}
 
 	inject, err := strconv.ParseBool(raw)
