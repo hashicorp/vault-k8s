@@ -12,6 +12,7 @@ import (
 const (
 	// AnnotationAgentStatus is the key of the annotation that is added to
 	// a pod after an injection is done.
+	// There's only one valid status we care about: "injected".
 	AnnotationAgentStatus = "vault.hashicorp.com/agent-inject-status"
 
 	// AnnotationAgentInject is the key of the annotation that controls whether
