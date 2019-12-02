@@ -86,8 +86,12 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, err
 	}
 
+	if !inject {
+		return false, nil
+	}
+
 	raw, ok = pod.Annotations[AnnotationAgentStatus]
-	if !ok && inject {
+	if !ok {
 		return true, nil
 	}
 
@@ -95,7 +99,7 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
-	return inject, nil
+	return true, nil
 }
 
 // Patch creates the necessary pod patches to inject the Vault Agent
