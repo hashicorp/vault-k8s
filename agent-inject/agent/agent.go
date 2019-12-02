@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/patch"
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
-	"log"
 	"strconv"
 	"strings"
 )
@@ -20,7 +19,6 @@ type Agent struct {
 	Annotations        map[string]string
 	ImageName          string
 	Inject             bool
-	Log                log.Logger
 	Namespace          string
 	Patches            *[]jsonpatch.JsonPatchOperation
 	Pod                *corev1.Pod
