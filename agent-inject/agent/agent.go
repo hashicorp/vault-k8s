@@ -26,7 +26,7 @@ type Agent struct {
 	Pod                *corev1.Pod
 	PrePopulate        bool
 	PrePopulateOnly    bool
-	Secrets            []Secret
+	Secrets            []*Secret
 	ServiceAccountName string
 	ServiceAccountPath string
 	Status             string

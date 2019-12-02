@@ -137,8 +137,8 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
 // name: foobar, value: db/creds/foobar
-func secrets(annotations map[string]string) []Secret {
-	var secrets []Secret
+func secrets(annotations map[string]string) []*Secret {
+	var secrets []*Secret
 	for name, path := range annotations {
 		if strings.Contains(name, AnnotationAgentInjectSecret) {
 			raw := strings.ReplaceAll(name, AnnotationAgentInjectSecret, "")
@@ -151,7 +151,7 @@ func secrets(annotations map[string]string) []Secret {
 				template = val
 			}
 
-			secrets = append(secrets, Secret{Name: name, Path: path, Template: template})
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template})
 		}
 	}
 	return secrets
