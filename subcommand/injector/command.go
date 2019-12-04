@@ -14,7 +14,6 @@ import (
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/cert"
-	k8sflags "github.com/hashicorp/vault-k8s/subcommand/flags"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 
@@ -35,12 +34,8 @@ type Command struct {
 	flagKeyFile      string              // TLS private key to serve
 	flagAutoName     string              // MutatingWebhookConfiguration for updating
 	flagAutoHosts    string              // SANs for the auto-generated TLS cert.
-	flagInterval     flags.DurationValue // Interval to query Vault server
 	flagVaultService string              // Name of the Vault service
-
-	flagVaultImage string
-
-	k8s *k8sflags.K8SFlags
+	flagVaultImage string                // Name of the Vault Image to use
 
 	flagSet *flag.FlagSet
 
