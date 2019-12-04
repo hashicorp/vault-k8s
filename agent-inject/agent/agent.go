@@ -15,43 +15,118 @@ const (
 	DefaultVaultImage = "hashicorp/vault:1.3.1"
 )
 
+// Agent is the top level structure holding all the
+// configurations for the Vault Agent container.
 type Agent struct {
-	Annotations        map[string]string
-	ImageName          string
-	Inject             bool
-	Namespace          string
-	Patches            []*jsonpatch.JsonPatchOperation
-	Pod                *corev1.Pod
-	PrePopulate        bool
-	PrePopulateOnly    bool
-	Secrets            []*Secret
+	// Annotations are the current pod annotations used to
+	// configure the Vault Agent container.
+	Annotations map[string]string
+
+	// ImageName is the name of the Vault image to use for the
+	// sidecar container.
+	ImageName string
+
+	// Inject is the flag used to determine if a container should be requested
+	// in a pod request.
+	Inject bool
+
+	// Namespace is the Kubernetes namespace the request originated from.
+	Namespace string
+
+	// Patches are all the mutations we will make to the pod request.
+	Patches []*jsonpatch.JsonPatchOperation
+
+	// Pod is the original Kubernetes pod spec.
+	Pod *corev1.Pod
+
+	// PrePopulate controls whether an init container is added to the request.
+	PrePopulate bool
+
+	// PrePopulateOnly controls whether an init container is the _only_ container
+	//added to the request.
+	PrePopulateOnly bool
+
+	// Secrets are all the templates, the path in Vault where the secret can be
+	//found, and the unique name of the secret which will be used for the filename.
+	Secrets []*Secret
+
+	// ServiceAccountName is the Kubernetes service account name for the pod.
+	// This is used when we mount the service account to the  Vault Agent container(s).
 	ServiceAccountName string
+
+	// ServiceAccountPath is the path on disk where the service account JWT
+	// can be located.  This is used when we mount the service account to the
+	// Vault Agent container(s).
 	ServiceAccountPath string
-	Status             string
-	ConfigMapName      string
-	Vault              Vault
+
+	// Status is the current injection status.  The only status considered is "injected",
+	// which prevents further mutations.  A user can patch this annotation to force a new
+	// mutation.
+	Status string
+
+	// ConfigMapName is the name of the configmap a user wants to mount to Vault Agent
+	// container(s).
+	ConfigMapName string
+
+	// Vault is the structure holding all the Vault specific configurations.
+	Vault Vault
 }
 
 type Secret struct {
-	Name     string
-	Path     string
+	// Name of the secret used as the filename for the rendered secret file.
+	Name string
+
+	// Path in Vault where the secret desired can be found.
+	Path string
+
+	// Template is the optional custom template to use when rendering the secret.
 	Template string
 }
 
 type Vault struct {
-	Address          string
-	CACert           string
-	CAKey            string
-	ClientCert       string
-	ClientKey        string
+	// Address is the Vault service address.
+	Address string
+
+	// CACert is the name of the Certificate Authority certificate
+	// to use when validating Vault's server certificates.
+	CACert string
+
+	// CAKey is the name of the Certificate Authority key
+	// to use when validating Vault's server certificates.
+	CAKey string
+
+	// ClientCert is the name of the client certificate to use when communicating
+	// with Vault over TLS.
+	ClientCert string
+
+	// ClientKey is the name of the client key to use when communicating
+	// with Vault over TLS.
+	ClientKey string
+
+	// ClientMaxRetries configures the number of retries the client should make
+	// when 5-- errors are received from the Vault server.  Default is 2.
 	ClientMaxRetries string
-	ClientTimeout    string
-	Role             string
-	TLSSecret        string
-	TLSSkipVerify    bool
-	TLSServerName    string
+
+	// ClientTimeout is the max number in seconds the client should attempt to
+	// make a request to the Vault server.
+	ClientTimeout string
+
+	// Role is the name of the Vault role to use for authentication.
+	Role string
+
+	// TLSSecret is the name of the secret to be mounted to the Vault Agent container
+	// containing the TLS certificates required to communicate with Vault.
+	TLSSecret string
+
+	// TLSSkipVerify toggles verification of Vault's certificates.
+	TLSSkipVerify bool
+
+	// TLSServerName is the name of the Vault server to use when validating Vault's
+	// TLS certificates.
+	TLSServerName string
 }
 
+// New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (Agent, error) {
 	saName, saPath := serviceaccount(pod)
 
@@ -121,11 +196,15 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
+	// This shouldn't happen so bail.
 	raw, ok = pod.Annotations[AnnotationAgentStatus]
 	if !ok {
 		return true, nil
 	}
 
+	// "injected" is the only status we care about.  Don't do
+	// anything if it's set.  The user can update the status
+	// to force a new mutation.
 	if raw == "injected" {
 		return false, nil
 	}
@@ -209,19 +288,6 @@ func (a *Agent) Patch() ([]byte, error) {
 	return patches, nil
 }
 
-func serviceaccount(pod *corev1.Pod) (string, string) {
-	var serviceAccountName, serviceAccountPath string
-	for _, container := range pod.Spec.Containers {
-		for _, volumes := range container.VolumeMounts {
-			if strings.Contains(volumes.MountPath, "serviceaccount") {
-				return volumes.Name, volumes.MountPath
-			}
-		}
-	}
-
-	return serviceAccountName, serviceAccountPath
-}
-
 // Validate the instance of Agent to ensure we have everything needed
 // for basic functionality.
 func (a *Agent) Validate() error {
@@ -247,4 +313,16 @@ func (a *Agent) Validate() error {
 		}
 	}
 	return nil
+}
+
+func serviceaccount(pod *corev1.Pod) (string, string) {
+	var serviceAccountName, serviceAccountPath string
+	for _, container := range pod.Spec.Containers {
+		for _, volumes := range container.VolumeMounts {
+			if strings.Contains(volumes.MountPath, "serviceaccount") {
+				return volumes.Name, volumes.MountPath
+			}
+		}
+	}
+	return serviceAccountName, serviceAccountPath
 }

@@ -56,7 +56,7 @@ const (
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
 
-	// annotationVaultService is the name of the service to proxy. This defaults
+	// AnnotationVaultService is the name of the service to proxy. This defaults
 	// to the name of the first container.
 	AnnotationVaultService = "vault.hashicorp.com/service"
 
