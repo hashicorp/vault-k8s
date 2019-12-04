@@ -12,6 +12,20 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	var config []byte
 	var err error
 
+	if a.Vault.ClientTimeout != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_CLIENT_TIMEOUT",
+			Value: a.Vault.ClientTimeout,
+		})
+	}
+
+	if a.Vault.ClientMaxRetries != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_MAX_RETRIES",
+			Value: a.Vault.ClientMaxRetries,
+		})
+	}
+
 	if a.ConfigMapName == "" {
 		config, err = a.newConfig(init)
 		if err != nil {

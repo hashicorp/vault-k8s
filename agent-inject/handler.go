@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
+	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +115,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	h.Log.Info("checking namespaces..")
-	if systemNamespace(req.Namespace) {
+	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
 		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
 		return admissionError(err)
 	}
@@ -163,15 +164,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	resp.PatchType = &patchType
 
 	return resp
-}
-
-func systemNamespace(namespace string) bool {
-	for _, systemNS := range kubeSystemNamespaces {
-		if systemNS == namespace {
-			return true
-		}
-	}
-	return false
 }
 
 func admissionError(err error) *v1beta1.AdmissionResponse {
