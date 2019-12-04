@@ -104,9 +104,9 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := &cert.Notify{Ch: certCh, Source: certSource}
+	certNotify := cert.NewNotify(context.Background(), certCh, certSource)
 	defer certNotify.Stop()
-	go certNotify.Start(context.Background())
+	go certNotify.Run()
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 	go c.certWatcher(ctx, certCh, clientset)

@@ -10,16 +10,16 @@ import (
 func TestNotify(t *testing.T) {
 	t.Parallel()
 
-	// Source is just randomly generated
+	// source is just randomly generated
 	source := testGenSource()
 	source.Expiry = 5 * time.Second
 	source.ExpiryWithin = 2 * time.Second
 
 	// Create notifier
 	ch := make(chan Bundle)
-	n := &Notify{Ch: ch, Source: source}
+	n := NewNotify(context.Background(), ch, source)
 	defer n.Stop()
-	go n.Start(context.Background())
+	go n.Run()
 
 	// We should receive an update almost immediately
 	select {
@@ -57,42 +57,46 @@ func TestNotifyRace(t *testing.T) {
 	// giving races a chance to be detected.
 	done := make(chan interface{})
 
-	// Set up a realistic Notify object, modelling off of its use in
-	// command.go.
-	certCh := make(chan Bundle)
-	var certSource Source = &GenSource{
-		Name:  "Agent Inject",
-		Hosts: []string{"some", "hosts"},
-	}
-	n := &Notify{Ch: certCh, Source: certSource}
 	for i := 0; i < numParallel; i++ {
+
+		// Set up a realistic Notify object, modelling off of its use in
+		// command.go.
+		certCh := make(chan Bundle)
+		var certSource Source = &GenSource{
+			Name:  "Agent Inject",
+			Hosts: []string{"some", "hosts"},
+		}
+		n := NewNotify(ctx, certCh, certSource)
+
 		go func() {
 			<-start
-			fmt.Println("starting Start")
-			n.Start(ctx)
-			fmt.Println("finishing Start")
+			n.Run()
 			done <- true
 		}()
 		go func() {
 			<-start
-			fmt.Println("starting Stop")
 			n.Stop()
-			fmt.Println("finishing Stop")
 			done <- true
+		}()
+		go func() {
+			for bundle := range certCh {
+				// we're just reading all the certs off the channel here
+				// so we won't block.
+				fmt.Sprintf("%+v", bundle)
+			}
 		}()
 	}
 	close(start)
 
 	// For each numParallel, we start 2 goroutines. Now we need
 	// to wait for them all to finish. Let's give up to 10 seconds.
-	timer := time.NewTimer(10 * time.Second)
+	timer := time.NewTimer(time.Minute)
 	for i := 0; i < (2 * numParallel); i++ {
 		select {
 		case <-done:
-			fmt.Printf("%d are done\n", i)
 			continue
 		case <- timer.C:
-			t.Fatal("test didn't finish in 10 seconds")
+			t.Fatal("test didn't finish in a minute")
 		}
 	}
 

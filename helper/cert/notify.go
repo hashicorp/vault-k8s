@@ -3,67 +3,59 @@ package cert
 import (
 	"context"
 	"log"
-	"sync"
 	"time"
 )
 
-// Notify sends an update on a channel whenever a Source has an updated
-// cert bundle. This struct maintains state, performs backoffs, etc.
-type Notify struct {
-	// Ch is where the notifications for new bundles are sent. If this
-	// blocks then the notify loop will also be blocked, so downstream
-	// users should process this channel in a timely manner.
-	Ch chan<- Bundle
-
-	// Source is the source of certificates.
-	Source Source
-
-	mu        sync.Mutex
-	ctx       context.Context
-	ctxCancel context.CancelFunc
-	doneCh    <-chan struct{}
+func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source) *Notify {
+	return &Notify{
+		ctx: ctx,
+		stopChan: make(chan interface{}),
+		ch:     newBundle,
+		source: source,
+	}
 }
 
-// Start starts the notifier. This blocks and should be started in a goroutine.
+// Notify sends an update on a channel whenever a source has an updated
+// cert bundle. This struct maintains state, performs backoffs, etc.
+type Notify struct {
+	ctx       context.Context
+	stopChan  chan interface{}
+
+	// ch is where the notifications for new bundles are sent. If this
+	// blocks then the notify loop will also be blocked, so downstream
+	// users should process this channel in a timely manner.
+	ch chan<- Bundle
+
+	// source is the source of certificates.
+	source Source
+}
+
+// Run starts the notifier. This blocks and should be started in a goroutine.
 // To stop the notifier, the passed in context can be cancelled OR Stop can
 // be called. In either case, Stop will block until the notifier is stopped.
-func (n *Notify) Start(ctx context.Context) {
-	ctx, cancelFunc := context.WithCancel(ctx)
-	defer cancelFunc()
-
-	doneCh := make(chan struct{})
-	defer close(doneCh)
-
-	n.mu.Lock()
-	if n.doneCh != nil {
-		// Already started
-		return
-	}
-	n.ctx = ctx
-	n.ctxCancel = cancelFunc
-	n.doneCh = doneCh
-	n.mu.Unlock()
-
+func (n *Notify) Run() {
 	var last *Bundle
-	retryTicker := time.NewTicker(1)
+	retryTicker := time.NewTicker(5 * time.Second)
 	defer retryTicker.Stop()
+	first := true
 	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-retryTicker.C:
+		if first {
+			// On the first pass we want to check for the cert immediately.
+			first = false
+		} else {
+			// On all other passes we want to wait for 5 seconds, interruptibly.
+			select {
+			case <-n.ctx.Done():
+				return
+			case <-n.stopChan:
+				return
+			case <-retryTicker.C:
+			}
 		}
 
-		next, err := n.Source.Certificate(ctx, last)
+		next, err := n.source.Certificate(n.ctx, last)
 		if err != nil {
 			log.Printf("[ERROR] helper/cert: error loading next cert: %s", err)
-
-			// If the ctx ended, then we exit
-			if ctx.Err() != nil {
-				return
-			}
-
-			retryTicker = time.NewTicker(5 * time.Second)
 			continue
 		}
 
@@ -72,24 +64,23 @@ func (n *Notify) Start(ctx context.Context) {
 			continue
 		}
 		last = &next
-		n.Ch <- next
+		// Send the certificate out, but in case it hangs, because
+		// the certificates aren't being pulled off the channel quickly
+		// enough, also listen for other stops.
+		select {
+		case n.ch <- next:
+			continue
+		case <-n.ctx.Done():
+			return
+		case <-n.stopChan:
+			return
+		}
+
 	}
 }
 
 // Stops the notifier. Blocks until stopped. If the notifier isn't running
 // this returns immediately.
 func (n *Notify) Stop() {
-	n.mu.Lock()
-	doneCh := n.doneCh
-	if n.ctxCancel != nil {
-		n.ctxCancel()
-		n.ctxCancel = nil
-	}
-	n.mu.Unlock()
-
-	// Block on the done channel if it exists. If it doesn't exist, then
-	// we never started.
-	if doneCh != nil {
-		<-doneCh
-	}
+	close(n.stopChan)
 }
