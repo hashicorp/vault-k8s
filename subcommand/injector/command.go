@@ -4,9 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -66,6 +69,23 @@ func (c *Command) init() {
 // TODO Add more flags
 // TODO Add flag for log level
 func (c *Command) Run(args []string) int {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	trap := make(chan os.Signal, 1)
+	signal.Notify(trap, os.Interrupt)
+	defer func() {
+		signal.Stop(trap)
+		cancelFunc()
+	}()
+	go func() {
+		select {
+		case <-trap:
+			cancelFunc()
+		case <-ctx.Done():
+		}
+	}()
+
 	c.once.Do(c.init)
 	if err := c.flagSet.Parse(args); err != nil {
 		return 1
@@ -104,11 +124,8 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(context.Background(), certCh, certSource)
-	defer certNotify.Stop()
+	certNotify := cert.NewNotify(ctx, certCh, certSource)
 	go certNotify.Run()
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
 	go c.certWatcher(ctx, certCh, clientset)
 
 	logger := hclog.Default().Named("handler")
@@ -154,7 +171,7 @@ func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 	certRaw := c.cert.Load()
 	if certRaw == nil {
-		return nil, fmt.Errorf("No certificate available.")
+		return nil, errors.New("no certificate available")
 	}
 
 	return certRaw.(*tls.Certificate), nil
