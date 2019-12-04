@@ -22,8 +22,11 @@ import (
 )
 
 var (
-	codecs               = serializer.NewCodecFactory(runtime.NewScheme())
-	deserializer         = codecs.UniversalDeserializer()
+	deserializer = func() runtime.Decoder {
+		codecs := serializer.NewCodecFactory(runtime.NewScheme())
+		return codecs.UniversalDeserializer()
+	}
+
 	kubeSystemNamespaces = []string{
 		metav1.NamespaceSystem,
 		metav1.NamespacePublic,
@@ -73,7 +76,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	var admReq v1beta1.AdmissionReview
 	var admResp v1beta1.AdmissionReview
-	if _, _, err := deserializer.Decode(body, nil, &admReq); err != nil {
+	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
 		h.Log.Error("could not decode admission request", "Error", err)
 		admResp.Response = admissionError(err)
 	} else {
