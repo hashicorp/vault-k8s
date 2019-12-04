@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -172,7 +173,7 @@ func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 	certRaw := c.cert.Load()
 	if certRaw == nil {
-		return nil, fmt.Errorf("No certificate available.")
+		return nil, errors.New("no certificate available")
 	}
 
 	return certRaw.(*tls.Certificate), nil
