@@ -214,8 +214,7 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
 			if strings.Contains(volumes.MountPath, "serviceaccount") {
-				serviceAccountName = volumes.Name
-				serviceAccountPath = volumes.MountPath
+				return volumes.Name, volumes.MountPath
 			}
 		}
 	}
