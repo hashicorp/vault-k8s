@@ -7,7 +7,10 @@ import (
 )
 
 // ContainerInitSidecar creates a new init container to be added
-// to the pod being mutated.
+// to the pod being mutated.  After Vault 1.4 is released, this can
+// be removed because an exit_after_auth environment variable is
+// available for the agent.  This means we won't need to generate
+// two config files.
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	runAsUser := int64(100)
 	runAsGroup := int64(1000)
@@ -45,8 +48,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		})
 	}
 
-	init := true
-	envs, err := a.ContainerEnvVars(init)
+	envs, err := a.ContainerEnvVars(true)
 	if err != nil {
 		return corev1.Container{}, err
 	}
