@@ -7,6 +7,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
 	"time"
 
@@ -66,6 +68,23 @@ func (c *Command) init() {
 // TODO Add more flags
 // TODO Add flag for log level
 func (c *Command) Run(args []string) int {
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	trap := make(chan os.Signal, 1)
+	signal.Notify(trap, os.Interrupt)
+	defer func() {
+		signal.Stop(trap)
+		cancelFunc()
+	}()
+	go func() {
+		select {
+		case <-trap:
+			cancelFunc()
+		case <-ctx.Done():
+		}
+	}()
+
 	c.once.Do(c.init)
 	if err := c.flagSet.Parse(args); err != nil {
 		return 1
@@ -106,9 +125,8 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := &cert.Notify{Ch: certCh, Source: certSource}
 	defer certNotify.Stop()
-	go certNotify.Start(context.Background())
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
+
+	go certNotify.Start(ctx)
 	go c.certWatcher(ctx, certCh, clientset)
 
 	logger := hclog.Default().Named("handler")
