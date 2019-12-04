@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -127,8 +126,4 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 
 func (c *Config) render() ([]byte, error) {
 	return json.Marshal(c)
-}
-
-func base64Encode(config []byte) string {
-	return base64.StdEncoding.EncodeToString(config)
 }

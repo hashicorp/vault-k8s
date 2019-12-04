@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/base64"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -17,7 +18,7 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 			return envs, err
 		}
 
-		b64Config := base64Encode(config)
+		b64Config := base64.StdEncoding.EncodeToString(config)
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_CONFIG",
 			Value: b64Config,
