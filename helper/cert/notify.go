@@ -45,7 +45,15 @@ func (n *Notify) Start(ctx context.Context) {
 	n.mu.Unlock()
 
 	var last *Bundle
+	retryTicker := time.NewTicker(1)
+	defer retryTicker.Stop()
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-retryTicker.C:
+		}
+
 		next, err := n.Source.Certificate(ctx, last)
 		if err != nil {
 			log.Printf("[ERROR] helper/cert: error loading next cert: %s", err)
@@ -55,7 +63,7 @@ func (n *Notify) Start(ctx context.Context) {
 				return
 			}
 
-			time.Sleep(5 * time.Second) // note: maybe should backoff
+			retryTicker = time.NewTicker(5 * time.Second)
 			continue
 		}
 
@@ -64,13 +72,7 @@ func (n *Notify) Start(ctx context.Context) {
 			continue
 		}
 		last = &next
-
-		// Send the update, or quit if we were cancelled
-		select {
-		case n.Ch <- next:
-		case <-ctx.Done():
-			return
-		}
+		n.Ch <- next
 	}
 }
 
