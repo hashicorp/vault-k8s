@@ -8,8 +8,7 @@ import (
 
 func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source) *Notify {
 	return &Notify{
-		ctx: ctx,
-		stopChan: make(chan interface{}),
+		ctx:    ctx,
 		ch:     newBundle,
 		source: source,
 	}
@@ -18,8 +17,7 @@ func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source) *Not
 // Notify sends an update on a channel whenever a source has an updated
 // cert bundle. This struct maintains state, performs backoffs, etc.
 type Notify struct {
-	ctx       context.Context
-	stopChan  chan interface{}
+	ctx context.Context
 
 	// ch is where the notifications for new bundles are sent. If this
 	// blocks then the notify loop will also be blocked, so downstream
@@ -47,8 +45,6 @@ func (n *Notify) Run() {
 			select {
 			case <-n.ctx.Done():
 				return
-			case <-n.stopChan:
-				return
 			case <-retryTicker.C:
 			}
 		}
@@ -72,15 +68,6 @@ func (n *Notify) Run() {
 			continue
 		case <-n.ctx.Done():
 			return
-		case <-n.stopChan:
-			return
 		}
-
 	}
-}
-
-// Stops the notifier. Blocks until stopped. If the notifier isn't running
-// this returns immediately.
-func (n *Notify) Stop() {
-	close(n.stopChan)
 }

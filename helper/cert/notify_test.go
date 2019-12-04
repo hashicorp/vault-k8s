@@ -18,7 +18,6 @@ func TestNotify(t *testing.T) {
 	// Create notifier
 	ch := make(chan Bundle)
 	n := NewNotify(context.Background(), ch, source)
-	defer n.Stop()
 	go n.Run()
 
 	// We should receive an update almost immediately
@@ -46,10 +45,6 @@ func TestNotifyRace(t *testing.T) {
 	// Use an arbitrary amount of parallelism to try to cause a race.
 	numParallel := 100
 
-	// Use one background context for everything since that could happen
-	// IRL.
-	ctx := context.Background()
-
 	// The start channel will be used to fire everything at once.
 	start := make(chan interface{})
 
@@ -58,6 +53,10 @@ func TestNotifyRace(t *testing.T) {
 	done := make(chan interface{})
 
 	for i := 0; i < numParallel; i++ {
+
+		// Use one background context for everything since that could happen
+		// IRL.
+		ctx, cancel := context.WithCancel(context.Background())
 
 		// Set up a realistic Notify object, modelling off of its use in
 		// command.go.
@@ -75,7 +74,7 @@ func TestNotifyRace(t *testing.T) {
 		}()
 		go func() {
 			<-start
-			n.Stop()
+			cancel()
 			done <- true
 		}()
 		go func() {
@@ -95,7 +94,7 @@ func TestNotifyRace(t *testing.T) {
 		select {
 		case <-done:
 			continue
-		case <- timer.C:
+		case <-timer.C:
 			t.Fatal("test didn't finish in a minute")
 		}
 	}
