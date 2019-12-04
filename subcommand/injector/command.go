@@ -29,13 +29,13 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen       string              // Address of Vault Server
-	flagCertFile     string              // TLS Certificate to serve
-	flagKeyFile      string              // TLS private key to serve
-	flagAutoName     string              // MutatingWebhookConfiguration for updating
-	flagAutoHosts    string              // SANs for the auto-generated TLS cert.
-	flagVaultService string              // Name of the Vault service
-	flagVaultImage string                // Name of the Vault Image to use
+	flagListen       string // Address of Vault Server
+	flagCertFile     string // TLS Certificate to serve
+	flagKeyFile      string // TLS private key to serve
+	flagAutoName     string // MutatingWebhookConfiguration for updating
+	flagAutoHosts    string // SANs for the auto-generated TLS cert.
+	flagVaultService string // Name of the Vault service
+	flagVaultImage   string // Name of the Vault Image to use
 
 	flagSet *flag.FlagSet
 
