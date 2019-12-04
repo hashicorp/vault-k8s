@@ -50,7 +50,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 		msg := fmt.Sprintf("Invalid content-type: %q", ct)
 		http.Error(w, msg, http.StatusBadRequest)
-		h.Log.Error("error on request", "error", msg, "Code", http.StatusBadRequest)
+		h.Log.Warn("warning for request", "Warn", msg, "Code", http.StatusBadRequest)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if len(body) == 0 {
 		msg := "Empty request body"
 		http.Error(w, msg, http.StatusBadRequest)
-		h.Log.Error("error on request", "Error", msg, "Code", http.StatusBadRequest)
+		h.Log.Error("warning for request", "Warn", msg, "Code", http.StatusBadRequest)
 		return
 	}
 
@@ -114,13 +114,13 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		UID:     req.UID,
 	}
 
-	h.Log.Info("checking namespaces..")
+	h.Log.Debug("checking namespaces..")
 	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
 		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
 		return admissionError(err)
 	}
 
-	h.Log.Info("checking if should inject agent..")
+	h.Log.Debug("checking if should inject agent..")
 	inject, err := agent.ShouldInject(&pod)
 	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
 		err := fmt.Errorf("error checking if should inject agent: %s", err)
@@ -129,7 +129,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		return resp
 	}
 
-	h.Log.Info("setting default annotations..")
+	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
 
 	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, req.Namespace)
@@ -138,21 +138,21 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		return admissionError(err)
 	}
 
-	h.Log.Info("creating new agent..")
+	h.Log.Debug("creating new agent..")
 	agentSidecar, err := agent.New(&pod, patches)
 	if err != nil {
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
 		return admissionError(err)
 	}
 
-	h.Log.Info("validating agent configuration..")
+	h.Log.Debug("validating agent configuration..")
 	err = agentSidecar.Validate()
 	if err != nil {
 		err := fmt.Errorf("error validating agent configuration: %s", err)
 		return admissionError(err)
 	}
 
-	h.Log.Info("creating patches for the pod..")
+	h.Log.Debug("creating patches for the pod..")
 	patch, err := agentSidecar.Patch()
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)

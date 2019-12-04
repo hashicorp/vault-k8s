@@ -64,6 +64,7 @@ func (c *Command) init() {
 
 // TODO Add auto-tls
 // TODO Add more flags
+// TODO Add flag for log level
 func (c *Command) Run(args []string) int {
 	c.once.Do(c.init)
 	if err := c.flagSet.Parse(args); err != nil {
@@ -110,13 +111,16 @@ func (c *Command) Run(args []string) int {
 	defer cancelFunc()
 	go c.certWatcher(ctx, certCh, clientset)
 
+	logger := hclog.Default().Named("handler")
+	logger.SetLevel(hclog.Info)
+
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:      c.flagVaultService,
 		ImageVault:        c.flagVaultImage,
 		Clientset:         clientset,
 		RequireAnnotation: true,
-		Log:               hclog.Default().Named("handler"),
+		Log:               logger,
 	}
 
 	mux := http.NewServeMux()
