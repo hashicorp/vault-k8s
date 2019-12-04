@@ -1,13 +1,14 @@
 package agent
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"testing"
 
 	"github.com/mattbaird/jsonpatch"
 )
 
-func TestDefaultAnnotationsCanSet(t *testing.T) {
+func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
@@ -38,7 +39,7 @@ func TestDefaultAnnotationsCanSet(t *testing.T) {
 	}
 }
 
-func TestDefaultAnnotationsDefaults(t *testing.T) {
+func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
@@ -67,7 +68,7 @@ func TestDefaultAnnotationsDefaults(t *testing.T) {
 	}
 }
 
-func TestDefaultAnnotationsError(t *testing.T) {
+func TestInitError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
@@ -258,5 +259,14 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		} else if err == nil && !tt.valid {
 			t.Errorf("[%d] got no error, should have: %s", i, err)
 		}
+	}
+}
+
+func TestInitEmptyPod(t *testing.T) {
+	var pod *corev1.Pod
+
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test")
+	if err == nil {
+		t.Errorf("got no error, shouldn have")
 	}
 }

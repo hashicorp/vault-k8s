@@ -102,6 +102,10 @@ const (
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
 func Init(pod *corev1.Pod, image, address, namespace string) error {
+	if pod == nil {
+		return errors.New("pod is empty")
+	}
+
 	if address == "" {
 		return errors.New("address for Vault required")
 	}
