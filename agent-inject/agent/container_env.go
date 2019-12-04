@@ -9,8 +9,6 @@ import (
 // for the Vault Agent sidecar.
 func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	var envs []corev1.EnvVar
-	var config []byte
-	var err error
 
 	if a.Vault.ClientTimeout != "" {
 		envs = append(envs, corev1.EnvVar{
@@ -27,7 +25,7 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	}
 
 	if a.ConfigMapName == "" {
-		config, err = a.newConfig(init)
+		config, err := a.newConfig(init)
 		if err != nil {
 			return envs, err
 		}
