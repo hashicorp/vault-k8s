@@ -7,8 +7,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-func addVolumes(target, volumes []corev1.Volume, base string) []jsonpatch.JsonPatchOperation {
-	var result []jsonpatch.JsonPatchOperation
+func addVolumes(target, volumes []corev1.Volume, base string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
 	for _, v := range volumes {
@@ -21,7 +21,7 @@ func addVolumes(target, volumes []corev1.Volume, base string) []jsonpatch.JsonPa
 			path = path + "/-"
 		}
 
-		result = append(result, jsonpatch.JsonPatchOperation{
+		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      path,
 			Value:     value,
@@ -30,8 +30,8 @@ func addVolumes(target, volumes []corev1.Volume, base string) []jsonpatch.JsonPa
 	return result
 }
 
-func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []jsonpatch.JsonPatchOperation {
-	var result []jsonpatch.JsonPatchOperation
+func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
 	for _, v := range mounts {
@@ -44,7 +44,7 @@ func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []jsonpat
 			path = path + "/-"
 		}
 
-		result = append(result, jsonpatch.JsonPatchOperation{
+		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      path,
 			Value:     value,
@@ -53,8 +53,8 @@ func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []jsonpat
 	return result
 }
 
-func addContainers(target, containers []corev1.Container, base string) []jsonpatch.JsonPatchOperation {
-	var result []jsonpatch.JsonPatchOperation
+func addContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0
 	var value interface{}
 	for _, container := range containers {
@@ -67,7 +67,7 @@ func addContainers(target, containers []corev1.Container, base string) []jsonpat
 			path = path + "/-"
 		}
 
-		result = append(result, jsonpatch.JsonPatchOperation{
+		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      path,
 			Value:     value,
@@ -77,10 +77,10 @@ func addContainers(target, containers []corev1.Container, base string) []jsonpat
 	return result
 }
 
-func updateAnnotations(target, annotations map[string]string) []jsonpatch.JsonPatchOperation {
-	var result []jsonpatch.JsonPatchOperation
+func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
 	if len(target) == 0 {
-		result = append(result, jsonpatch.JsonPatchOperation{
+		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      "/metadata/annotations",
 			Value:     annotations,
@@ -90,7 +90,7 @@ func updateAnnotations(target, annotations map[string]string) []jsonpatch.JsonPa
 	}
 
 	for key, value := range annotations {
-		result = append(result, jsonpatch.JsonPatchOperation{
+		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
 			Path:      "/metadata/annotations/" + EscapeJSONPointer(key),
 			Value:     value,

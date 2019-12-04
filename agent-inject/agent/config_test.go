@@ -29,7 +29,7 @@ func TestNewConfig(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
+	var patches []*jsonpatch.JsonPatchOperation
 
 	agent, err := New(pod, patches)
 	cfg, err := agent.newConfig(true)

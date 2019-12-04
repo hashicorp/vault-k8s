@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultVaultImage = "vault:1.3.1	"
+	DefaultVaultImage = "hashicorp/vault:1.3.1"
 )
 
 type Agent struct {
@@ -20,7 +20,7 @@ type Agent struct {
 	ImageName          string
 	Inject             bool
 	Namespace          string
-	Patches            *[]jsonpatch.JsonPatchOperation
+	Patches            []*jsonpatch.JsonPatchOperation
 	Pod                *corev1.Pod
 	PrePopulate        bool
 	PrePopulateOnly    bool
@@ -52,7 +52,7 @@ type Vault struct {
 	TLSServerName    string
 }
 
-func New(pod *corev1.Pod, patches *[]jsonpatch.JsonPatchOperation) (Agent, error) {
+func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (Agent, error) {
 	saName, saPath := serviceaccount(pod)
 
 	agent := Agent{
@@ -140,14 +140,14 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
-	*a.Patches = append(*a.Patches, addVolumes(
+	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		[]corev1.Volume{a.ContainerVolume()},
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
 	if a.ConfigMapName != "" {
-		*a.Patches = append(*a.Patches, addVolumes(
+		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
 			"/spec/volumes")...)
@@ -155,7 +155,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add TLS Secret if one was provided
 	if a.Vault.TLSSecret != "" {
-		*a.Patches = append(*a.Patches, addVolumes(
+		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
 			"/spec/volumes")...)
@@ -163,7 +163,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	//Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
-		*a.Patches = append(*a.Patches, addVolumeMounts(
+		a.Patches = append(a.Patches, addVolumeMounts(
 			container.VolumeMounts,
 			[]corev1.VolumeMount{a.ContainerVolumeMount()},
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
@@ -175,7 +175,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		*a.Patches = append(*a.Patches, addContainers(
+		a.Patches = append(a.Patches, addContainers(
 			a.Pod.Spec.InitContainers,
 			[]corev1.Container{container},
 			"/spec/initContainers")...)
@@ -187,19 +187,19 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		*a.Patches = append(*a.Patches, addContainers(
+		a.Patches = append(a.Patches, addContainers(
 			a.Pod.Spec.Containers,
 			[]corev1.Container{container},
 			"/spec/containers")...)
 	}
 
 	// Add annotations so that we know we're injected
-	*a.Patches = append(*a.Patches, updateAnnotations(
+	a.Patches = append(a.Patches, updateAnnotations(
 		a.Pod.Annotations,
 		map[string]string{AnnotationAgentStatus: "injected"})...)
 
 	// Generate the patch
-	if len(*a.Patches) > 0 {
+	if len(a.Patches) > 0 {
 		var err error
 		patches, err = json.Marshal(a.Patches)
 		if err != nil {

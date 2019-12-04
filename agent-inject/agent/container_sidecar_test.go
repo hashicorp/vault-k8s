@@ -13,7 +13,7 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
+	var patches []*jsonpatch.JsonPatchOperation
 
 	err := Init(pod, "foobar-image", "http://foobar:1234", "test")
 	if err != nil {
@@ -71,7 +71,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	patches := &[]jsonpatch.JsonPatchOperation{}
+	var patches []*jsonpatch.JsonPatchOperation
 
 	err := Init(pod, "foobar-image", "http://foobar:1234", "test")
 	if err != nil {

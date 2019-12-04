@@ -110,7 +110,7 @@ func TestSecretAnnotations(t *testing.T) {
 			tt.key: tt.value,
 		}
 		pod := testPod(annotation)
-		patches := &[]jsonpatch.JsonPatchOperation{}
+		var patches []*jsonpatch.JsonPatchOperation
 
 		agent, err := New(pod, patches)
 		if err != nil {
@@ -183,7 +183,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		patches := &[]jsonpatch.JsonPatchOperation{}
+		var patches []*jsonpatch.JsonPatchOperation
 
 		agent, err := New(pod, patches)
 		if err != nil {
@@ -250,7 +250,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 	for i, tt := range tests {
 		annotations := map[string]string{tt.key: tt.value}
 		pod := testPod(annotations)
-		patches := &[]jsonpatch.JsonPatchOperation{}
+		var patches []*jsonpatch.JsonPatchOperation
 
 		_, err := New(pod, patches)
 		if err != nil && tt.valid {

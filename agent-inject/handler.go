@@ -129,7 +129,8 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	h.Log.Info("setting default annotations..")
-	var patches []jsonpatch.JsonPatchOperation
+	var patches []*jsonpatch.JsonPatchOperation
+
 	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, req.Namespace)
 	if err != nil {
 		err := fmt.Errorf("error adding default annotations: %s", err)
@@ -137,7 +138,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	h.Log.Info("creating new agent..")
-	agentSidecar, err := agent.New(&pod, &patches)
+	agentSidecar, err := agent.New(&pod, patches)
 	if err != nil {
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
 		return admissionError(err)
