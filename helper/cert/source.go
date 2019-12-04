@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-// Source should be implemented by systems that support loading TLS
+// source should be implemented by systems that support loading TLS
 // certificates. These are run for the lifetime of an application and are
 // expected to provide continuous updates to certificates as needed (updates,
 // rotation, etc.).

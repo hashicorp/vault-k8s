@@ -124,10 +124,8 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := &cert.Notify{Ch: certCh, Source: certSource}
-	defer certNotify.Stop()
-
-	go certNotify.Start(ctx)
+	certNotify := cert.NewNotify(ctx, certCh, certSource)
+	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, clientset)
 
 	logger := hclog.Default().Named("handler")

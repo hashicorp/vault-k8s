@@ -65,7 +65,7 @@ func TestGenDisk_blockWrite(t *testing.T) {
 	require.NoError(err)
 	testBundleVerify(t, &bundle)
 
-	// Start waiting for the next bundle
+	// Run waiting for the next bundle
 	nextCh := make(chan *Bundle, 1)
 	go func() {
 		next, err := source.Certificate(context.Background(), &bundle)

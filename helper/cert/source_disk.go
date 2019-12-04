@@ -20,7 +20,7 @@ type DiskSource struct {
 	pollInterval time.Duration
 }
 
-// Certificate implements Source
+// Certificate implements source
 func (s *DiskSource) Certificate(ctx context.Context, last *Bundle) (Bundle, error) {
 	// Setup the poll interval
 	pollInterval := s.pollInterval
