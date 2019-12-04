@@ -100,7 +100,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
-		h.Log.Info("%s", req.Object.Raw)
+		h.Log.Debug("%s", req.Object.Raw)
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
