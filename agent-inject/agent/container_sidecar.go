@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -13,10 +14,6 @@ const (
 // ContainerSidecar creates a new container to be added
 // to the pod being mutated.
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
-	runAsUser := int64(100)
-	runAsGroup := int64(1000)
-	runAsNonRoot := true
-
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      secretVolumeName,
@@ -59,9 +56,9 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		Image: a.ImageName,
 		Env:   envs,
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    &runAsUser,
-			RunAsGroup:   &runAsGroup,
-			RunAsNonRoot: &runAsNonRoot,
+			RunAsUser:    pointerutil.Int64Ptr(100),
+			RunAsGroup:   pointerutil.Int64Ptr(1000),
+			RunAsNonRoot: pointerutil.BoolPtr(true),
 		},
 		VolumeMounts: volumeMounts,
 		Command:      []string{"/bin/sh", "-ec"},
