@@ -72,20 +72,6 @@ func (c *Command) Run(args []string) int {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	trap := make(chan os.Signal, 1)
-	signal.Notify(trap, os.Interrupt)
-	defer func() {
-		signal.Stop(trap)
-		cancelFunc()
-	}()
-	go func() {
-		select {
-		case <-trap:
-			cancelFunc()
-		case <-ctx.Done():
-		}
-	}()
-
 	c.once.Do(c.init)
 	if err := c.flagSet.Parse(args); err != nil {
 		return 1
@@ -149,6 +135,23 @@ func (c *Command) Run(args []string) int {
 		Handler:   handler,
 		TLSConfig: &tls.Config{GetCertificate: c.getCertificate},
 	}
+
+	trap := make(chan os.Signal, 1)
+	signal.Notify(trap, os.Interrupt)
+	defer func() {
+		signal.Stop(trap)
+		cancelFunc()
+	}()
+	go func() {
+		select {
+		case <-trap:
+			if err := server.Shutdown(ctx); err != nil {
+				c.UI.Error(fmt.Sprintf("Error shutting down handler: %s", err))
+			}
+			cancelFunc()
+		case <-ctx.Done():
+		}
+	}()
 
 	injector.Log.Info("Starting handler..")
 
