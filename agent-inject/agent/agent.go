@@ -11,6 +11,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
+
 const (
 	DefaultVaultImage = "hashicorp/vault:1.3.1"
 )
