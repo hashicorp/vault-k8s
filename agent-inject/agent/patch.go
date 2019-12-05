@@ -102,7 +102,9 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 	return result
 }
 
-// https://tools.ietf.org/html/rfc6901
+// EscapeJSONPointer escapes a JSON string to be compliant with the
+// JavaScript Object Notation (JSON) Pointer syntax RFC:
+// https://tools.ietf.org/html/rfc6901.
 func EscapeJSONPointer(s string) string {
 	s = strings.Replace(s, "~", "~0", -1)
 	s = strings.Replace(s, "/", "~1", -1)
