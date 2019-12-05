@@ -77,8 +77,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	var admReq v1beta1.AdmissionReview
 	var admResp v1beta1.AdmissionReview
 	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
-		h.Log.Error("could not decode admission request", "Error", err)
-		admResp.Response = admissionError(err)
+		msg := fmt.Sprintf("error decoding admission request: %s", err)
+		http.Error(w, msg, http.StatusInternalServerError)
+		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
+		return
 	} else {
 		admResp.Response = h.Mutate(admReq.Request)
 	}
