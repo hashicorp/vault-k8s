@@ -129,10 +129,10 @@ type Vault struct {
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
-func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (Agent, error) {
+func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
 
-	agent := Agent{
+	agent := &Agent{
 		Annotations:        pod.Annotations,
 		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
 		ImageName:          pod.Annotations[AnnotationAgentImage],
