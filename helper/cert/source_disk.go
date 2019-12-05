@@ -28,7 +28,7 @@ func (s *DiskSource) Certificate(ctx context.Context, last *Bundle) (Bundle, err
 		pollInterval = 250 * time.Millisecond
 	}
 
-	// Setup the file watcher. We do this first so taht there isn't a race
+	// Setup the file watcher. We do this first so that there isn't a race
 	// between reading the files below initially and detecting a change.
 	w := watcher.New()
 	defer w.Close()
