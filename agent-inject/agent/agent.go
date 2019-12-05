@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage = "hashicorp/vault:1.3.1"
+	DefaultVaultImage = "vault:1.3.1"
 )
 
 // Agent is the top level structure holding all the
