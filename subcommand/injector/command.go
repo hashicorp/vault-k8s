@@ -11,22 +11,19 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/go-hclog"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/cert"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
-
-	"sync"
-	"sync/atomic"
-
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type Command struct {

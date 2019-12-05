@@ -3,22 +3,20 @@ package agent_inject
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/mattbaird/jsonpatch"
-	"k8s.io/client-go/kubernetes"
-
-	"io/ioutil"
-	"net/http"
-
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
+	"github.com/mattbaird/jsonpatch"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/client-go/kubernetes"
 )
 
 var (

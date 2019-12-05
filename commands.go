@@ -1,11 +1,10 @@
 package main
 
 import (
-	cmdInjector "github.com/hashicorp/vault-k8s/subcommand/injector"
-	cmdVersion "github.com/hashicorp/vault-k8s/subcommand/version"
-
 	"os"
 
+	cmdInjector "github.com/hashicorp/vault-k8s/subcommand/injector"
+	cmdVersion "github.com/hashicorp/vault-k8s/subcommand/version"
 	"github.com/hashicorp/vault-k8s/version"
 	"github.com/mitchellh/cli"
 )
