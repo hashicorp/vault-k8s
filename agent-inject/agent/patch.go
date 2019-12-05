@@ -7,6 +7,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TODO this can be broken down into a common code and type switched.
+
 func addVolumes(target, volumes []corev1.Volume, base string) []*jsonpatch.JsonPatchOperation {
 	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0
