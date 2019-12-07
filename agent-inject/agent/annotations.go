@@ -64,7 +64,7 @@ const (
 	// when communicating with Vault.
 	AnnotationVaultTLSSkipVerify = "vault.hashicorp.com/tls-skip-verify"
 
-	// AnnotationVaultTLSSecret is the n ame of the Kubernetes secret containing
+	// AnnotationVaultTLSSecret is the name of the Kubernetes secret containing
 	// client TLS certificates and keys.
 	AnnotationVaultTLSSecret = "vault.hashicorp.com/tls-secret"
 
