@@ -2,6 +2,7 @@ package cert
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -40,7 +41,18 @@ func (s *DiskSource) Certificate(ctx context.Context, last *Bundle) (Bundle, err
 		return Bundle{}, err
 	}
 	go w.Start(pollInterval)
-	w.Wait()
+
+	c := make(chan struct{})
+	go func() {
+		defer close(c)
+		w.Wait()
+	}()
+
+	select {
+	case <-c:
+	case <-time.After(5 * time.Second):
+		return Bundle{}, errors.New("watcher did not start in 5 seconds")
+	}
 
 	// At this point the file watcher is started and we can start reading
 	// events. But we want to load the files as-is right now so we can
