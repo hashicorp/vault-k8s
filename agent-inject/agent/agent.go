@@ -32,10 +32,10 @@ type Agent struct {
 	// in a pod request.
 	Inject bool
 
-	// LimitsCPU is the CPU limit the sidecar container is allowed to consume.
+	// LimitsCPU is the upper CPU limit the sidecar container is allowed to consume.
 	LimitsCPU string
 
-	// LimitsMem is the memory limit the sidecar container is allowed to consume.
+	// LimitsMem is the upper memory limit the sidecar container is allowed to consume.
 	LimitsMem string
 
 	// Namespace is the Kubernetes namespace the request originated from.
@@ -54,10 +54,10 @@ type Agent struct {
 	//added to the request.
 	PrePopulateOnly bool
 
-	// RequestsCPU is the requested CPU amount needs when being scheduled to deploy.
+	// RequestsCPU is the requested minimum CPU amount required  when being scheduled to deploy.
 	RequestsCPU string
 
-	// RequestsMem is the requested memory amount needs when being scheduled to deploy.
+	// RequestsMem is the requested minimum memory amount required when being scheduled to deploy.
 	RequestsMem string
 
 	// Secrets are all the templates, the path in Vault where the secret can be
