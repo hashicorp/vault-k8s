@@ -104,6 +104,7 @@ func TestSecretAnnotations(t *testing.T) {
 		{"vault.hashicorp.com/agent-inject-secret-foobar", "test1", "foobar", "test1"},
 		{"vault.hashicorp.com/agent-inject-secret-FOOBAR", "test2", "foobar", "test2"},
 		{"vault.hashicorp.com/agent-inject-secret-foobar-2_3", "test3", "foobar-2_3", "test3"},
+		{"vault.hashicorp.com/agent-inject-secret-server.crt", "creds/tls/somecert", "server.crt", "creds/tls/somecert"},
 		{"vault.hashicorp.com/agent-inject-secret", "test4", "", ""},
 		{"vault.hashicorp.com/agent-inject-secret-", "test5", "", ""},
 	}
