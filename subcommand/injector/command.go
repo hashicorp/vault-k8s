@@ -44,6 +44,7 @@ type Command struct {
 	cert atomic.Value
 }
 
+// TODO Add env support
 func (c *Command) init() {
 	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
@@ -56,14 +57,13 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
-		"Docker image for Vault. Defaults to a Vault 1.3.0.")
+		fmt.Sprintf("Docker image for Vault. Defaults to %s.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
 	c.help = flags.Usage(help, c.flagSet)
 }
 
-// TODO Add auto-tls
-// TODO Add more flags
+// TODO Add flag for Vault TLS
 // TODO Add flag for log level
 func (c *Command) Run(args []string) int {
 	ctx, cancelFunc := context.WithCancel(context.Background())
@@ -234,9 +234,8 @@ func (c *Command) Help() string {
 	return c.help
 }
 
-const synopsis = "Vault Agent Injector service."
+const synopsis = "Vault Agent injector service"
 const help = `
 Usage: vault-k8s agent-inject [options]
-  Run the Admission Webhook server that injects Vault Agent containers as sidecars 
-  into pods.
+  Run the Admission Webhook server for injecting Vault Agent containers into pods.
 `
