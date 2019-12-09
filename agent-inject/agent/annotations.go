@@ -25,7 +25,7 @@ const (
 	// of the secret is any unique string after "vault.hashicorp.com/agent-inject-secret-",
 	// such as "vault.hashicorp.com/agent-inject-secret-foobar".  The value is the
 	// path in Vault where the secret is located.
-	AnnotationAgentInjectSecret = "vault.hashicorp.com/agent-inject-secret-"
+	AnnotationAgentInjectSecret = "vault.hashicorp.com/agent-inject-secret"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name
@@ -56,8 +56,8 @@ const (
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
 
-	// AnnotationVaultService is the name of the service to proxy. This defaults
-	// to the name of the first container.
+	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
+	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
 
 	// AnnotationVaultTLSSkipVerify allows users to configure verifying TLS
@@ -145,9 +145,14 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 func secrets(annotations map[string]string) []*Secret {
 	var secrets []*Secret
 	for name, path := range annotations {
-		if strings.Contains(name, AnnotationAgentInjectSecret) {
-			raw := strings.ReplaceAll(name, AnnotationAgentInjectSecret, "")
+		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
+		if strings.Contains(name, secretName) {
+			raw := strings.ReplaceAll(name, secretName, "")
 			name := strings.ToLower(raw)
+
+			if name == "" {
+				continue
+			}
 
 			var template string
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)

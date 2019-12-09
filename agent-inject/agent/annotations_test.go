@@ -1,9 +1,10 @@
 package agent
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"strings"
 	"testing"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/mattbaird/jsonpatch"
 )
@@ -104,6 +105,7 @@ func TestSecretAnnotations(t *testing.T) {
 		{"vault.hashicorp.com/agent-inject-secret-FOOBAR", "test2", "foobar", "test2"},
 		{"vault.hashicorp.com/agent-inject-secret-foobar-2_3", "test3", "foobar-2_3", "test3"},
 		{"vault.hashicorp.com/agent-inject-secret", "test4", "", ""},
+		{"vault.hashicorp.com/agent-inject-secret-", "test5", "", ""},
 	}
 
 	for _, tt := range tests {
