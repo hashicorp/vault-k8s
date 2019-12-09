@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	DefaultContainerArg = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
-	DefaultResourceLimitCPU = "500m"
-	DefaultResourceLimitMem = "128Mi"
+	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultResourceLimitCPU   = "500m"
+	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
 )
@@ -62,9 +62,9 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	}
 
 	return corev1.Container{
-		Name:  "vault-agent",
-		Image: a.ImageName,
-		Env:   envs,
+		Name:      "vault-agent",
+		Image:     a.ImageName,
+		Env:       envs,
 		Resources: resources,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser:    pointerutil.Int64Ptr(100),
@@ -76,7 +76,6 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		Args:         []string{arg},
 	}, nil
 }
-
 
 // Valid resource notations: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
 func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {

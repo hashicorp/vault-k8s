@@ -120,7 +120,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 
 func TestContainerSidecarCustomResources(t *testing.T) {
 	tests := []struct {
-		name string
+		name               string
 		agent              Agent
 		expectedLimitCPU   string
 		expectedLimitMem   string

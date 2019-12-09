@@ -55,9 +55,9 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 
 	return corev1.Container{
-		Name:  "vault-agent-init",
-		Image: a.ImageName,
-		Env:   envs,
+		Name:      "vault-agent-init",
+		Image:     a.ImageName,
+		Env:       envs,
 		Resources: resources,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser:    pointerutil.Int64Ptr(100),
