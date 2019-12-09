@@ -65,7 +65,6 @@ func (n *Notify) Run() {
 		// enough, also listen for other stops.
 		select {
 		case n.ch <- next:
-			continue
 		case <-n.ctx.Done():
 			return
 		}
