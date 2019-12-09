@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
@@ -9,6 +10,10 @@ import (
 
 const (
 	DefaultContainerArg = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultResourceLimitCPU = "500m"
+	DefaultResourceLimitMem = "128Mi"
+	DefaultResourceRequestCPU = "250m"
+	DefaultResourceRequestMem = "64Mi"
 )
 
 // ContainerSidecar creates a new container to be added
@@ -51,10 +56,16 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
+	resources, err := a.parseResources()
+	if err != nil {
+		return corev1.Container{}, err
+	}
+
 	return corev1.Container{
 		Name:  "vault-agent",
 		Image: a.ImageName,
 		Env:   envs,
+		Resources: resources,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser:    pointerutil.Int64Ptr(100),
 			RunAsGroup:   pointerutil.Int64Ptr(1000),
@@ -64,4 +75,48 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		Command:      []string{"/bin/sh", "-ec"},
 		Args:         []string{arg},
 	}, nil
+}
+
+
+// Valid resource notations: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
+func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
+	resources := corev1.ResourceRequirements{}
+	limits := corev1.ResourceList{}
+	requests := corev1.ResourceList{}
+
+	if a.LimitsCPU != "" {
+		cpu, err := resource.ParseQuantity(a.LimitsCPU)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceCPU] = cpu
+	}
+
+	if a.LimitsMem != "" {
+		mem, err := resource.ParseQuantity(a.LimitsMem)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceMemory] = mem
+	}
+	resources.Limits = limits
+
+	if a.RequestsCPU != "" {
+		cpu, err := resource.ParseQuantity(a.RequestsCPU)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceCPU] = cpu
+	}
+
+	if a.RequestsMem != "" {
+		mem, err := resource.ParseQuantity(a.RequestsMem)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceMemory] = mem
+	}
+	resources.Requests = requests
+
+	return resources, nil
 }
