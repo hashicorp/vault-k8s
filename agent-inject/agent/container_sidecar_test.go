@@ -126,7 +126,7 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 		expectedLimitMem   string
 		expectedRequestCPU string
 		expectedRequestMem string
-		expectedErr                bool
+		expectedErr        bool
 	}{
 		{"valid M", Agent{LimitsCPU: "500M", LimitsMem: "128M", RequestsCPU: "250M", RequestsMem: "64M"}, "500M", "128M", "250M", "64M", false},
 		{"valid G", Agent{LimitsCPU: "500G", LimitsMem: "128G", RequestsCPU: "250G", RequestsMem: "64G"}, "500G", "128G", "250G", "64G", false},
