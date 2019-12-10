@@ -56,6 +56,18 @@ const (
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
 
+	// AnnotationAgentLimitsCPU sets the CPU limit on the Vault Agent containers.
+	AnnotationAgentLimitsCPU = "vault.hashicorp.com/agent-limits-cpu"
+
+	// AnnotationAgentLimitsMem sets the memory limit on the Vault Agent containers.
+	AnnotationAgentLimitsMem = "vault.hashicorp.com/agent-limits-mem"
+
+	// AnnotationAgentRequestsCPU sets the requested CPU amount on the Vault Agent containers.
+	AnnotationAgentRequestsCPU = "vault.hashicorp.com/agent-requests-cpu"
+
+	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
+	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -131,6 +143,22 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace] = namespace
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU] = DefaultResourceLimitCPU
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = DefaultResourceLimitMem
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = DefaultResourceRequestCPU
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
 	return nil

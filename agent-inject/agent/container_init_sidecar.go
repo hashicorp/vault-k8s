@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -50,10 +49,16 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
+	resources, err := a.parseResources()
+	if err != nil {
+		return corev1.Container{}, err
+	}
+
 	return corev1.Container{
-		Name:  "vault-agent-init",
-		Image: a.ImageName,
-		Env:   envs,
+		Name:      "vault-agent-init",
+		Image:     a.ImageName,
+		Env:       envs,
+		Resources: resources,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsUser:    pointerutil.Int64Ptr(100),
 			RunAsGroup:   pointerutil.Int64Ptr(1000),

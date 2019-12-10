@@ -32,6 +32,12 @@ type Agent struct {
 	// in a pod request.
 	Inject bool
 
+	// LimitsCPU is the upper CPU limit the sidecar container is allowed to consume.
+	LimitsCPU string
+
+	// LimitsMem is the upper memory limit the sidecar container is allowed to consume.
+	LimitsMem string
+
 	// Namespace is the Kubernetes namespace the request originated from.
 	Namespace string
 
@@ -47,6 +53,12 @@ type Agent struct {
 	// PrePopulateOnly controls whether an init container is the _only_ container
 	//added to the request.
 	PrePopulateOnly bool
+
+	// RequestsCPU is the requested minimum CPU amount required  when being scheduled to deploy.
+	RequestsCPU string
+
+	// RequestsMem is the requested minimum memory amount required when being scheduled to deploy.
+	RequestsMem string
 
 	// Secrets are all the templates, the path in Vault where the secret can be
 	//found, and the unique name of the secret which will be used for the filename.
@@ -136,9 +148,13 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Annotations:        pod.Annotations,
 		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
 		ImageName:          pod.Annotations[AnnotationAgentImage],
+		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
 		Patches:            patches,
 		Pod:                pod,
+		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
+		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
 		Secrets:            secrets(pod.Annotations),
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
