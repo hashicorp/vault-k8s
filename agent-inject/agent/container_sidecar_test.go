@@ -310,7 +310,8 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 			expectedRequestMem: "64m",
 			expectedErr:        true,
 		},
-		{name: "invalid mem m notation",
+		{
+			name: "invalid mem m notation",
 			agent: Agent{
 				LimitsCPU:   "500Mi",
 				LimitsMem:   "128mb",
