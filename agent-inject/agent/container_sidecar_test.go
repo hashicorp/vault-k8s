@@ -159,8 +159,6 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 
 			if !tt.expectedErr {
 				if resources.Limits.Cpu().String() != tt.expectedLimitCPU {
-					huh := resources.Limits.Cpu().String() != tt.expectedLimitCPU
-					t.Errorf("%t", huh)
 					t.Errorf("expected cpu limit mismatch: wanted %s, got %s", tt.expectedLimitCPU, resources.Limits.Cpu().String())
 				}
 
