@@ -27,7 +27,7 @@ func (c *Command) init() {
 	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
 	c.flagSet.StringVar(&c.flagLogLevel, "log-level", DefaultLogLevel, "Log verbosity level. Supported values "+
-		"(in order of detail) are \"trace\", \"debug\", \"info\", \"warn\", and \"err\".")
+		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
@@ -37,7 +37,7 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
-		fmt.Sprintf("Docker image for Vault. Defaults to %s.", agent.DefaultVaultImage))
+		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
 
