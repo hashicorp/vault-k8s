@@ -20,14 +20,29 @@ const (
 // AGENT_INJECT.  The names of the variables in the struct are split using
 // camel case: Specification.VaultAddr = AGENT_INJECT_VAULT_ADDR
 type Specification struct {
-	Listen       string `split_words:"true" `
-	LogLevel     string `split_words:"true"`
-	TLSAuto      string `split_words:"true" envconfig:"tls_auto"`
+	// Listen is the AGENT_INJECT_LISTEN environment variable.
+	Listen string `split_words:"true" `
+
+	// LogLevel is the AGENT_INJECT_LOG_LEVEL environment variable.
+	LogLevel string `split_words:"true"`
+
+	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
+	TLSAuto string `split_words:"true" envconfig:"tls_auto"`
+
+	// TLSAutoHosts is the AGENT_INJECT_TLS_AUTO_HOSTS environment variable.
 	TLSAutoHosts string `split_words:"true" envconfig:"tls_auto_hosts"`
-	TLSCertFile  string `split_words:"true" envconfig:"tls_cert_file"`
-	TLSKeyFile   string `split_words:"true" envconfig:"tls_key_file"`
-	VaultAddr    string `split_words:"true"`
-	VaultImage   string `split_words:"true"`
+
+	// TLSCertFile is the AGENT_INJECT_TLS_CERT_FILE environment variable.
+	TLSCertFile string `split_words:"true" envconfig:"tls_cert_file"`
+
+	// TLSKeyFile is the AGENT_INJECT_TLS_KEY_FILE environment variable.
+	TLSKeyFile string `split_words:"true" envconfig:"tls_key_file"`
+
+	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
+	VaultAddr string `split_words:"true"`
+
+	// VaultImage is the AGENT_INJECT_VAULT_IMAGE environment variable.
+	VaultImage string `split_words:"true"`
 }
 
 func (c *Command) init() {
