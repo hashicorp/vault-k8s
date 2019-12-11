@@ -23,7 +23,6 @@ const (
 	EnvInjectVaultImage   = "AGENT_INJECT_VAULT_IMAGE"
 )
 
-// TODO Add env support
 func (c *Command) init() {
 	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
 	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
