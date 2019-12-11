@@ -110,14 +110,14 @@ func TestCommandEnvs(t *testing.T) {
 		value  string
 		cmdPtr *string
 	}{
-		{env: EnvInjectListen, value: ":8080", cmdPtr: &cmd.flagListen},
-		{env: EnvInjectVaultAddr, value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
-		{env: EnvInjectVaultImage, value: "hashicorp/vault:1.3.1", cmdPtr: &cmd.flagVaultImage},
-		{env: EnvInjectTLSKeyFile, value: "server.key", cmdPtr: &cmd.flagKeyFile},
-		{env: EnvInjectTLSCertFile, value: "server.crt", cmdPtr: &cmd.flagCertFile},
-		{env: EnvInjectTLSAutoHosts, value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},
-		{env: EnvInjectTLSAuto, value: "mutationWebhook", cmdPtr: &cmd.flagAutoName},
-		{env: EnvInjectLogLevel, value: "info", cmdPtr: &cmd.flagLogLevel},
+		{env: "AGENT_INJECT_LISTEN", value: ":8080", cmdPtr: &cmd.flagListen},
+		{env: "AGENT_INJECT_VAULT_ADDR", value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.3.1", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
+		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
+		{env: "AGENT_INJECT_TLS_AUTO_HOSTS", value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},
+		{env: "AGENT_INJECT_TLS_AUTO", value: "mutationWebhook", cmdPtr: &cmd.flagAutoName},
+		{env: "AGENT_INJECT_LOG_LEVEL", value: "info", cmdPtr: &cmd.flagLogLevel},
 	}
 
 	for _, tt := range tests {
@@ -127,7 +127,10 @@ func TestCommandEnvs(t *testing.T) {
 			}
 			defer os.Unsetenv(tt.env)
 
-			cmd.parseEnvs()
+			if err := cmd.parseEnvs(); err != nil {
+				t.Errorf("got error parsing envs, shouldn't have: %s", err)
+			}
+
 			if *tt.cmdPtr != tt.value {
 				t.Errorf("env wasn't parsed, should have been: got %s, expected %s", *tt.cmdPtr, tt.value)
 			}

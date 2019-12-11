@@ -53,6 +53,11 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	if err := c.parseEnvs(); err != nil {
+		c.UI.Error(fmt.Sprintf("Error parsing environment variables: %s", err))
+		return 1
+	}
+
 	if c.flagVaultService == "" {
 		c.UI.Error("No Vault service configured")
 		return 1

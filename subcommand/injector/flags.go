@@ -3,8 +3,9 @@ package injector
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
+
+	"github.com/kelseyhightower/envconfig"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/go-hclog"
@@ -12,16 +13,22 @@ import (
 )
 
 const (
-	DefaultLogLevel       = "info"
-	EnvInjectListen       = "AGENT_INJECT_LISTEN"
-	EnvInjectLogLevel     = "AGENT_INJECT_LOG_LEVEL"
-	EnvInjectTLSAuto      = "AGENT_INJECT_TLS_AUTO"
-	EnvInjectTLSAutoHosts = "AGENT_INJECT_TLS_AUTO_HOSTS"
-	EnvInjectTLSCertFile  = "AGENT_INJECT_CERT_FILE"
-	EnvInjectTLSKeyFile   = "AGENT_INJECT_KEY_FILE"
-	EnvInjectVaultAddr    = "AGENT_INJECT_VAULT_ADDR"
-	EnvInjectVaultImage   = "AGENT_INJECT_VAULT_IMAGE"
+	DefaultLogLevel = "info"
 )
+
+// Specification are the supported environment variables, prefixed with
+// AGENT_INJECT.  The names of the variables in the struct are split using
+// camel case: Specification.VaultAddr = AGENT_INJECT_VAULT_ADDR
+type Specification struct {
+	Listen       string `split_words:"true" `
+	LogLevel     string `split_words:"true"`
+	TLSAuto      string `split_words:"true" envconfig:"tls_auto"`
+	TLSAutoHosts string `split_words:"true" envconfig:"tls_auto_hosts"`
+	TLSCertFile  string `split_words:"true" envconfig:"tls_cert_file"`
+	TLSKeyFile   string `split_words:"true" envconfig:"tls_key_file"`
+	VaultAddr    string `split_words:"true"`
+	VaultImage   string `split_words:"true"`
+}
 
 func (c *Command) init() {
 	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
@@ -42,7 +49,6 @@ func (c *Command) init() {
 		"Address of the Vault server.")
 
 	c.help = flags.Usage(help, c.flagSet)
-	c.parseEnvs()
 }
 
 func (c *Command) logLevel() (hclog.Level, error) {
@@ -67,36 +73,45 @@ func (c *Command) logLevel() (hclog.Level, error) {
 	return level, nil
 }
 
-func (c *Command) parseEnvs() {
-	if listen := os.Getenv(EnvInjectListen); listen != "" {
-		c.flagListen = listen
+func (c *Command) parseEnvs() error {
+	var envs Specification
+
+	err := envconfig.Process("agent_inject", &envs)
+	if err != nil {
+		return err
 	}
 
-	if logLevel := os.Getenv(EnvInjectLogLevel); logLevel != "" {
-		c.flagLogLevel = logLevel
+	if envs.Listen != "" {
+		c.flagListen = envs.Listen
 	}
 
-	if tlsAuto := os.Getenv(EnvInjectTLSAuto); tlsAuto != "" {
-		c.flagAutoName = tlsAuto
+	if envs.LogLevel != "" {
+		c.flagLogLevel = envs.LogLevel
 	}
 
-	if tlsAutoHosts := os.Getenv(EnvInjectTLSAutoHosts); tlsAutoHosts != "" {
-		c.flagAutoHosts = tlsAutoHosts
+	if envs.TLSAuto != "" {
+		c.flagAutoName = envs.TLSAuto
 	}
 
-	if tlsCertFile := os.Getenv(EnvInjectTLSCertFile); tlsCertFile != "" {
-		c.flagCertFile = tlsCertFile
+	if envs.TLSAutoHosts != "" {
+		c.flagAutoHosts = envs.TLSAutoHosts
 	}
 
-	if tlsKeyFile := os.Getenv(EnvInjectTLSKeyFile); tlsKeyFile != "" {
-		c.flagKeyFile = tlsKeyFile
+	if envs.TLSCertFile != "" {
+		c.flagCertFile = envs.TLSCertFile
 	}
 
-	if image := os.Getenv(EnvInjectVaultImage); image != "" {
-		c.flagVaultImage = image
+	if envs.TLSKeyFile != "" {
+		c.flagKeyFile = envs.TLSKeyFile
 	}
 
-	if addr := os.Getenv(EnvInjectVaultAddr); addr != "" {
-		c.flagVaultService = addr
+	if envs.VaultImage != "" {
+		c.flagVaultImage = envs.VaultImage
 	}
+
+	if envs.VaultAddr != "" {
+		c.flagVaultService = envs.VaultAddr
+	}
+
+	return nil
 }
