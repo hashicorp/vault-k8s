@@ -38,7 +38,7 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
-		fmt.Sprintf("Docker image for Vault. Defaults to %s.", agent.DefaultVaultImage))
+		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
 
