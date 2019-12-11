@@ -26,16 +26,16 @@ type Specification struct {
 	LogLevel string `split_words:"true"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
-	TLSAuto string `split_words:"true" envconfig:"tls_auto"`
+	TLSAuto string `envconfig:"tls_auto"`
 
 	// TLSAutoHosts is the AGENT_INJECT_TLS_AUTO_HOSTS environment variable.
-	TLSAutoHosts string `split_words:"true" envconfig:"tls_auto_hosts"`
+	TLSAutoHosts string `envconfig:"tls_auto_hosts"`
 
 	// TLSCertFile is the AGENT_INJECT_TLS_CERT_FILE environment variable.
-	TLSCertFile string `split_words:"true" envconfig:"tls_cert_file"`
+	TLSCertFile string `envconfig:"tls_cert_file"`
 
 	// TLSKeyFile is the AGENT_INJECT_TLS_KEY_FILE environment variable.
-	TLSKeyFile string `split_words:"true" envconfig:"tls_key_file"`
+	TLSKeyFile string `envconfig:"tls_key_file"`
 
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
