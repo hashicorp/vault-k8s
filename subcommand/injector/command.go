@@ -15,10 +15,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/go-hclog"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
-	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/mitchellh/cli"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +28,7 @@ type Command struct {
 	UI cli.Ui
 
 	flagListen       string // Address of Vault Server
+	flagLogLevel     string // Log verbosity
 	flagCertFile     string // TLS Certificate to serve
 	flagKeyFile      string // TLS private key to serve
 	flagAutoName     string // MutatingWebhookConfiguration for updating
@@ -44,27 +43,7 @@ type Command struct {
 	cert atomic.Value
 }
 
-// TODO Add env support
-func (c *Command) init() {
-	c.flagSet = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
-	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
-		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
-	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
-		"Comma-separated hosts for auto-generated TLS cert. If specified, will auto generate cert bundle.")
-	c.flagSet.StringVar(&c.flagCertFile, "tls-cert-file", "",
-		"PEM-encoded TLS certificate to serve. If blank, will generate random cert.")
-	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
-		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
-	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
-		fmt.Sprintf("Docker image for Vault. Defaults to %s.", agent.DefaultVaultImage))
-	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
-		"Address of the Vault server.")
-	c.help = flags.Usage(help, c.flagSet)
-}
-
 // TODO Add flag for Vault TLS
-// TODO Add flag for log level
 func (c *Command) Run(args []string) int {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
@@ -111,8 +90,14 @@ func (c *Command) Run(args []string) int {
 	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, clientset)
 
+	level, err := c.logLevel()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
+		return 1
+	}
+
 	logger := hclog.Default().Named("handler")
-	logger.SetLevel(hclog.Info)
+	logger.SetLevel(level)
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
