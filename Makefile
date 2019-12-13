@@ -15,7 +15,7 @@ build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
 
 image: build 
-	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f ./docker/Dockerfile .
+	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
 docker-login:
 	echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_USERNAME) --password-stdin
