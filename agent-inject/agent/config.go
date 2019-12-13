@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DefaultTemplate = "[[ with secret \"%s\" ]][[ range $k, $v := .Data ]][[ $k ]]: [[ $v ]]\n[[ end ]][[ end ]]"
+	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.token"
 )
@@ -81,8 +81,8 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		tmpl := &Template{
 			Contents:    template,
 			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
-			LeftDelim:   "[[",
-			RightDelim:  "]]",
+			LeftDelim:   "{{",
+			RightDelim:  "}}",
 		}
 		templates = append(templates, tmpl)
 	}
