@@ -13,3 +13,4 @@
 
 /bin/*
 /.idea/*
+/.build/*
