@@ -3,6 +3,7 @@ IMAGE_NAME=vault-k8s
 VERSION?=0.1.0
 IMAGE_TAG=$(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
 IMAGE_TAG_LATEST=$(REGISTRY_NAME)/$(IMAGE_NAME):latest
+DOCKER_DIR=./build/docker
 BUILD_DIR=.build
 GOOS?=linux
 GOARCH?=amd64
@@ -15,7 +16,7 @@ build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
 
 image: build 
-	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
+	docker build --build-arg NAME=$(IMAGE_NAME) --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dockerfile.dev .
 
 docker-login:
 	echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_USERNAME) --password-stdin
