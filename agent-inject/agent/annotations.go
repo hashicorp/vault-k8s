@@ -105,7 +105,7 @@ const (
 	// AnnotationVaultClientTimeout sets the request timeout when communicating with Vault.
 	AnnotationVaultClientTimeout = "vault.hashicorp.com/client-timeout"
 
-	// AnnotationAgentRole specifies the role to be used for the Kubernetes auto-auth
+	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultRole = "vault.hashicorp.com/role"
 )
