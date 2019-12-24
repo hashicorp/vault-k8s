@@ -105,6 +105,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		AutoAuth: &AutoAuth{
 			Method: &Method{
 				Type: "kubernetes",
+				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,
 				},

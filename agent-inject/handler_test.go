@@ -83,7 +83,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"injection disabled",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -102,7 +102,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"basic pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -142,7 +142,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"configmap pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -186,7 +186,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -235,7 +235,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -280,7 +280,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap no init pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
@@ -322,7 +322,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap init only pod injection",
-			Handler{VaultAddress: "https://vault:8200", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath:"kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{

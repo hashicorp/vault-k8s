@@ -42,6 +42,10 @@ type Specification struct {
 
 	// VaultImage is the AGENT_INJECT_VAULT_IMAGE environment variable.
 	VaultImage string `split_words:"true"`
+
+	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
+	VaultAuthPath string `split_words:"true"`
+
 }
 
 func (c *Command) init() {
@@ -61,6 +65,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
+	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
+		fmt.Sprintf("Mount Path of the Vault Kubernetes Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -125,6 +131,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultAddr != "" {
 		c.flagVaultService = envs.VaultAddr
+	}
+
+	if envs.VaultAuthPath != "" {
+		c.flagVaultAuthPath = envs.VaultAuthPath
 	}
 
 	return nil

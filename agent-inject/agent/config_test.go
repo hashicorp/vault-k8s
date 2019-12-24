@@ -78,6 +78,10 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("auto_auth role: expected role to be %s, got %s", annotations[AnnotationVaultRole], config.AutoAuth.Method.Config["role"])
 	}
 
+	if config.AutoAuth.Method.MountPath != annotations[AnnotationVaultAuthPath] {
+		t.Errorf("auto_auth mount path: expected path to be %s, got %s", annotations[AnnotationVaultAuthPath], config.AutoAuth.Method.MountPath)
+	}
+
 	if len(config.Templates) != 2 {
 		t.Errorf("expected 2 template, got %d", len(config.Templates))
 	}

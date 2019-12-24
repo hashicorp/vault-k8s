@@ -15,6 +15,7 @@ import (
 
 const (
 	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultAuthPath = "auth/kubernetes"
 )
 
 // Agent is the top level structure holding all the
@@ -101,6 +102,9 @@ type Vault struct {
 	// Address is the Vault service address.
 	Address string
 
+	// AuthPath is the Mount Path of Vault Kubernetes Auth Method.
+	AuthPath string
+
 	// CACert is the name of the Certificate Authority certificate
 	// to use when validating Vault's server certificates.
 	CACert string
@@ -161,6 +165,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Status:             pod.Annotations[AnnotationAgentStatus],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
+			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
 			CACert:           pod.Annotations[AnnotationVaultCACert],
 			CAKey:            pod.Annotations[AnnotationVaultCAKey],
 			ClientCert:       pod.Annotations[AnnotationVaultClientCert],
@@ -324,6 +329,10 @@ func (a *Agent) Validate() error {
 	if a.ConfigMapName == "" {
 		if a.Vault.Role == "" {
 			return errors.New("no Vault role found")
+		}
+
+		if a.Vault.AuthPath == "" {
+			return errors.New("no Vault Auth Path found")
 		}
 
 		if a.Vault.Address == "" {
