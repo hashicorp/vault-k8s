@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
-	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,11 +22,6 @@ var (
 	deserializer = func() runtime.Decoder {
 		codecs := serializer.NewCodecFactory(runtime.NewScheme())
 		return codecs.UniversalDeserializer()
-	}
-
-	kubeSystemNamespaces = []string{
-		metav1.NamespaceSystem,
-		metav1.NamespacePublic,
 	}
 )
 
@@ -115,12 +109,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
 		UID:     req.UID,
-	}
-
-	h.Log.Debug("checking namespaces..")
-	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
-		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
-		return admissionError(err)
 	}
 
 	h.Log.Debug("checking if should inject agent..")
