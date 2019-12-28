@@ -38,6 +38,24 @@ func TestHandlerHandle(t *testing.T) {
 		Err     string // expected error string, not exact
 		Patches []jsonpatch.JsonPatchOperation
 	}{
+		{
+			"kube-system namespace",
+			Handler{Log: hclog.Default().Named("handler")},
+			v1beta1.AdmissionRequest{
+				Namespace: metav1.NamespaceSystem,
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject: "true",
+							agent.AnnotationVaultRole:   "demo",
+						},
+					},
+					Spec: basicSpec,
+				}),
+			},
+			"error with request namespace",
+			nil,
+		},
 
 		{
 			"already injected",
