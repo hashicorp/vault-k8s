@@ -44,6 +44,12 @@ func TestHandlerHandle(t *testing.T) {
 			v1beta1.AdmissionRequest{
 				Namespace: metav1.NamespaceSystem,
 				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject: "true",
+							agent.AnnotationVaultRole:   "demo",
+						},
+					},
 					Spec: basicSpec,
 				}),
 			},

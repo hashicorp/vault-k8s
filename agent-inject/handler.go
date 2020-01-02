@@ -117,12 +117,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		UID:     req.UID,
 	}
 
-	h.Log.Debug("checking namespaces..")
-	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
-		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
-		return admissionError(err)
-	}
-
 	h.Log.Debug("checking if should inject agent..")
 	inject, err := agent.ShouldInject(&pod)
 	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
@@ -130,6 +124,12 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		return admissionError(err)
 	} else if !inject {
 		return resp
+	}
+
+	h.Log.Debug("checking namespaces..")
+	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
+		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
+		return admissionError(err)
 	}
 
 	h.Log.Debug("setting default annotations..")
