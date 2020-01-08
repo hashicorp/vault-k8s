@@ -17,7 +17,6 @@ func TestNewConfig(t *testing.T) {
 		AnnotationVaultRole:                             "foobar",
 		AnnotationAgentPrePopulate:                      "true",
 		AnnotationAgentPrePopulateOnly:                  "true",
-		AnnotationVaultTLSSkipVerify:                    "true",
 		AnnotationVaultTLSServerName:                    "foobar.server",
 		AnnotationVaultCACert:                           "ca-cert",
 		AnnotationVaultCAKey:                            "ca-key",
@@ -46,8 +45,8 @@ func TestNewConfig(t *testing.T) {
 		t.Error("exit_after_auth should have been true, it wasn't")
 	}
 
-	if config.Vault.TLSSkipVerify != true {
-		t.Error("tls_skip_verify should have been true, it wasn't")
+	if config.Vault.TLSSkipVerify != false {
+		t.Error("tls_skip_verify should have been false, it wasn't")
 	}
 
 	if config.Vault.TLSServerName != annotations[AnnotationVaultTLSServerName] {
