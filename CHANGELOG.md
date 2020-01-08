@@ -6,13 +6,13 @@ Features:
 
 Bugs:
 
-* Fixed bug where tlsSkipVerify was true by default.
+## 0.1.2 (January 8th, 2020)
+
+Bugs:
+
+* Fixed bug where tlsSkipVerify was true by default [GH-34]
 
 ## 0.1.1 (January 2nd, 2020)
-
-Improvements:
-
-Features:
 
 Bugs:
 
