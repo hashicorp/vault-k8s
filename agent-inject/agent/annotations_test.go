@@ -249,6 +249,18 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentPrePopulateOnly, "tRuE", false},
 		{AnnotationAgentPrePopulateOnly, "fAlSe", false},
 		{AnnotationAgentPrePopulateOnly, "", false},
+
+		{AnnotationVaultTLSSkipVerify, "true", true},
+		{AnnotationVaultTLSSkipVerify, "false", true},
+		{AnnotationVaultTLSSkipVerify, "TRUE", true},
+		{AnnotationVaultTLSSkipVerify, "FALSE", true},
+		{AnnotationVaultTLSSkipVerify, "0", true},
+		{AnnotationVaultTLSSkipVerify, "1", true},
+		{AnnotationVaultTLSSkipVerify, "t", true},
+		{AnnotationVaultTLSSkipVerify, "f", true},
+		{AnnotationVaultTLSSkipVerify, "tRuE", false},
+		{AnnotationVaultTLSSkipVerify, "fAlSe", false},
+		{AnnotationVaultTLSSkipVerify, "", false},
 	}
 
 	for i, tt := range tests {
