@@ -6,6 +6,8 @@ Features:
 
 Bugs:
 
+* Fixed bug where tlsSkipVerify was true by default.
+
 ## 0.1.1 (January 2nd, 2020)
 
 Improvements:
