@@ -225,7 +225,7 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 func (a *Agent) tlsSkipVerify() (bool, error) {
 	raw, ok := a.Annotations[AnnotationVaultTLSSkipVerify]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)
