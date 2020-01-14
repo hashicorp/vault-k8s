@@ -25,6 +25,9 @@ type Specification struct {
 	// LogLevel is the AGENT_INJECT_LOG_LEVEL environment variable.
 	LogLevel string `split_words:"true"`
 
+	// LogFormat is the AGENT_INJECT_LOG_FORMAT environment variable
+	LogFormat string `split_words:"true"`
+
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
 
@@ -83,7 +86,6 @@ func (c *Command) logLevel() (hclog.Level, error) {
 	default:
 		return level, fmt.Errorf("unknown log level: %s", c.flagLogLevel)
 	}
-
 	return level, nil
 }
 
@@ -101,6 +103,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.LogLevel != "" {
 		c.flagLogLevel = envs.LogLevel
+	}
+
+	if envs.LogFormat != "" {
+		c.flagLogFormat = envs.LogFormat
 	}
 
 	if envs.TLSAuto != "" {
