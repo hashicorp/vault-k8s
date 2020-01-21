@@ -4,6 +4,9 @@ Improvements:
 
 Features:
 
+* Added configurable auth mount path annotation and environment variable [GH-23]
+* Added kustomize [GH-43]
+
 Bugs:
 
 ## 0.1.2 (January 8th, 2020)
