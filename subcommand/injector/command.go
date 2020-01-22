@@ -27,16 +27,16 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen        string // Address of Vault Server
-	flagLogLevel      string // Log verbosity
-	flagLogFormat     string // Log format
-	flagCertFile      string // TLS Certificate to serve
-	flagKeyFile       string // TLS private key to serve
-	flagAutoName      string // MutatingWebhookConfiguration for updating
-	flagAutoHosts     string // SANs for the auto-generated TLS cert.
-	flagVaultService  string // Name of the Vault service
-	flagVaultImage    string // Name of the Vault Image to use
-	flagVaultAuthPath string // Mount Path of the Vault Kubernetes Auth Method
+	flagListen       	string // Address of Vault Server
+	flagLogLevel     	string // Log verbosity
+	flagLogFormat    	string // Log format
+	flagCertFile     	string // TLS Certificate to serve
+	flagKeyFile      	string // TLS private key to serve
+	flagAutoName     	string // MutatingWebhookConfiguration for updating
+	flagAutoHosts    	string // SANs for the auto-generated TLS cert.
+	flagVaultService 	string // Name of the Vault service
+	flagVaultImage   	string // Name of the Vault Image to use
+	flagVaultAuthPath	string // Mount Path of the Vault Kubernetes Auth Method
 
 	flagSet *flag.FlagSet
 
