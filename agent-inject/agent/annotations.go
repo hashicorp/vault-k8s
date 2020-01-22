@@ -108,18 +108,26 @@ const (
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultRole = "vault.hashicorp.com/role"
+
+	// AnnotationVaultAuthPath specifies the mount path to be used for the Kubernetes auto-auth
+	// method.
+	AnnotationVaultAuthPath = "vault.hashicorp.com/auth-path"
 )
 
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
-func Init(pod *corev1.Pod, image, address, namespace string) error {
+func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
 
 	if address == "" {
 		return errors.New("address for Vault required")
+	}
+
+	if authPath == "" {
+		return errors.New("Vault Auth Path required")
 	}
 
 	if namespace == "" {
@@ -132,6 +140,10 @@ func Init(pod *corev1.Pod, image, address, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultService]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultService] = address
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = authPath
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentImage]; !ok {
