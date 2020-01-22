@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	DefaultLogLevel = "info"
+	DefaultLogLevel  = "info"
+	DefaultLogFormat = "standard"
 )
 
 // Specification are the supported environment variables, prefixed with
@@ -48,7 +49,6 @@ type Specification struct {
 
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
-
 }
 
 func (c *Command) init() {
@@ -56,6 +56,8 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
 	c.flagSet.StringVar(&c.flagLogLevel, "log-level", DefaultLogLevel, "Log verbosity level. Supported values "+
 		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
+	c.flagSet.StringVar(&c.flagLogFormat, "log-level", DefaultLogFormat, "Log output format. "+
+		`Supported log formats: "standard", "json".`)
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
