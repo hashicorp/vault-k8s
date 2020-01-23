@@ -279,6 +279,49 @@ func TestTemplateShortcuts(t *testing.T) {
 	}
 }
 
+func TestSecretCommandAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations     map[string]string
+		expectedKey     string
+		expectedCommand string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
+				"vault.hashicorp.com/agent-inject-command-foobar": "pkill -HUP nginx",
+			}, "foobar", "pkill -HUP nginx",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":   "test2",
+				"vault.hashicorp.com/agent-inject-command-foobar2": "pkill -HUP nginx",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Command != tt.expectedCommand {
+			t.Errorf("expected command %s, got %s", tt.expectedCommand, agent.Secrets[0].Command)
+		}
+	}
+}
+
 func TestCouldErrorAnnotations(t *testing.T) {
 	tests := []struct {
 		key   string
