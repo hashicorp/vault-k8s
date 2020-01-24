@@ -75,8 +75,8 @@ func TestValidate(t *testing.T) {
 				ServiceAccountName: "foobar",
 				ImageName:          "test",
 				Vault: Vault{
-					Role:    "test",
-					Address: "https://foobar.com:8200",
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
 					AuthPath: "test",
 				},
 			}, true,
@@ -148,11 +148,35 @@ func TestValidate(t *testing.T) {
 				ServiceAccountName: "foobar",
 				ImageName:          "test",
 				Vault: Vault{
-					Role:    "test",
-					Address: "https://foobar.com:8200",
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
 					AuthPath: "",
 				},
 			}, false,
+		},
+		{
+			Agent{
+				Namespace: "test",
+				ImageName: "test",
+				Vault: Vault{
+					Role:       "test",
+					Address:    "https://foobar.com:8200",
+					AuthMethod: "cert",
+				},
+			}, false,
+		},
+		{
+			Agent{
+				Namespace: "test",
+				ImageName: "test",
+				Vault: Vault{
+					Role:       "test",
+					Address:    "https://foobar.com:8200",
+					AuthMethod: "cert",
+					ClientCert: "/certs/client.pem",
+					ClientKey:  "/certs/client.key",
+				},
+			}, true,
 		},
 	}
 
@@ -164,6 +188,7 @@ func TestValidate(t *testing.T) {
 		}
 
 		if err == nil && !tt.valid {
+			t.Errorf("agent: %+v\n", tt.agent)
 			t.Error("got no error, should have")
 		}
 	}

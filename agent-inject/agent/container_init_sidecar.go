@@ -18,11 +18,14 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			MountPath: secretVolumePath,
 			ReadOnly:  false,
 		},
-		{
+	}
+
+	if a.Vault.AuthMethod == "" || a.Vault.AuthMethod == DefaultVaultAuthMethod {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      a.ServiceAccountName,
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,
-		},
+		})
 	}
 
 	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"

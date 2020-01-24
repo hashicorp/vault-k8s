@@ -38,6 +38,7 @@ type Handler struct {
 	RequireAnnotation bool
 	VaultAddress      string
 	VaultAuthPath     string
+	VaultAuthMethod   string
 	ImageVault        string
 	Clientset         *kubernetes.Clientset
 	Log               hclog.Logger
@@ -135,7 +136,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 
 	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
-	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, h.VaultAuthPath, req.Namespace)
+	err = agent.Init(&pod, h.ImageVault, h.VaultAddress, h.VaultAuthMethod, h.VaultAuthPath, req.Namespace)
 	if err != nil {
 		err := fmt.Errorf("error adding default annotations: %s", err)
 		return admissionError(err)

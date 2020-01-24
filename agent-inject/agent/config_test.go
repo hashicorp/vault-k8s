@@ -70,12 +70,14 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("client_key: expected %s, got %s", annotations[AnnotationVaultClientKey], config.Vault.ClientKey)
 	}
 
-	if config.AutoAuth.Method.Type != "kubernetes" {
-		t.Error("expected auto_auth method to be kubernetes, it wasn't")
+	if annotations[AnnotationVaultAuthMethod] != "" && config.AutoAuth.Method.Type != annotations[AnnotationVaultAuthMethod] {
+		t.Errorf("expected auto_auth method to be %s, got %s", annotations[AnnotationVaultAuthMethod], config.AutoAuth.Method.Type)
 	}
 
-	if config.AutoAuth.Method.Config["role"] != annotations[AnnotationVaultRole] {
-		t.Errorf("auto_auth role: expected role to be %s, got %s", annotations[AnnotationVaultRole], config.AutoAuth.Method.Config["role"])
+	if config.AutoAuth.Method.Type == DefaultVaultAuthMethod {
+		if config.AutoAuth.Method.Config["role"] != annotations[AnnotationVaultRole] {
+			t.Errorf("auto_auth role: expected role to be %s, got %s", annotations[AnnotationVaultRole], config.AutoAuth.Method.Config["role"])
+		}
 	}
 
 	if config.AutoAuth.Method.MountPath != annotations[AnnotationVaultAuthPath] {

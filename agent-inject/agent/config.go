@@ -107,13 +107,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			TLSServerName: a.Vault.TLSServerName,
 		},
 		AutoAuth: &AutoAuth{
-			Method: &Method{
-				Type:      "kubernetes",
-				MountPath: a.Vault.AuthPath,
-				Config: map[string]interface{}{
-					"role": a.Vault.Role,
-				},
-			},
+			Method: &Method{},
 			Sinks: []*Sink{
 				{
 					Type: "file",
@@ -124,6 +118,16 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+	}
+
+	if a.Vault.AuthMethod == "" || a.Vault.AuthMethod == DefaultVaultAuthMethod {
+		config.AutoAuth.Method.Type = DefaultVaultAuthMethod
+		config.AutoAuth.Method.MountPath = a.Vault.AuthPath
+		config.AutoAuth.Method.Config = map[string]interface{}{
+			"role": a.Vault.Role,
+		}
+	} else {
+		config.AutoAuth.Method.Type = a.Vault.AuthMethod
 	}
 
 	return config.render()

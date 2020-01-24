@@ -14,8 +14,9 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage    = "vault:1.3.1"
-	DefaultVaultAuthPath = "auth/kubernetes"
+	DefaultVaultImage      = "vault:1.3.1"
+	DefaultVaultAuthPath   = "auth/kubernetes"
+	DefaultVaultAuthMethod = "kubernetes"
 )
 
 // Agent is the top level structure holding all the
@@ -108,6 +109,9 @@ type Vault struct {
 	// AuthPath is the Mount Path of Vault Kubernetes Auth Method.
 	AuthPath string
 
+	// AuthMethod is the Auth Method to use.
+	AuthMethod string
+
 	// CACert is the name of the Certificate Authority certificate
 	// to use when validating Vault's server certificates.
 	CACert string
@@ -149,26 +153,23 @@ type Vault struct {
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
-	saName, saPath := serviceaccount(pod)
-
 	agent := &Agent{
-		Annotations:        pod.Annotations,
-		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
-		ImageName:          pod.Annotations[AnnotationAgentImage],
-		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
-		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
-		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:            patches,
-		Pod:                pod,
-		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
-		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		Secrets:            secrets(pod.Annotations),
-		ServiceAccountName: saName,
-		ServiceAccountPath: saPath,
-		Status:             pod.Annotations[AnnotationAgentStatus],
+		Annotations:   pod.Annotations,
+		ConfigMapName: pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:     pod.Annotations[AnnotationAgentImage],
+		LimitsCPU:     pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:     pod.Annotations[AnnotationAgentLimitsMem],
+		Namespace:     pod.Annotations[AnnotationAgentRequestNamespace],
+		Patches:       patches,
+		Pod:           pod,
+		RequestsCPU:   pod.Annotations[AnnotationAgentRequestsCPU],
+		RequestsMem:   pod.Annotations[AnnotationAgentRequestsMem],
+		Secrets:       secrets(pod.Annotations),
+		Status:        pod.Annotations[AnnotationAgentStatus],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
+			AuthMethod:       pod.Annotations[AnnotationVaultAuthMethod],
 			CACert:           pod.Annotations[AnnotationVaultCACert],
 			CAKey:            pod.Annotations[AnnotationVaultCAKey],
 			ClientCert:       pod.Annotations[AnnotationVaultClientCert],
@@ -179,6 +180,12 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
 		},
+	}
+
+	if agent.Vault.AuthMethod == "" || agent.Vault.AuthMethod == DefaultVaultAuthMethod {
+		saName, saPath := serviceaccount(pod)
+		agent.ServiceAccountName = saName
+		agent.ServiceAccountPath = saPath
 	}
 
 	var err error
@@ -321,8 +328,16 @@ func (a *Agent) Validate() error {
 		return errors.New("namespace missing from request")
 	}
 
-	if a.ServiceAccountName == "" || a.ServiceAccountPath == "" {
-		return errors.New("no service account name or path found")
+	if a.Vault.AuthMethod == "" || a.Vault.AuthMethod == DefaultVaultAuthMethod {
+		if a.ServiceAccountName == "" || a.ServiceAccountPath == "" {
+			return errors.New("no service account name or path found")
+		}
+	}
+
+	if a.Vault.AuthMethod == "cert" {
+		if a.Vault.ClientCert == "" || a.Vault.ClientKey == "" {
+			return errors.New("no client certificate or key defined")
+		}
 	}
 
 	if a.ImageName == "" {
@@ -330,12 +345,14 @@ func (a *Agent) Validate() error {
 	}
 
 	if a.ConfigMapName == "" {
-		if a.Vault.Role == "" {
-			return errors.New("no Vault role found")
-		}
+		if a.Vault.AuthMethod == "" || a.Vault.AuthMethod == DefaultVaultAuthMethod {
+			if a.Vault.Role == "" {
+				return errors.New("no Vault role found")
+			}
 
-		if a.Vault.AuthPath == "" {
-			return errors.New("no Vault Auth Path found")
+			if a.Vault.AuthPath == "" {
+				return errors.New("no Vault Auth Path found")
+			}
 		}
 
 		if a.Vault.Address == "" {

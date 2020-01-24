@@ -15,7 +15,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:1234", DefaultVaultAuthMethod, "test", "test")
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -89,7 +89,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:1234", DefaultVaultAuthMethod, "test", "test")
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
