@@ -95,6 +95,12 @@ const (
 	// AnnotationVaultNamespace is the Vault namespace where secrets can be found.
 	AnnotationVaultNamespace = "vault.hashicorp.com/namespace"
 
+	// AnnotationAgentRunAsUser sets the User ID to run the Vault Agent containers as.
+	AnnotationAgentRunAsUser = "vault.hashicorp.com/agent-run-as-user"
+
+	// AnnotationAgentRunAsGroup sets the Group ID to run the Vault Agent containers as.
+	AnnotationAgentRunAsGroup = "vault.hashicorp.com/agent-run-as-group"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -225,6 +231,14 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = strconv.Itoa(DefaultAgentRunAsUser)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = strconv.Itoa(DefaultAgentRunAsGroup)
 	}
 
 	return nil

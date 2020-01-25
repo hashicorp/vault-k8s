@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -57,6 +58,8 @@ func TestInitDefaults(t *testing.T) {
 		annotationValue string
 	}{
 		{annotationKey: AnnotationAgentImage, annotationValue: DefaultVaultImage},
+		{annotationKey: AnnotationAgentRunAsUser, annotationValue: strconv.Itoa(DefaultAgentRunAsUser)},
+		{annotationKey: AnnotationAgentRunAsGroup, annotationValue: strconv.Itoa(DefaultAgentRunAsGroup)},
 	}
 
 	for _, tt := range tests {
@@ -131,6 +134,11 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 		}
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
+
+		err := Init(pod, "", "http://foobar:8200", "test", "test")
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
 
 		agent, err := New(pod, patches)
 		if err != nil {
@@ -245,6 +253,11 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
+		err := Init(pod, "", "http://foobar:8200", "test", "test")
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
 		agent, err := New(pod, patches)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -295,6 +308,11 @@ func TestTemplateShortcuts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
+			err := Init(pod, "", "http://foobar:8200", "test", "test")
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agent, err := New(pod, patches)
@@ -346,6 +364,11 @@ func TestSecretCommandAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
+		err := Init(pod, "", "http://foobar:8200", "test", "test")
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
 		var patches []*jsonpatch.JsonPatchOperation
 
 		agent, err := New(pod, patches)
@@ -438,6 +461,13 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRevokeGrace, "01", true},
 		{AnnotationAgentRevokeGrace, "-1", false},
 		{AnnotationAgentRevokeGrace, "foobar", false},
+		{AnnotationAgentRunAsUser, "0", true},
+		{AnnotationAgentRunAsUser, "100", true},
+		{AnnotationAgentRunAsUser, "root", false},
+
+		{AnnotationAgentRunAsGroup, "0", true},
+		{AnnotationAgentRunAsGroup, "100", true},
+		{AnnotationAgentRunAsGroup, "root", false},
 	}
 
 	for i, tt := range tests {
@@ -445,7 +475,12 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		pod := testPod(annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		_, err := New(pod, patches)
+		err := Init(pod, "", "http://foobar:8200", "test", "test")
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		_, err = New(pod, patches)
 		if err != nil && tt.valid {
 			t.Errorf("[%d] got error, shouldn't have: %s", i, err)
 		} else if err == nil && !tt.valid {
