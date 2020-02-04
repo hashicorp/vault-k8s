@@ -63,6 +63,8 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
+	lifecycle := a.createLifecycle()
+
 	return corev1.Container{
 		Name:      "vault-agent",
 		Image:     a.ImageName,
@@ -73,6 +75,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			RunAsGroup:   pointerutil.Int64Ptr(1000),
 			RunAsNonRoot: pointerutil.BoolPtr(true),
 		},
+		Lifecycle:    &lifecycle,
 		VolumeMounts: volumeMounts,
 		Command:      []string{"/bin/sh", "-ec"},
 		Args:         []string{arg},
@@ -124,4 +127,19 @@ func parseQuantity(raw string) (resource.Quantity, error) {
 	}
 
 	return resource.ParseQuantity(raw)
+}
+
+// This should only be run for a sidecar container
+func (a *Agent) createLifecycle() corev1.Lifecycle {
+	lifecycle := corev1.Lifecycle{}
+
+	if a.RevokeOnShutdown {
+		lifecycle.PreStop = &corev1.Handler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke -self", a.RevokeGrace)},
+			},
+		}
+	}
+
+	return lifecycle
 }

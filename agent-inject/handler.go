@@ -37,7 +37,7 @@ type Handler struct {
 	// If this is false, injection is default.
 	RequireAnnotation bool
 	VaultAddress      string
-	VaultAuthPath	  string
+	VaultAuthPath     string
 	ImageVault        string
 	Clientset         *kubernetes.Clientset
 	Log               hclog.Logger

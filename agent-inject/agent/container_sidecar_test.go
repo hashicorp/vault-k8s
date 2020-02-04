@@ -65,6 +65,10 @@ func TestContainerSidecar(t *testing.T) {
 	if container.Resources.Requests.Memory().String() != DefaultResourceRequestMem {
 		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Requests.Memory().String())
 	}
+
+	if container.Lifecycle.PreStop != nil {
+		t.Error("preStop hook should not be enabled by default")
+	}
 }
 
 func TestContainerSidecarConfigMap(t *testing.T) {
