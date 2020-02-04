@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultImage    = "vault:1.3.1"
 	DefaultVaultAuthPath = "auth/kubernetes"
 )
 
@@ -52,8 +52,16 @@ type Agent struct {
 	PrePopulate bool
 
 	// PrePopulateOnly controls whether an init container is the _only_ container
-	//added to the request.
+	// added to the request.
 	PrePopulateOnly bool
+
+	// RevokeOnShutdown controls whether a sidecar container will attempt to revoke its Vault
+	// token on shutting down.
+	RevokeOnShutdown bool
+
+	// RevokeGrace controls after receiving the signal for pod
+	// termination that the container will attempt to revoke its own Vault token.
+	RevokeGrace uint64
 
 	// RequestsCPU is the requested minimum CPU amount required  when being scheduled to deploy.
 	RequestsCPU string
@@ -190,6 +198,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.PrePopulateOnly, err = agent.prePopulateOnly()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeOnShutdown, err = agent.revokeOnShutdown()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeGrace, err = agent.revokeGrace()
 	if err != nil {
 		return agent, err
 	}

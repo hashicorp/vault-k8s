@@ -68,6 +68,15 @@ const (
 	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
 	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
 
+	// AnnotationAgentRevokeOnShutdown controls whether a sidecar container will revoke its
+	// own Vault token before shutting down. If you are using a custom agent template, you must
+	// make sure it's written to `/home/vault/.vault-token`. Only supported for sidecar containers.
+	AnnotationAgentRevokeOnShutdown = "vault.hashicorp.com/agent-revoke-on-shutdown"
+
+	// AnnotationAgentRevokeGrace sets the number of seconds after receiving the signal for pod
+	// termination that the container will attempt to revoke its own Vault token. Defaults to 5s.
+	AnnotationAgentRevokeGrace = "vault.hashicorp.com/agent-revoke-grace"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -173,6 +182,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace] = DefaultRevokeGrace
+	}
+
 	return nil
 }
 
@@ -232,6 +245,24 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) revokeOnShutdown() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentRevokeOnShutdown]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) revokeGrace() (uint64, error) {
+	raw, ok := a.Annotations[AnnotationAgentRevokeGrace]
+	if !ok {
+		return 0, nil
+	}
+
+	return strconv.ParseUint(raw, 10, 64)
 }
 
 func (a *Agent) tlsSkipVerify() (bool, error) {

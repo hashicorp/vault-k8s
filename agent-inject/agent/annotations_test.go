@@ -271,6 +271,24 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationVaultTLSSkipVerify, "tRuE", false},
 		{AnnotationVaultTLSSkipVerify, "fAlSe", false},
 		{AnnotationVaultTLSSkipVerify, "", false},
+
+		{AnnotationAgentRevokeOnShutdown, "true", true},
+		{AnnotationAgentRevokeOnShutdown, "false", true},
+		{AnnotationAgentRevokeOnShutdown, "TRUE", true},
+		{AnnotationAgentRevokeOnShutdown, "FALSE", true},
+		{AnnotationAgentRevokeOnShutdown, "0", true},
+		{AnnotationAgentRevokeOnShutdown, "1", true},
+		{AnnotationAgentRevokeOnShutdown, "t", true},
+		{AnnotationAgentRevokeOnShutdown, "f", true},
+		{AnnotationAgentRevokeOnShutdown, "tRuE", false},
+		{AnnotationAgentRevokeOnShutdown, "fAlSe", false},
+		{AnnotationAgentRevokeOnShutdown, "", false},
+
+		{AnnotationAgentRevokeGrace, "5", true},
+		{AnnotationAgentRevokeGrace, "0", true},
+		{AnnotationAgentRevokeGrace, "01", true},
+		{AnnotationAgentRevokeGrace, "-1", false},
+		{AnnotationAgentRevokeGrace, "foobar", false},
 	}
 
 	for i, tt := range tests {
