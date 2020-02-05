@@ -126,7 +126,7 @@ const (
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
-func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
+func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnShutdown bool) error {
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
@@ -182,8 +182,12 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(revokeOnShutdown)
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace] = DefaultRevokeGrace
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace] = strconv.Itoa(DefaultRevokeGrace)
 	}
 
 	return nil

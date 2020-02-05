@@ -13,7 +13,7 @@ func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -25,6 +25,7 @@ func TestInitCanSet(t *testing.T) {
 		{annotationKey: AnnotationVaultService, annotationValue: "http://foobar:8200"},
 		{annotationKey: AnnotationAgentImage, annotationValue: "foobar-image"},
 		{annotationKey: AnnotationAgentRequestNamespace, annotationValue: "test"},
+		{annotationKey: AnnotationAgentRevokeOnShutdown, annotationValue: "true"},
 	}
 
 	for _, tt := range tests {
@@ -44,7 +45,7 @@ func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "", "http://foobar:8200", "test", "test")
+	err := Init(pod, "", "http://foobar:8200", "test", "test", true)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -73,7 +74,7 @@ func TestInitError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "image", "", "authPath", "namespace")
+	err := Init(pod, "image", "", "authPath", "namespace", true)
 	if err == nil {
 		t.Error("expected error no address, got none")
 	}
@@ -83,7 +84,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, "image", "address", "", "namespace")
+	err = Init(pod, "image", "address", "", "namespace", true)
 	if err == nil {
 		t.Error("expected error no authPath, got none")
 	}
@@ -93,7 +94,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, "image", "address", "authPath", "")
+	err = Init(pod, "image", "address", "authPath", "", true)
 	if err == nil {
 		t.Error("expected error for no namespace, got none")
 	}
@@ -308,7 +309,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 func TestInitEmptyPod(t *testing.T) {
 	var pod *corev1.Pod
 
-	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err == nil {
 		t.Errorf("got no error, shouldn have")
 	}
