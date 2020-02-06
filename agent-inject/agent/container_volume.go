@@ -8,7 +8,6 @@ const (
 	configVolumeName    = "vault-config"
 	configVolumePath    = "/vault/configs"
 	secretVolumeName    = "vault-secrets"
-	secretVolumePath    = "/vault/secrets"
 	tlsSecretVolumeName = "vault-tls-secrets"
 	tlsSecretVolumePath = "/vault/tls"
 )
@@ -59,7 +58,7 @@ func (a *Agent) ContainerTLSSecretVolume() corev1.Volume {
 func (a *Agent) ContainerVolumeMount() corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      secretVolumeName,
-		MountPath: secretVolumePath,
+		MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
 		ReadOnly:  false,
 	}
 }

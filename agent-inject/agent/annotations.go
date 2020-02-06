@@ -116,6 +116,12 @@ const (
 	// AnnotationVaultAuthPath specifies the mount path to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultAuthPath = "vault.hashicorp.com/auth-path"
+
+	// AnnotationVaultSecretVolumePath specifies where the secrets are to be
+	// Mounted after fetching.
+	AnnotationVaultSecretVolumePath = "vault.hashicorp.com/secret-volume-path"
+
+	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -177,6 +183,13 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationPreserveSecretCase]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationPreserveSecretCase] = "false"
+	}
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = "/vault/secrets"
+	}
+
 	return nil
 }
 
@@ -197,7 +210,12 @@ func secrets(annotations map[string]string) []*Secret {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
 			raw := strings.ReplaceAll(name, secretName, "")
-			name := strings.ToLower(raw)
+			var name string
+			if annotations[AnnotationPreserveSecretCase] == "false" {
+				name = strings.ToLower(raw)
+			} else {
+				name = raw
+			}
 
 			if name == "" {
 				continue

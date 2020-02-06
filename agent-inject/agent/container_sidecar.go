@@ -23,7 +23,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      secretVolumeName,
-			MountPath: secretVolumePath,
+			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
 			ReadOnly:  false,
 		},
 		{
