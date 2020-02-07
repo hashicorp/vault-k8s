@@ -10,6 +10,7 @@ const (
 	secretVolumeName    = "vault-secrets"
 	tlsSecretVolumeName = "vault-tls-secrets"
 	tlsSecretVolumePath = "/vault/tls"
+	secretVolumePath    = "/vault/secrets"
 )
 
 // ContainerVolume returns the volume data to add to the pod. This volume

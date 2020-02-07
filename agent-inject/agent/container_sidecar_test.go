@@ -65,6 +65,12 @@ func TestContainerSidecar(t *testing.T) {
 	if container.Resources.Requests.Memory().String() != DefaultResourceRequestMem {
 		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Requests.Memory().String())
 	}
+
+	for _, volumeMount := range container.VolumeMounts {
+		if volumeMount.Name == secretVolumeName && volumeMount.MountPath != annotations[AnnotationVaultSecretVolumePath] {
+			t.Errorf("secrets volume path is wrong, should have been %s, got %s", volumeMount.MountPath, annotations[AnnotationVaultSecretVolumePath])
+		}
+	}
 }
 
 func TestContainerSidecarConfigMap(t *testing.T) {
@@ -81,6 +87,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		AnnotationVaultCAKey:                            "ca-key",
 		AnnotationVaultClientCert:                       "client-cert",
 		AnnotationVaultClientKey:                        "client-key",
+		AnnotationVaultSecretVolumePath:                 "/foo/bar",
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",

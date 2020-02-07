@@ -105,7 +105,7 @@ func TestInitError(t *testing.T) {
 	}
 }
 
-func TestSecretAnnotations(t *testing.T) {
+func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 	tests := []struct {
 		key          string
 		value        string
@@ -135,20 +135,60 @@ func TestSecretAnnotations(t *testing.T) {
 		if tt.expectedKey != "" {
 			if len(agent.Secrets) == 0 {
 				t.Error("Secrets length was zero, it shouldn't have been")
+			}
+			if agent.Secrets[0].Name != tt.expectedKey {
+				t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+			}
 
-				if agent.Secrets[0].Name != tt.expectedKey {
-					t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
-				}
+			if agent.Secrets[0].Path != tt.expectedPath {
+				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
 
-				if agent.Secrets[0].Path != tt.expectedPath {
-					t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
-				}
 			}
 		} else if len(agent.Secrets) > 0 {
 			t.Error("Secrets length was greater than zero, it shouldn't have been")
 		}
+	}
+}
 
+func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
+	tests := []struct {
+		key          string
+		value        string
+		expectedKey  string
+		expectedPath string
+	}{
+		{"vault.hashicorp.com/agent-inject-secret-foobar", "test1", "foobar", "test1"},
+		{"vault.hashicorp.com/agent-inject-secret-FOOBAR", "test2", "FOOBAR", "test2"},
+	}
+
+	for _, tt := range tests {
+		annotation := map[string]string{
+			tt.key: tt.value,
+			AnnotationPreserveSecretCase: "true",
+		}
+		pod := testPod(annotation)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if tt.expectedKey != "" {
+			if len(agent.Secrets) == 0 {
+				t.Error("Secrets length was zero, it shouldn't have been")
+			}
+			if agent.Secrets[0].Name != tt.expectedKey {
+				t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+			}
+
+			if agent.Secrets[0].Path != tt.expectedPath {
+				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
+
+			}
+		} else if len(agent.Secrets) > 0 {
+			t.Error("Secrets length was greater than zero, it shouldn't have been")
+		}
 	}
 }
 

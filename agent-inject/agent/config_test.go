@@ -22,6 +22,7 @@ func TestNewConfig(t *testing.T) {
 		AnnotationVaultCAKey:                            "ca-key",
 		AnnotationVaultClientCert:                       "client-cert",
 		AnnotationVaultClientKey:                        "client-key",
+		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",

@@ -121,6 +121,8 @@ const (
 	// Mounted after fetching.
 	AnnotationVaultSecretVolumePath = "vault.hashicorp.com/secret-volume-path"
 
+	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
+	// by default the name is converted to lower case.
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
 )
 
@@ -183,11 +185,8 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationPreserveSecretCase]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationPreserveSecretCase] = "false"
-	}
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = "/vault/secrets"
+		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = secretVolumePath
 	}
 
 	return nil
@@ -199,8 +198,11 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
 // name: foobar, value: db/creds/foobar
-func secrets(annotations map[string]string) []*Secret {
+func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
+
+	annotations := a.Annotations
+
 	// First check for the token-only injection annotation
 	if _, found := annotations[AnnotationAgentInjectToken]; found {
 		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
@@ -211,7 +213,7 @@ func secrets(annotations map[string]string) []*Secret {
 		if strings.Contains(name, secretName) {
 			raw := strings.ReplaceAll(name, secretName, "")
 			var name string
-			if annotations[AnnotationPreserveSecretCase] == "false" {
+			if ok, _ := a.preserveSecretCase(); !ok {
 				name = strings.ToLower(raw)
 			} else {
 				name = raw
@@ -263,6 +265,15 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 
 func (a *Agent) tlsSkipVerify() (bool, error) {
 	raw, ok := a.Annotations[AnnotationVaultTLSSkipVerify]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) preserveSecretCase() (bool, error) {
+	raw, ok := a.Annotations[AnnotationPreserveSecretCase]
 	if !ok {
 		return false, nil
 	}

@@ -159,7 +159,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Pod:                pod,
 		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		Secrets:            secrets(pod.Annotations),
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
@@ -179,6 +178,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	var err error
+	agent.Secrets = agent.secrets()
 	agent.Inject, err = agent.inject()
 	if err != nil {
 		return agent, err
