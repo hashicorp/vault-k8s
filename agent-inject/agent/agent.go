@@ -371,3 +371,23 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 	}
 	return serviceAccountName, serviceAccountPath
 }
+
+func (a *Agent) vaultCliFlags() []string {
+	flags := []string{
+		fmt.Sprintf("-address=%s", a.Vault.Address),
+	}
+
+	if a.Vault.CACert != "" {
+		flags = append(flags, fmt.Sprintf("-ca-cert=%s", a.Vault.CACert))
+	}
+
+	if a.Vault.ClientCert != "" {
+		flags = append(flags, fmt.Sprintf("-client-cert=%s", a.Vault.ClientCert))
+	}
+
+	if a.Vault.ClientKey != "" {
+		flags = append(flags, fmt.Sprintf("-client-key=%s", a.Vault.ClientKey))
+	}
+
+	return flags
+}

@@ -2,6 +2,8 @@ package agent
 
 import (
 	"fmt"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
@@ -133,10 +135,13 @@ func parseQuantity(raw string) (resource.Quantity, error) {
 func (a *Agent) createLifecycle() corev1.Lifecycle {
 	lifecycle := corev1.Lifecycle{}
 
+	flags := a.vaultCliFlags()
+	flags = append(flags, "-self")
+
 	if a.RevokeOnShutdown {
 		lifecycle.PreStop = &corev1.Handler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke -self", a.RevokeGrace)},
+				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke %s", a.RevokeGrace, strings.Join(flags[:], " "))},
 			},
 		}
 	}
