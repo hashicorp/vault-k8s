@@ -8,11 +8,18 @@ config:
 jobs:
     build_docker:
         steps:
-            - build_image
+            - run:
+                name: Build image
+                command: make image
+            - run:
+                name: Tag image
+                command: docker tag hashicorp/vault-k8s:0.1.0 hub.infra.tiki.services/ci/vault-k8s:lastest
 
     publish_docker:
         steps:
-            - push_image
+            - run:
+                name: Push image
+                command: docker push hub.infra.tiki.services/ci/vault-k8s:lastest
 
 
 workflows:
