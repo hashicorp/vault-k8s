@@ -13,13 +13,13 @@ jobs:
                 command: make image
             - run:
                 name: Tag image
-                command: docker tag hashicorp/vault-k8s:0.2.0 hub.infra.tiki.services/ci/vault-k8s:0.2.0
+                command: docker tag hashicorp/vault-k8s:0.2.0 hub.infra.tiki.services/ci/vault-k8s:${BRANCH_NAME}-build-${BUILD_NUMBER}
 
     publish_docker:
         steps:
             - run:
                 name: Push image
-                command: docker push hub.infra.tiki.services/ci/vault-k8s:0.2.0
+                command: docker push hub.infra.tiki.services/ci/vault-k8s:${BRANCH_NAME}-build-${BUILD_NUMBER}
 
 
 workflows:
