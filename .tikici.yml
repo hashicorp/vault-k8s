@@ -15,13 +15,6 @@ jobs:
             - push_image
 
 
-    deploy_production:
-        steps:
-            - deploy_production:
-                cluster: platform
-                workload: vault-k8s
-                has_worker: 'no'
-
 workflows:
     jenkins_pipeline:
         jobs:
@@ -33,14 +26,7 @@ workflows:
                     branches:
                         only:
                             - master
-                            - dev
-                            - staging
 
-            - deploy_production:
-                requires:
-                    - publish_docker
-                filters:
-                    branches:
-                        only:
-                            - master
+
+
 
