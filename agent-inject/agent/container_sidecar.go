@@ -2,8 +2,8 @@ package agent
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/resource"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -15,6 +15,7 @@ const (
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultInfluxdbUrl        = "http://influxdb.dev.tiki.services:8086"
 )
 
 // ContainerSidecar creates a new container to be added

@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultImage    = "vault:1.3.1"
 	DefaultVaultAuthPath = "auth/kubernetes"
 )
 
@@ -85,6 +85,9 @@ type Agent struct {
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
+
+	// Pluton is the structure holding all the Pluton specific configurations.
+	Pluton Pluton
 }
 
 type Secret struct {
@@ -144,6 +147,10 @@ type Vault struct {
 	TLSServerName string
 }
 
+type Pluton struct {
+	InfluxdbUrl string
+}
+
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
@@ -175,6 +182,9 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
+		},
+		Pluton: Pluton{
+			InfluxdbUrl: pod.Annotations[AnnotationPlutonInfluxUrl],
 		},
 	}
 

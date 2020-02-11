@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -21,6 +22,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_MAX_RETRIES",
 			Value: a.Vault.ClientMaxRetries,
+		})
+	}
+
+	if a.Pluton.InfluxdbUrl != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "TK_INFLUXDB_URL",
+			Value: a.Pluton.InfluxdbUrl,
 		})
 	}
 

@@ -112,6 +112,9 @@ const (
 	// AnnotationVaultAuthPath specifies the mount path to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultAuthPath = "vault.hashicorp.com/auth-path"
+
+	// AnnotationPlutonInfluxUrl specifies the InfluxDB URL
+	AnnotationPlutonInfluxUrl = "pluton.tiki.vn/influxdb-url"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -171,6 +174,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationPlutonInfluxUrl]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationPlutonInfluxUrl] = DefaultInfluxdbUrl
 	}
 
 	return nil
