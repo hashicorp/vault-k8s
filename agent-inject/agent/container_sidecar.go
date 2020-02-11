@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -35,20 +33,16 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		},
 	}
 
-	arg := DefaultContainerArg
+	// arg := DefaultContainerArg
 
-	if a.ConfigMapName != "" {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      configVolumeName,
-			MountPath: configVolumePath,
-			ReadOnly:  true,
-		})
-		arg = fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
-	}
-
-	if a.InjectPluton && !a.Inject {
-		arg = ""
-	}
+	// if a.ConfigMapName != "" {
+	// 	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+	// 		Name:      configVolumeName,
+	// 		MountPath: configVolumePath,
+	// 		ReadOnly:  true,
+	// 	})
+	// 	arg = fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+	// }
 
 	if a.Vault.TLSSecret != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -79,8 +73,8 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			RunAsNonRoot: pointerutil.BoolPtr(true),
 		},
 		VolumeMounts: volumeMounts,
-		Command:      []string{""},
-		Args:         []string{arg},
+		// Command:      []string{"/bin/sh", "-ec"},
+		// Args:         []string{arg},
 	}, nil
 }
 
