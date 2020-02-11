@@ -45,6 +45,10 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		arg = fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
 	}
 
+	if a.InjectPluton && !a.Inject {
+		arg = "vault --help"
+	}
+
 	if a.Vault.TLSSecret != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      tlsSecretVolumeName,
