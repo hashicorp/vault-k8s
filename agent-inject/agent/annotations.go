@@ -226,7 +226,7 @@ func (a *Agent) inject() (bool, error) {
 func (a *Agent) prePopulate() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentPrePopulate]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)

@@ -3,9 +3,9 @@ package agent
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -64,7 +64,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	}
 
 	return corev1.Container{
-		Name:      "vault-agent",
+		Name:      "pluton",
 		Image:     a.ImageName,
 		Env:       envs,
 		Resources: resources,

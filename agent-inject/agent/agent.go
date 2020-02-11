@@ -336,7 +336,7 @@ func (a *Agent) Validate() error {
 		return errors.New("no Vault image found")
 	}
 
-	if a.ConfigMapName == "" {
+	if a.ConfigMapName == "" && a.Pluton.InfluxdbUrl == "" {
 		if a.Vault.Role == "" {
 			return errors.New("no Vault role found")
 		}
