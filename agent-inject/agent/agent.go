@@ -220,6 +220,20 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
+	rawPluton, ok := pod.Annotations[AnnotationPlutonInject]
+	if ok {
+		injectPluton, err := strconv.ParseBool(rawPluton)
+		if err != nil {
+			return false, err
+		}
+
+		if !injectPluton {
+			return false, nil
+		} else {
+			return true, nil
+		}
+	}
+
 	inject, err := strconv.ParseBool(raw)
 	if err != nil {
 		return false, err

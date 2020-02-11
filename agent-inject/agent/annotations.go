@@ -115,6 +115,8 @@ const (
 
 	// AnnotationPlutonInfluxUrl specifies the InfluxDB URL
 	AnnotationPlutonInfluxUrl = "pluton.tiki.vn/influxdb-url"
+
+	AnnotationPlutonInject = "pluton.tiki.vn/agent-inject"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -216,6 +218,15 @@ func secrets(annotations map[string]string) []*Secret {
 
 func (a *Agent) inject() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentInject]
+	if !ok {
+		return true, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) injectPluton() (bool, error) {
+	raw, ok := a.Annotations[AnnotationPlutonInject]
 	if !ok {
 		return true, nil
 	}

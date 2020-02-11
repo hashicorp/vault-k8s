@@ -32,7 +32,7 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
-	if a.ConfigMapName == "" {
+	if a.ConfigMapName == "" && a.Vault.{
 		config, err := a.newConfig(init)
 		if err != nil {
 			return envs, err
