@@ -39,7 +39,7 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
-	if a.ConfigMapName == "" && !a.InjectPluton {
+	if a.ConfigMapName == "" {
 		config, err := a.newConfig(init)
 		if err != nil {
 			return envs, err
