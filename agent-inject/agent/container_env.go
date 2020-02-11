@@ -32,6 +32,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	if a.Inject {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_ENABLED",
+			Value: "true",
+		})
+	}
+
 	if a.ConfigMapName == "" && !a.InjectPluton {
 		config, err := a.newConfig(init)
 		if err != nil {
