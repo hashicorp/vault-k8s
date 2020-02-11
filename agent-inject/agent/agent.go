@@ -87,7 +87,8 @@ type Agent struct {
 	Vault Vault
 
 	// Pluton is the structure holding all the Pluton specific configurations.
-	Pluton Pluton
+	InjectPluton bool
+	Pluton       Pluton
 }
 
 type Secret struct {
@@ -190,6 +191,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 
 	var err error
 	agent.Inject, err = agent.inject()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.InjectPluton, err = agent.injectPluton()
 	if err != nil {
 		return agent, err
 	}
