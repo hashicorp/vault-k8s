@@ -14,8 +14,9 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
-	DefaultInfluxdbUrl        = "http://influxdb.dev.tiki.services:8086"
+	// DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultContainerArg = ""
+	DefaultInfluxdbUrl  = "http://influxdb.dev.tiki.services:8086"
 )
 
 // ContainerSidecar creates a new container to be added
@@ -78,7 +79,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			RunAsNonRoot: pointerutil.BoolPtr(true),
 		},
 		VolumeMounts: volumeMounts,
-		Command:      []string{"/bin/sh", "-ec"},
+		Command:      []string{""},
 		Args:         []string{arg},
 	}, nil
 }
