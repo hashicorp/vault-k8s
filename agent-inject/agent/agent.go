@@ -221,11 +221,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 // ShouldInject checks whether the pod in question should be injected
 // with Vault Agent containers.
 func ShouldInject(pod *corev1.Pod) (bool, error) {
-	raw, ok := pod.Annotations[AnnotationAgentInject]
-	if !ok {
-		return false, nil
-	}
-
 	rawPluton, ok := pod.Annotations[AnnotationPlutonInject]
 	if ok {
 		injectPluton, err := strconv.ParseBool(rawPluton)
@@ -238,6 +233,11 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		} else {
 			return true, nil
 		}
+	}
+
+	raw, ok := pod.Annotations[AnnotationAgentInject]
+	if !ok {
+		return false, nil
 	}
 
 	inject, err := strconv.ParseBool(raw)
