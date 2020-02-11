@@ -47,7 +47,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	}
 
 	if a.InjectPluton && !a.Inject {
-		arg = "vault --help"
+		arg = ""
 	}
 
 	if a.Vault.TLSSecret != "" {
