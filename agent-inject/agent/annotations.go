@@ -115,8 +115,12 @@ const (
 
 	// AnnotationPlutonInfluxUrl specifies the InfluxDB URL
 	AnnotationPlutonInfluxUrl = "pluton.tiki.vn/influxdb-url"
+	AnnotationPlutonInjectEnv = "pluton.tiki.vn/inject-env"
 
+	// AnnotationPlutonInject specifies whether pluton sidecar injected with higer priority than AnnotationAgentInject
 	AnnotationPlutonInject = "pluton.tiki.vn/agent-inject"
+
+	AnnotationAgentInjectMode = "vault.hashicorp.com/agent-inject-mode"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -182,6 +186,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationPlutonInfluxUrl] = DefaultInfluxdbUrl
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectMode]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectMode] = DefaultAgentInjectMode
+	}
+
 	return nil
 }
 
@@ -214,6 +222,21 @@ func secrets(annotations map[string]string) []*Secret {
 		}
 	}
 	return secrets
+}
+
+func plutonEnvs(annotations map[string]string) []*PlutonEnv {
+	var plutonEnvs []*PlutonEnv
+	for annotationKey, annotationValue := range annotations {
+		injectEnv := fmt.Sprintf("%s-", AnnotationPlutonInjectEnv)
+		if strings.Contains(annotationKey, injectEnv) {
+			envKey := strings.ReplaceAll(annotationKey, injectEnv, "")
+			envValue := annotationValue
+
+			plutonEnvs = append(plutonEnvs, &PlutonEnv{Key: envKey, Value: envValue})
+		}
+	}
+
+	return plutonEnvs
 }
 
 func (a *Agent) inject() (bool, error) {

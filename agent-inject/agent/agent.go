@@ -89,6 +89,7 @@ type Agent struct {
 	// Pluton is the structure holding all the Pluton specific configurations.
 	InjectPluton bool
 	Pluton       Pluton
+	PlutonEnvs   []*PlutonEnv
 }
 
 type Secret struct {
@@ -152,18 +153,27 @@ type Pluton struct {
 	InfluxdbUrl string
 }
 
+type PlutonEnv struct {
+	Key   string
+	Value string
+}
+
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
 
 	agent := &Agent{
-		Annotations:        pod.Annotations,
-		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
-		ImageName:          pod.Annotations[AnnotationAgentImage],
-		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
-		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
-		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:            patches,
+		Annotations:   pod.Annotations,
+		ConfigMapName: pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:     pod.Annotations[AnnotationAgentImage],
+		LimitsCPU:     pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:     pod.Annotations[AnnotationAgentLimitsMem],
+		Namespace:     pod.Annotations[AnnotationAgentRequestNamespace],
+		Patches:       patches,
+		Pluton: Pluton{
+			InfluxdbUrl: pod.Annotations[AnnotationPlutonInfluxUrl],
+		},
+		PlutonEnvs:         plutonEnvs(pod.Annotations),
 		Pod:                pod,
 		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
@@ -183,9 +193,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
-		},
-		Pluton: Pluton{
-			InfluxdbUrl: pod.Annotations[AnnotationPlutonInfluxUrl],
 		},
 	}
 

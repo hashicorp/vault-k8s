@@ -6,12 +6,6 @@ import (
 	"time"
 )
 
-const (
-	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
-	PidFile         = "/home/vault/.pid"
-	TokenFile       = "/home/vault/.token"
-)
-
 // Config is the top level struct that composes a Vault Agent
 // configuration file.
 type Config struct {
@@ -78,9 +72,16 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
+		secretPath := ""
+		if a.Annotations[AnnotationAgentInjectMode] == "correspondence" {
+			secretPath = secret.Path
+		} else {
+			secretPath = secret.Name
+		}
+
 		tmpl := &Template{
 			Contents:    template,
-			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
+			Destination: fmt.Sprintf("/vault/secrets/%s", secretPath),
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 		}
@@ -104,7 +105,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type: "kubernetes",
+				Type:      "kubernetes",
 				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,
@@ -128,3 +129,9 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 func (c *Config) render() ([]byte, error) {
 	return json.Marshal(c)
 }
+
+const (
+	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	PidFile         = "/home/vault/.pid"
+	TokenFile       = "/home/vault/.token"
+)

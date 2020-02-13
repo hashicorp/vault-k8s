@@ -52,5 +52,12 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	for _, envVar := range a.PlutonEnvs {
+		envs = append(envs, corev1.EnvVar{
+			Name:  envVar.Key,
+			Value: envVar.Value,
+		})
+	}
+
 	return envs, nil
 }
