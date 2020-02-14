@@ -37,7 +37,7 @@ const (
 
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
-	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token-only"
+	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"

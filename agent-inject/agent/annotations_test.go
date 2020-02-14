@@ -226,22 +226,22 @@ func TestTemplateShortcuts(t *testing.T) {
 		expectedSecrets map[string]Secret
 	}{
 		{
-			"valid inject-token-only",
+			"valid inject-token",
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-token-only": "true",
+				AnnotationAgentInjectToken: "true",
 			},
 			map[string]Secret{
 				"token": Secret{
 					Name:     "token",
-					Path:     "auth/token/lookup-self",
-					Template: `{{ with secret "auth/token/lookup-self" }}{{ .Data.id }}{{ end }}`,
+					Path:     TokenSecret,
+					Template: TokenTemplate,
 				},
 			},
 		},
 		{
-			"invalid inject-token-only",
+			"invalid inject-token",
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-token": "true",
+				"vault.hashicorp.com/agent-inject-token-invalid": "true",
 			},
 			map[string]Secret{},
 		},
