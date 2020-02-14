@@ -69,12 +69,18 @@ func (a *Agent) newTemplateConfigs() []*Template {
 	for _, secret := range a.Secrets {
 		template := secret.Template
 		if template == "" {
-			template = fmt.Sprintf(DefaultTemplate, secret.Path)
+			if a.Annotations[AnnotationAgentInjectMode] == "file" {
+				template = fmt.Sprintf(DefaultTemplate, secret.Path)
+			} else {
+				template = fmt.Sprintf(DefaultTemplateEnv, secret.Path)
+			}
 		}
 
 		secretPath := ""
-		if a.Annotations[AnnotationAgentInjectMode] == "correspondence" {
+		if a.Annotations[AnnotationAgentInjectStructure] == "tree" {
 			secretPath = secret.Path
+		} else if a.Annotations[AnnotationAgentInjectStructure] == "root" {
+			secretPath = secret.Name
 		} else {
 			secretPath = secret.Name
 		}
@@ -131,7 +137,9 @@ func (c *Config) render() ([]byte, error) {
 }
 
 const (
-	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
-	PidFile         = "/home/vault/.pid"
-	TokenFile       = "/home/vault/.token"
+	// DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	DefaultTemplate    = "{{ with secret \"%s\" }}{{ .Data.data.file_content }}{{ end }}"
+	DefaultTemplateEnv = "{{ with secret \"%s\" }}{{ export .Data.data.key_value }}{{ end }}"
+	PidFile            = "/home/vault/.pid"
+	TokenFile          = "/home/vault/.token"
 )

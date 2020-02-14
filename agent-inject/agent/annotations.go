@@ -120,7 +120,8 @@ const (
 	// AnnotationPlutonInject specifies whether pluton sidecar injected with higer priority than AnnotationAgentInject
 	AnnotationPlutonInject = "pluton.tiki.vn/agent-inject"
 
-	AnnotationAgentInjectMode = "vault.hashicorp.com/agent-inject-mode"
+	AnnotationAgentInjectStructure = "vault.hashicorp.com/agent-inject-structure"
+	AnnotationAgentInjectMode      = "vault.hashicorp.com/agent-inject-mode"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -188,6 +189,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectMode]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectMode] = DefaultAgentInjectMode
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectStructure]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectStructure] = DefaultAgentInjectStructure
 	}
 
 	return nil

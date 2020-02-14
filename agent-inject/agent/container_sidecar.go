@@ -12,9 +12,10 @@ const (
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
 	// DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
-	DefaultContainerArg    = ""
-	DefaultInfluxdbUrl     = "http://influxdb.dev.tiki.services:8086"
-	DefaultAgentInjectMode = "correspondence"
+	DefaultContainerArg         = ""
+	DefaultInfluxdbUrl          = "http://influxdb.dev.tiki.services:8086"
+	DefaultAgentInjectStructure = "tree"
+	DefaultAgentInjectMode      = "file"
 )
 
 // ContainerSidecar creates a new container to be added
