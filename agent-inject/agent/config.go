@@ -91,8 +91,25 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 		}
+
 		templates = append(templates, tmpl)
 	}
+	vaultEnvPath := ""
+	if a.Annotations[AnnotationAgentInjectStructure] == "tree" {
+		vaultEnvPath = "kv/data/script/vault-env"
+	} else if a.Annotations[AnnotationAgentInjectStructure] == "root" {
+		vaultEnvPath = "vault-env"
+	} else {
+		vaultEnvPath = "kv/data/script/vault-env"
+	}
+	vaultEnvTemplate := &Template{
+		Contents:    DefaultTemplate,
+		Destination: fmt.Sprintf("/vault/secrets/%s", vaultEnvPath),
+		LeftDelim:   "{{",
+		RightDelim:  "}}",
+	}
+	templates = append(templates, vaultEnvTemplate)
+
 	return templates
 }
 
