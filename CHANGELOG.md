@@ -4,6 +4,10 @@ Features:
 
 Improvements:
 
+* Added `GO111MODULE` flag to `Makefile`: [GH-61](https://github.com/hashicorp/vault-k8s/pull/61)
+
+* Changed token location from `/home/vault/.token` to `/home/vault/.vault-token`: [GH-66](https://github.com/hashicorp/vault-k8s/pull/66)
+
 Bugs:
 
 ## 0.2.0 (January 31st, 2020)
