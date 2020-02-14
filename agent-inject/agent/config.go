@@ -139,7 +139,7 @@ func (c *Config) render() ([]byte, error) {
 const (
 	// DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
 	DefaultTemplate    = "{{ with secret \"%s\" }}{{ .Data.data.file_content }}{{ end }}"
-	DefaultTemplateEnv = "{{ with secret \"%s\" }}{{ export .Data.data.key_value }}{{ end }}"
+	DefaultTemplateEnv = "{{ with secret \"%s\" }}export {{ .Data.data.key_value }}{{ end }}"
 	PidFile            = "/home/vault/.pid"
 	TokenFile          = "/home/vault/.token"
 )
