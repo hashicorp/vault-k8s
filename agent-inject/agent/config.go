@@ -9,7 +9,7 @@ import (
 const (
 	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
 	PidFile         = "/home/vault/.pid"
-	TokenFile       = "/home/vault/.token"
+	TokenFile       = "/home/vault/.vault-token"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -104,7 +104,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type: "kubernetes",
+				Type:      "kubernetes",
 				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,
