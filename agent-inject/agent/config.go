@@ -8,6 +8,8 @@ import (
 
 const (
 	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	TokenTemplate   = `{{ with secret "auth/token/lookup-self" }}{{ .Data.id }}{{ end }}`
+	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.token"
 )
@@ -104,7 +106,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type: "kubernetes",
+				Type:      "kubernetes",
 				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,

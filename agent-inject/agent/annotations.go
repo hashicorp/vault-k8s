@@ -35,6 +35,10 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectToken is the annotation key for injecting the token
+	// from auth/token/lookup-self
+	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token-only"
+
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
@@ -184,6 +188,11 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 // name: foobar, value: db/creds/foobar
 func secrets(annotations map[string]string) []*Secret {
 	var secrets []*Secret
+	// First check for the token-only injection annotation
+	if _, found := annotations[AnnotationAgentInjectToken]; found {
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
+	}
 	for name, path := range annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
