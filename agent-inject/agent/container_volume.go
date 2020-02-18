@@ -8,7 +8,7 @@ const (
 	configVolumeName    = "vault-config"
 	configVolumePath    = "/vault/configs"
 	secretVolumeName    = "vault-secrets"
-	secretVolumePath    = "/vault/secrets"
+	secretVolumePath    = "/vault"
 	tlsSecretVolumeName = "vault-tls-secrets"
 	tlsSecretVolumePath = "/vault/tls"
 )
@@ -61,5 +61,6 @@ func (a *Agent) ContainerVolumeMount() corev1.VolumeMount {
 		Name:      secretVolumeName,
 		MountPath: secretVolumePath,
 		ReadOnly:  false,
+		
 	}
 }
