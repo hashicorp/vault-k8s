@@ -8,7 +8,7 @@ import (
 
 const (
 	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
-	TokenTemplate   = `{{ with secret "auth/token/lookup-self" }}{{ .Data.id }}\n{{ end }}`
+	TokenTemplate   = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
 	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.token"
