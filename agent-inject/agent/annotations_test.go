@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -215,6 +216,66 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 		if agent.Secrets[0].Name != tt.expectedKey {
 			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
 		}
+	}
+}
+
+func TestTemplateShortcuts(t *testing.T) {
+	tests := []struct {
+		name            string
+		annotations     map[string]string
+		expectedSecrets map[string]Secret
+	}{
+		{
+			"valid inject-token",
+			map[string]string{
+				AnnotationAgentInjectToken: "true",
+			},
+			map[string]Secret{
+				"token": Secret{
+					Name:     "token",
+					Path:     TokenSecret,
+					Template: TokenTemplate,
+				},
+			},
+		},
+		{
+			"invalid inject-token",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-token-invalid": "true",
+			},
+			map[string]Secret{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			if len(agent.Secrets) != len(tt.expectedSecrets) {
+				t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecrets))
+			}
+
+			for _, s := range agent.Secrets {
+				if s == nil {
+					t.Error("Got a nil agent Secret")
+					t.FailNow()
+				}
+				expectedSecret, found := tt.expectedSecrets[s.Name]
+				if !found {
+					t.Errorf("Unexpected agent secret name %q", s.Name)
+					t.FailNow()
+				}
+				if !reflect.DeepEqual(expectedSecret, *s) {
+					t.Errorf("expected secret %+v, got agent secret %+v", expectedSecret, *s)
+				}
+			}
+		})
 	}
 }
 
