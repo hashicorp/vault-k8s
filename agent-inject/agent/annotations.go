@@ -138,6 +138,10 @@ const (
 	// and gid) is set on the injected Vault Agent containers
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
 
+	// AnnotationAgentServiceAccountTokenVolumeName is the optional name of a volume containing a
+	// projected service account token
+	AnnotationAgentServiceAccountTokenVolumeName = "vault.hashicorp.com/agent-service-account-token-volume-name"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"

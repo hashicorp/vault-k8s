@@ -578,6 +578,15 @@ func (a *Agent) Validate() error {
 
 func serviceaccount(pod *corev1.Pod) (string, string) {
 	var serviceAccountName, serviceAccountPath string
+	if volumeName := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountVolumeName]; volumeName != "" {
+		for _, container := range pod.Spec.Containers {
+			for _, volumes := range container.VolumeMounts {
+				if volumes.Name == volumeName {
+					return volumes.Name, volumes.MountPath
+				}
+			}
+		}
+	}
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
 			if strings.Contains(volumes.MountPath, "serviceaccount") {
