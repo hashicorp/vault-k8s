@@ -8,6 +8,8 @@ Improvements:
 
 * Changed token location from `/home/vault/.token` to `/home/vault/.vault-token`: [GH-66](https://github.com/hashicorp/vault-k8s/pull/66)
 
+* The annotation `"vault.hashicorp.com/agent-inject-token": "true"` results in a token file containing the lookup-self token [GH-77]
+
 Bugs:
 
 ## 0.2.0 (January 31st, 2020)
