@@ -201,22 +201,18 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
-	annotations := a.Annotations
-
 	// First check for the token-only injection annotation
-	if _, found := annotations[AnnotationAgentInjectToken]; found {
-		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
-		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
+	if _, found := a.Annotations[AnnotationAgentInjectToken]; found {
+		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
+		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
 	}
-	for name, path := range annotations {
+	for name, path := range a.Annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
 			raw := strings.ReplaceAll(name, secretName, "")
-			var name string
+			name := raw
 			if ok, _ := a.preserveSecretCase(); !ok {
 				name = strings.ToLower(raw)
-			} else {
-				name = raw
 			}
 
 			if name == "" {
@@ -226,7 +222,7 @@ func (a *Agent) secrets() []*Secret {
 			var template string
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 
-			if val, ok := annotations[templateName]; ok {
+			if val, ok := a.Annotations[templateName]; ok {
 				template = val
 			}
 
