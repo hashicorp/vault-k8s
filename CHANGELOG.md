@@ -2,6 +2,8 @@
 
 Features:
 
+* Added annotation to change log-format for the injector: [GH-50](https://github.com/hashicorp/vault-k8s/pull/50)
+
 Improvements:
 
 * Added `GO111MODULE` flag to `Makefile`: [GH-61](https://github.com/hashicorp/vault-k8s/pull/61)
