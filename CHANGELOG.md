@@ -3,13 +3,12 @@
 Features:
 
 * Added annotation to change log-format for the injector: [GH-50](https://github.com/hashicorp/vault-k8s/pull/50)
+* Added annotation to run a command after template has been rendered: [GH-57](https://github.com/hashicorp/vault-k8s/pull/57)
 
 Improvements:
 
 * Added `GO111MODULE` flag to `Makefile`: [GH-61](https://github.com/hashicorp/vault-k8s/pull/61)
-
 * Changed token location from `/home/vault/.token` to `/home/vault/.vault-token`: [GH-66](https://github.com/hashicorp/vault-k8s/pull/66)
-
 * The annotation `"vault.hashicorp.com/agent-inject-token": "true"` results in a token file containing the lookup-self token: [GH-77](https://github.com/hashicorp/vault-k8s/pull/77)
 
 Bugs:
