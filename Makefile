@@ -13,9 +13,9 @@ BIN_NAME=$(IMAGE_NAME)_$(GOOS)_$(GOARCH)_$(VERSION)
 all: build
 
 build:
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
+	GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
 
-image: build 
+image: build
 	docker build --build-arg NAME=$(IMAGE_NAME) --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dockerfile.dev .
 
 docker-login:
@@ -27,7 +27,7 @@ deploy: image docker-login
 	docker push $(IMAGE_TAG_LATEST)
 
 clean:
-	-rm -rf $(BUILD_DIR) 
+	-rm -rf $(BUILD_DIR)
 
 test: unit-test
 

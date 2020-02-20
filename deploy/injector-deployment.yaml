@@ -32,6 +32,8 @@ spec:
               value: ":8080"
             - name: AGENT_INJECT_LOG_LEVEL
               value: "info"
+            - name: AGENT_INJECT_LOG_FORMAT
+              value: "standard"
             - name: AGENT_INJECT_VAULT_ADDR
               value: "https://vault.$(NAMESPACE).svc:8200"
             - name: AGENT_INJECT_VAULT_IMAGE

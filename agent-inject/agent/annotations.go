@@ -35,6 +35,17 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectToken is the annotation key for injecting the token
+	// from auth/token/lookup-self
+	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
+
+	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
+	// to run a command after the secret is rendered. The name of the template is any
+	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
+	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// If not provided (the default), no command is executed.
+	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
+
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
@@ -201,6 +212,11 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 // name: foobar, value: db/creds/foobar
 func secrets(annotations map[string]string) []*Secret {
 	var secrets []*Secret
+	// First check for the token-only injection annotation
+	if _, found := annotations[AnnotationAgentInjectToken]; found {
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
+	}
 	for name, path := range annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
@@ -218,7 +234,14 @@ func secrets(annotations map[string]string) []*Secret {
 				template = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template})
+			var command string
+			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
+
+			if val, ok := annotations[commandName]; ok {
+				command = val
+			}
+
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command})
 		}
 	}
 	return secrets

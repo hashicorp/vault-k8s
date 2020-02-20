@@ -104,6 +104,9 @@ type Secret struct {
 
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
+
+	// Command is the optional command to run after rendering the secret.
+	Command string
 }
 
 type Vault struct {
