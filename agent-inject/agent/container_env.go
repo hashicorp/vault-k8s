@@ -10,6 +10,11 @@ import (
 func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	var envs []corev1.EnvVar
 
+	envs = append(envs, corev1.EnvVar{
+		Name:  "VAULT_TOKEN",
+		Value: "/home/vault/.vault-token",
+	})
+
 	if a.Vault.ClientTimeout != "" {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_CLIENT_TIMEOUT",
@@ -21,6 +26,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_MAX_RETRIES",
 			Value: a.Vault.ClientMaxRetries,
+		})
+	}
+
+	if a.Vault.LogLevel != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_LOG_LEVEL",
+			Value: a.Vault.LogLevel,
 		})
 	}
 

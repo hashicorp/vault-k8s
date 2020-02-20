@@ -15,6 +15,7 @@ const (
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultAgentLogLevel      = "info"
 )
 
 // ContainerSidecar creates a new container to be added

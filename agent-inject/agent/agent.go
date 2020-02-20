@@ -132,6 +132,12 @@ type Vault struct {
 	// make a request to the Vault server.
 	ClientTimeout string
 
+	// LogLevel sets the Vault Agent log level.  Defaults to info.
+	LogLevel string
+
+	// Namespace is the Vault namespace to prepend to secret paths.
+	Namespace string
+
 	// Role is the name of the Vault role to use for authentication.
 	Role string
 
@@ -175,6 +181,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientKey:        pod.Annotations[AnnotationVaultClientKey],
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
+			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
+			Namespace:        pod.Annotations[AnnotationVaultNamespace],
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],

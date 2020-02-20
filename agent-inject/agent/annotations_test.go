@@ -399,3 +399,33 @@ func TestInitEmptyPod(t *testing.T) {
 		t.Errorf("got no error, shouldn have")
 	}
 }
+
+func TestVaultNamespaceAnnotation(t *testing.T) {
+	tests := []struct {
+		key           string
+		value         string
+		expectedValue string
+	}{
+		{"", "", ""},
+		{"vault.hashicorp.com/namespace", "", ""},
+		{"vault.hashicorp.com/namespace", "foobar", "foobar"},
+		{"vault.hashicorp.com/namespace", "fooBar", "fooBar"},
+	}
+
+	for _, tt := range tests {
+		annotation := map[string]string{
+			tt.key: tt.value,
+		}
+		pod := testPod(annotation)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if agent.Vault.Namespace != tt.expectedValue {
+			t.Errorf("expected %s, got %s", tt.expectedValue, agent.Vault.Namespace)
+		}
+	}
+}
