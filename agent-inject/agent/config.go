@@ -70,6 +70,7 @@ type Template struct {
 	Contents       string `json:"contents"`
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
+	Command        string `json:"command,omitempty"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
@@ -85,6 +86,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
+			Command:     secret.Command,
 		}
 		templates = append(templates, tmpl)
 	}

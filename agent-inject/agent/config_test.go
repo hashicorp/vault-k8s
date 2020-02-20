@@ -25,6 +25,7 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
+		"vault.hashicorp.com/agent-inject-command-bar":  "pkill -HUP app",
 	}
 
 	pod := testPod(annotations)
@@ -101,6 +102,10 @@ func TestNewConfig(t *testing.T) {
 
 			if !strings.Contains(template.Contents, "with secret \"db/creds/bar\"") {
 				t.Errorf("expected template contents to contain %s, got %s", "with secret \"db/creds/bar\"", template.Contents)
+			}
+
+			if !strings.Contains(template.Command, "pkill -HUP app") {
+				t.Errorf("expected command contents to contain %s, got %s", "pkill -HUP app", template.Command)
 			}
 		} else {
 			t.Error("shouldn't have got here")

@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultImage    = "vault:1.3.1"
 	DefaultVaultAuthPath = "auth/kubernetes"
 )
 
@@ -96,6 +96,9 @@ type Secret struct {
 
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
+
+	// Command is the optional command to run after rendering the secret.
+	Command string
 }
 
 type Vault struct {
