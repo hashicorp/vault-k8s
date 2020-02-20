@@ -29,6 +29,7 @@ type Command struct {
 
 	flagListen       	string // Address of Vault Server
 	flagLogLevel     	string // Log verbosity
+	flagLogFormat    	string // Log format
 	flagCertFile     	string // TLS Certificate to serve
 	flagKeyFile      	string // TLS private key to serve
 	flagAutoName     	string // MutatingWebhookConfiguration for updating
@@ -102,8 +103,10 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	logger := hclog.Default().Named("handler")
-	logger.SetLevel(level)
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:       "handler",
+		Level:      level,
+		JSONFormat: (c.flagLogFormat == "json")})
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
