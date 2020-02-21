@@ -63,6 +63,12 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
+	// Create a blank token file when namespaces are being used to avoid
+	// a bug with auto-auth, namespaces and kube auth.
+	if a.Vault.Namespace != "" {
+		arg = fmt.Sprintf("touch %s && %s", TokenFile, DefaultContainerArg)
+	}
+
 	return corev1.Container{
 		Name:      "vault-agent",
 		Image:     a.ImageName,
