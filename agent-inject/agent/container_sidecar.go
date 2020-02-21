@@ -42,7 +42,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {
@@ -61,12 +61,6 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	resources, err := a.parseResources()
 	if err != nil {
 		return corev1.Container{}, err
-	}
-
-	// Create a blank token file when namespaces are being used to avoid
-	// a bug with auto-auth, namespaces and kube auth.
-	if a.Vault.Namespace != "" {
-		arg = fmt.Sprintf("touch %s && %s", TokenFile, DefaultContainerArg)
 	}
 
 	return corev1.Container{

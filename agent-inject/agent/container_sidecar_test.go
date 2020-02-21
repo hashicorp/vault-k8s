@@ -118,7 +118,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	arg := fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+	arg := fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	if container.Args[0] != arg {
 		t.Errorf("arg value wrong, should have been %s, got %s", arg, container.Args[0])
 	}
