@@ -25,7 +25,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		},
 	}
 
-	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	arg := DefaultContainerArg
 
 	if a.ConfigMapName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -33,7 +33,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("vault agent -config=%s/config-init.hcl", configVolumePath)
+		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config-init.hcl", TokenFile, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {

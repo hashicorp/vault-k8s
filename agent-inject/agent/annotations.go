@@ -79,6 +79,9 @@ const (
 	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
 	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
 
+	// AnnotationVaultNamespace is the Vault namespace where secrets can be found.
+	AnnotationVaultNamespace = "vault.hashicorp.com/namespace"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -115,6 +118,9 @@ const (
 
 	// AnnotationVaultClientTimeout sets the request timeout when communicating with Vault.
 	AnnotationVaultClientTimeout = "vault.hashicorp.com/client-timeout"
+
+	// AnnotationVaultLogLevel sets the Vault Agent log level.
+	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
@@ -182,6 +188,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
 	}
 
 	return nil

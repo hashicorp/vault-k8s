@@ -75,8 +75,8 @@ func TestValidate(t *testing.T) {
 				ServiceAccountName: "foobar",
 				ImageName:          "test",
 				Vault: Vault{
-					Role:    "test",
-					Address: "https://foobar.com:8200",
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
 					AuthPath: "test",
 				},
 			}, true,
@@ -148,8 +148,8 @@ func TestValidate(t *testing.T) {
 				ServiceAccountName: "foobar",
 				ImageName:          "test",
 				Vault: Vault{
-					Role:    "test",
-					Address: "https://foobar.com:8200",
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
 					AuthPath: "",
 				},
 			}, false,
