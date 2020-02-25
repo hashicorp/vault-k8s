@@ -8,6 +8,8 @@ import (
 
 const (
 	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	TokenTemplate   = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
+	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.vault-token"
 )
@@ -68,6 +70,7 @@ type Template struct {
 	Contents       string `json:"contents"`
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
+	Command        string `json:"command,omitempty"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
@@ -83,6 +86,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
+			Command:     secret.Command,
 		}
 		templates = append(templates, tmpl)
 	}
@@ -105,6 +109,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		AutoAuth: &AutoAuth{
 			Method: &Method{
 				Type:      "kubernetes",
+				Namespace: a.Vault.Namespace,
 				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,

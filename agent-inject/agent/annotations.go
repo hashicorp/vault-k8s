@@ -35,6 +35,17 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectToken is the annotation key for injecting the token
+	// from auth/token/lookup-self
+	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
+
+	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
+	// to run a command after the secret is rendered. The name of the template is any
+	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
+	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// If not provided (the default), no command is executed.
+	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
+
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
@@ -77,6 +88,9 @@ const (
 	// termination that the container will attempt to revoke its own Vault token. Defaults to 5s.
 	AnnotationAgentRevokeGrace = "vault.hashicorp.com/agent-revoke-grace"
 
+	// AnnotationVaultNamespace is the Vault namespace where secrets can be found.
+	AnnotationVaultNamespace = "vault.hashicorp.com/namespace"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -113,6 +127,9 @@ const (
 
 	// AnnotationVaultClientTimeout sets the request timeout when communicating with Vault.
 	AnnotationVaultClientTimeout = "vault.hashicorp.com/client-timeout"
+
+	// AnnotationVaultLogLevel sets the Vault Agent log level.
+	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
@@ -190,6 +207,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 		pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace] = strconv.Itoa(DefaultRevokeGrace)
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
 	return nil
 }
 
@@ -201,6 +222,11 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 // name: foobar, value: db/creds/foobar
 func secrets(annotations map[string]string) []*Secret {
 	var secrets []*Secret
+	// First check for the token-only injection annotation
+	if _, found := annotations[AnnotationAgentInjectToken]; found {
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
+		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
+	}
 	for name, path := range annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
@@ -218,7 +244,14 @@ func secrets(annotations map[string]string) []*Secret {
 				template = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template})
+			var command string
+			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
+
+			if val, ok := annotations[commandName]; ok {
+				command = val
+			}
+
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command})
 		}
 	}
 	return secrets

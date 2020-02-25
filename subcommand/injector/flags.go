@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	DefaultLogLevel = "info"
+	DefaultLogLevel  = "info"
+	DefaultLogFormat = "standard"
 )
 
 // Specification are the supported environment variables, prefixed with
@@ -25,6 +26,9 @@ type Specification struct {
 
 	// LogLevel is the AGENT_INJECT_LOG_LEVEL environment variable.
 	LogLevel string `split_words:"true"`
+
+	// LogFormat is the AGENT_INJECT_LOG_FORMAT environment variable
+	LogFormat string `split_words:"true"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
@@ -56,6 +60,8 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagListen, "listen", ":8080", "Address to bind listener to.")
 	c.flagSet.StringVar(&c.flagLogLevel, "log-level", DefaultLogLevel, "Log verbosity level. Supported values "+
 		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
+	c.flagSet.StringVar(&c.flagLogFormat, "log-format", DefaultLogFormat, "Log output format. "+
+		`Supported log formats: "standard", "json".`)
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
@@ -94,7 +100,6 @@ func (c *Command) logLevel() (hclog.Level, error) {
 	default:
 		return level, fmt.Errorf("unknown log level: %s", c.flagLogLevel)
 	}
-
 	return level, nil
 }
 
@@ -112,6 +117,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.LogLevel != "" {
 		c.flagLogLevel = envs.LogLevel
+	}
+
+	if envs.LogFormat != "" {
+		c.flagLogFormat = envs.LogFormat
 	}
 
 	if envs.TLSAuto != "" {

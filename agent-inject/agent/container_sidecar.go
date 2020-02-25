@@ -18,6 +18,7 @@ const (
 	DefaultResourceRequestMem = "64Mi"
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
 	DefaultRevokeGrace        = 5
+	DefaultAgentLogLevel      = "info"
 )
 
 // ContainerSidecar creates a new container to be added
@@ -44,7 +45,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {

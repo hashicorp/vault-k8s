@@ -30,15 +30,24 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	if len(container.Env) != 1 {
-		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), 1)
+	expectedEnvs := 2
+	if len(container.Env) != expectedEnvs {
+		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	if container.Env[0].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[0].Name)
+	if container.Env[0].Name != "VAULT_LOG_LEVEL" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_LEVEL", container.Env[0].Name)
 	}
 
 	if container.Env[0].Value == "" {
+		t.Error("env value empty, it shouldn't be")
+	}
+
+	if container.Env[1].Name != "VAULT_CONFIG" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[1].Name)
+	}
+
+	if container.Env[1].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
@@ -164,11 +173,12 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	if len(container.Env) != 0 {
-		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), 0)
+	expectedEnvs := 1
+	if len(container.Env) != expectedEnvs {
+		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	arg := fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+	arg := fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	if container.Args[0] != arg {
 		t.Errorf("arg value wrong, should have been %s, got %s", arg, container.Args[0])
 	}

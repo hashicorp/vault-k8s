@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -219,6 +220,109 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 	}
 }
 
+func TestTemplateShortcuts(t *testing.T) {
+	tests := []struct {
+		name            string
+		annotations     map[string]string
+		expectedSecrets map[string]Secret
+	}{
+		{
+			"valid inject-token",
+			map[string]string{
+				AnnotationAgentInjectToken: "true",
+			},
+			map[string]Secret{
+				"token": Secret{
+					Name:     "token",
+					Path:     TokenSecret,
+					Template: TokenTemplate,
+				},
+			},
+		},
+		{
+			"invalid inject-token",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-token-invalid": "true",
+			},
+			map[string]Secret{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			if len(agent.Secrets) != len(tt.expectedSecrets) {
+				t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecrets))
+			}
+
+			for _, s := range agent.Secrets {
+				if s == nil {
+					t.Error("Got a nil agent Secret")
+					t.FailNow()
+				}
+				expectedSecret, found := tt.expectedSecrets[s.Name]
+				if !found {
+					t.Errorf("Unexpected agent secret name %q", s.Name)
+					t.FailNow()
+				}
+				if !reflect.DeepEqual(expectedSecret, *s) {
+					t.Errorf("expected secret %+v, got agent secret %+v", expectedSecret, *s)
+				}
+			}
+		})
+	}
+}
+
+func TestSecretCommandAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations     map[string]string
+		expectedKey     string
+		expectedCommand string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
+				"vault.hashicorp.com/agent-inject-command-foobar": "pkill -HUP nginx",
+			}, "foobar", "pkill -HUP nginx",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":   "test2",
+				"vault.hashicorp.com/agent-inject-command-foobar2": "pkill -HUP nginx",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Command != tt.expectedCommand {
+			t.Errorf("expected command %s, got %s", tt.expectedCommand, agent.Secrets[0].Command)
+		}
+	}
+}
+
 func TestCouldErrorAnnotations(t *testing.T) {
 	tests := []struct {
 		key   string
@@ -312,5 +416,35 @@ func TestInitEmptyPod(t *testing.T) {
 	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err == nil {
 		t.Errorf("got no error, shouldn have")
+	}
+}
+
+func TestVaultNamespaceAnnotation(t *testing.T) {
+	tests := []struct {
+		key           string
+		value         string
+		expectedValue string
+	}{
+		{"", "", ""},
+		{"vault.hashicorp.com/namespace", "", ""},
+		{"vault.hashicorp.com/namespace", "foobar", "foobar"},
+		{"vault.hashicorp.com/namespace", "fooBar", "fooBar"},
+	}
+
+	for _, tt := range tests {
+		annotation := map[string]string{
+			tt.key: tt.value,
+		}
+		pod := testPod(annotation)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if agent.Vault.Namespace != tt.expectedValue {
+			t.Errorf("expected %s, got %s", tt.expectedValue, agent.Vault.Namespace)
+		}
 	}
 }
