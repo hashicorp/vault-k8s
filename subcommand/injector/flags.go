@@ -3,6 +3,7 @@ package injector
 import (
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
@@ -49,6 +50,9 @@ type Specification struct {
 
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
+
+	// RevokeOnShutdown is AGENT_INJECT_REVOKE_ON_SHUTDOWN environment variable.
+	RevokeOnShutdown string `split_words:"true" `
 }
 
 func (c *Command) init() {
@@ -72,6 +76,8 @@ func (c *Command) init() {
 		"Address of the Vault server.")
 	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
 		fmt.Sprintf("Mount Path of the Vault Kubernetes Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
+	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
+		"Automatically revoke Vault Token on Pod termination.")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -143,6 +149,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath
+	}
+
+	if envs.RevokeOnShutdown != "" {
+		c.flagRevokeOnShutdown, err = strconv.ParseBool(envs.RevokeOnShutdown)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -79,6 +79,15 @@ const (
 	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
 	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
 
+	// AnnotationAgentRevokeOnShutdown controls whether a sidecar container will revoke its
+	// own Vault token before shutting down. If you are using a custom agent template, you must
+	// make sure it's written to `/home/vault/.vault-token`. Only supported for sidecar containers.
+	AnnotationAgentRevokeOnShutdown = "vault.hashicorp.com/agent-revoke-on-shutdown"
+
+	// AnnotationAgentRevokeGrace sets the number of seconds after receiving the signal for pod
+	// termination that the container will attempt to revoke its own Vault token. Defaults to 5s.
+	AnnotationAgentRevokeGrace = "vault.hashicorp.com/agent-revoke-grace"
+
 	// AnnotationVaultNamespace is the Vault namespace where secrets can be found.
 	AnnotationVaultNamespace = "vault.hashicorp.com/namespace"
 
@@ -134,7 +143,7 @@ const (
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
-func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
+func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnShutdown bool) error {
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
@@ -188,6 +197,14 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(revokeOnShutdown)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace] = strconv.Itoa(DefaultRevokeGrace)
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
@@ -265,6 +282,24 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) revokeOnShutdown() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentRevokeOnShutdown]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) revokeGrace() (uint64, error) {
+	raw, ok := a.Annotations[AnnotationAgentRevokeGrace]
+	if !ok {
+		return 0, nil
+	}
+
+	return strconv.ParseUint(raw, 10, 64)
 }
 
 func (a *Agent) tlsSkipVerify() (bool, error) {

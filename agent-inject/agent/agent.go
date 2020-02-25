@@ -52,8 +52,16 @@ type Agent struct {
 	PrePopulate bool
 
 	// PrePopulateOnly controls whether an init container is the _only_ container
-	//added to the request.
+	// added to the request.
 	PrePopulateOnly bool
+
+	// RevokeOnShutdown controls whether a sidecar container will attempt to revoke its Vault
+	// token on shutting down.
+	RevokeOnShutdown bool
+
+	// RevokeGrace controls after receiving the signal for pod
+	// termination that the container will attempt to revoke its own Vault token.
+	RevokeGrace uint64
 
 	// RequestsCPU is the requested minimum CPU amount required  when being scheduled to deploy.
 	RequestsCPU string
@@ -201,6 +209,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.PrePopulateOnly, err = agent.prePopulateOnly()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeOnShutdown, err = agent.revokeOnShutdown()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeGrace, err = agent.revokeGrace()
 	if err != nil {
 		return agent, err
 	}
@@ -363,4 +381,24 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 		}
 	}
 	return serviceAccountName, serviceAccountPath
+}
+
+func (a *Agent) vaultCliFlags() []string {
+	flags := []string{
+		fmt.Sprintf("-address=%s", a.Vault.Address),
+	}
+
+	if a.Vault.CACert != "" {
+		flags = append(flags, fmt.Sprintf("-ca-cert=%s", a.Vault.CACert))
+	}
+
+	if a.Vault.ClientCert != "" {
+		flags = append(flags, fmt.Sprintf("-client-cert=%s", a.Vault.ClientCert))
+	}
+
+	if a.Vault.ClientKey != "" {
+		flags = append(flags, fmt.Sprintf("-client-key=%s", a.Vault.ClientKey))
+	}
+
+	return flags
 }

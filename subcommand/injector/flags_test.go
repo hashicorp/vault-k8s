@@ -2,6 +2,7 @@ package injector
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -135,6 +136,35 @@ func TestCommandEnvs(t *testing.T) {
 
 			if *tt.cmdPtr != tt.value {
 				t.Errorf("env wasn't parsed, should have been: got %s, expected %s", *tt.cmdPtr, tt.value)
+			}
+		})
+	}
+}
+
+func TestCommandEnvBools(t *testing.T) {
+	var cmd Command
+	tests := []struct {
+		env    string
+		value  bool
+		cmdPtr *bool
+	}{
+		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: true, cmdPtr: &cmd.flagRevokeOnShutdown},
+		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: false, cmdPtr: &cmd.flagRevokeOnShutdown},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.env, func(t *testing.T) {
+			if err := os.Setenv(tt.env, strconv.FormatBool(tt.value)); err != nil {
+				t.Errorf("got error setting env, shouldn't have: %s", err)
+			}
+			defer os.Unsetenv(tt.env)
+
+			if err := cmd.parseEnvs(); err != nil {
+				t.Errorf("got error parsing envs, shouldn't have: %s", err)
+			}
+
+			if *tt.cmdPtr != tt.value {
+				t.Errorf("env wasn't parsed, should have been: got %t, expected %t", *tt.cmdPtr, tt.value)
 			}
 		})
 	}
