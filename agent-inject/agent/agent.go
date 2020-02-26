@@ -96,6 +96,10 @@ type Secret struct {
 
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
+
+	// Mount Path
+	MountPath string
+
 }
 
 type Vault struct {
@@ -244,7 +248,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// for passing data in the pod.
 	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
-		[]corev1.Volume{a.ContainerVolume()},
+		a.ContainerVolumes(),
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
@@ -267,7 +271,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	for i, container := range a.Pod.Spec.Containers {
 		a.Patches = append(a.Patches, addVolumeMounts(
 			container.VolumeMounts,
-			[]corev1.VolumeMount{a.ContainerVolumeMount()},
+			a.ContainerVolumeMounts(),
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 	}
 

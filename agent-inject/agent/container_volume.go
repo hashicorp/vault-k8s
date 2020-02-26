@@ -1,7 +1,10 @@
 package agent
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
+	"github.com/hashicorp/vault/sdk/helper/strutil"
 )
 
 const (
@@ -13,17 +16,44 @@ const (
 	secretVolumePath    = "/vault/secrets"
 )
 
-// ContainerVolume returns the volume data to add to the pod. This volume
-// is used for shared data between containers.
-func (a *Agent) ContainerVolume() corev1.Volume {
-	return corev1.Volume{
-		Name: secretVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{
-				Medium: "Memory",
+func (a *Agent) getUniqueMountPaths() []string {
+	var mountPaths []string
+
+	for _, secret := range a.Secrets {
+		if !strutil.StrListContains(mountPaths, secret.MountPath) && secret.MountPath != a.Annotations[AnnotationVaultSecretVolumePath] {
+			mountPaths = append(mountPaths, secret.MountPath)
+		}
+	}
+	return mountPaths
+}
+
+// ContainerVolume returns the volume data to add to the pod. This volumes
+// are used for shared data between containers.
+func (a *Agent) ContainerVolumes() []corev1.Volume {
+	containerVolumes := []corev1.Volume{
+		corev1.Volume{
+			Name: secretVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: "Memory",
+				},
 			},
 		},
 	}
+	for index, _ := range a.getUniqueMountPaths() {
+		containerVolumes = append(
+			containerVolumes, 
+			corev1.Volume{
+				Name: fmt.Sprintf("%s-custom-%d", secretVolumeName, index),
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{
+						Medium: "Memory",
+					},
+				},
+			},
+		)
+	}
+	return containerVolumes
 }
 
 // ContainerConfigMapVolume returns a volume to mount a config map
@@ -54,12 +84,25 @@ func (a *Agent) ContainerTLSSecretVolume() corev1.Volume {
 	}
 }
 
-// ContainerVolumeMount mounts the shared memory volume where secrets
+// ContainerVolumeMounts mounts the shared memory volume where secrets
 // will be rendered.
-func (a *Agent) ContainerVolumeMount() corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      secretVolumeName,
-		MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
-		ReadOnly:  false,
+func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount {
+		corev1.VolumeMount{
+			Name:      secretVolumeName,
+			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
+			ReadOnly:  false,
+		},
 	}
+	for index, mountPath := range a.getUniqueMountPaths() {
+		volumeMounts = append(
+			volumeMounts,
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, index),
+				MountPath: mountPath,
+				ReadOnly:  false,
+			},
+		)
+	}
+	return volumeMounts
 }

@@ -14,16 +14,12 @@ import (
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      secretVolumeName,
-			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
-			ReadOnly:  false,
-		},
-		{
 			Name:      a.ServiceAccountName,
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,
 		},
 	}
+	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
 	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
 

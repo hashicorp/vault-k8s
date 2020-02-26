@@ -211,7 +211,8 @@ func (a *Agent) secrets() []*Secret {
 		if strings.Contains(name, secretName) {
 			raw := strings.ReplaceAll(name, secretName, "")
 			name := raw
-			if ok, _ := a.preserveSecretCase(); !ok {
+
+			if ok, _ := a.preserveSecretCase(raw); !ok {
 				name = strings.ToLower(raw)
 			}
 
@@ -226,7 +227,14 @@ func (a *Agent) secrets() []*Secret {
 				template = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template})
+			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
+			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
+
+			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
+				mountPath = val
+			}
+
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, MountPath: mountPath})
 		}
 	}
 	return secrets
@@ -268,11 +276,19 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) preserveSecretCase() (bool, error) {
-	raw, ok := a.Annotations[AnnotationPreserveSecretCase]
-	if !ok {
-		return false, nil
-	}
+func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 
-	return strconv.ParseBool(raw)
+	preserveSecretCaseAnnotationName := fmt.Sprintf("%s-%s", AnnotationPreserveSecretCase, secretName)
+
+	var raw string
+
+	if val, ok := a.Annotations[preserveSecretCaseAnnotationName]; ok {
+		raw = val
+	} else {
+		raw, ok = a.Annotations[AnnotationPreserveSecretCase]
+		if !ok {
+			return false, nil
+		}
+	}
+	return strconv.ParseBool(raw)	
 }
