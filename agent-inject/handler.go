@@ -113,9 +113,12 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	//Mutate pod spec
+	h.Log.Debug("mutating pod spec...")
 	var podSpec *corev1.PodSpec
 	podSpec = &pod.Spec
+	h.Log.Debug(podSpec.Containers[0].Command[0])
 	mutateContainers(podSpec.Containers, "default")
+	h.Log.Debug(podSpec.Containers[0].Command[0])
 
 	// Build the basic response
 	resp := &v1beta1.AdmissionResponse{
@@ -185,17 +188,15 @@ func admissionError(err error) *v1beta1.AdmissionResponse {
 func mutateContainers(containers []corev1.Container, ns string) (bool, error) {
 	mutated := false
 	for i, container := range containers {
-		if i == 0 {
-			mutated = true
+		mutated = true
 
-			// add args to command list; cmd arg arg
-			args := append(container.Command, container.Args...)
+		// add args to command list; cmd arg arg
+		args := append(container.Command, container.Args...)
 
-			container.Command = []string{"/vault/vault-env"}
-			container.Args = args
+		container.Command = []string{"/vault/vault-env"}
+		container.Args = args
 
-			containers[i] = container
-		}
+		containers[i] = container
 	}
 	return mutated, nil
 }
