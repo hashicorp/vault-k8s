@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"fmt"
 
 	"github.com/mattbaird/jsonpatch"
 )
@@ -26,6 +27,10 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
+
+		// render this secret at a different path
+		"vault.hashicorp.com/agent-inject-secret-different-path":   "different-path",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 	}
 
 	pod := testPod(annotations)
@@ -82,8 +87,8 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("auto_auth mount path: expected path to be %s, got %s", annotations[AnnotationVaultAuthPath], config.AutoAuth.Method.MountPath)
 	}
 
-	if len(config.Templates) != 2 {
-		t.Errorf("expected 2 template, got %d", len(config.Templates))
+	if len(config.Templates) != 3 {
+		t.Errorf("expected 3 template, got %d", len(config.Templates))
 	}
 
 	for _, template := range config.Templates {
@@ -102,6 +107,10 @@ func TestNewConfig(t *testing.T) {
 
 			if !strings.Contains(template.Contents, "with secret \"db/creds/bar\"") {
 				t.Errorf("expected template contents to contain %s, got %s", "with secret \"db/creds/bar\"", template.Contents)
+			}
+		} else if strings.Contains(template.Destination, "different-path") {
+			if template.Destination != "/etc/container_environment/different-path" {
+				t.Errorf("expected template destination to be %s, got %s", "/etc/container_environment", template.Destination)
 			}
 		} else {
 			t.Error("shouldn't have got here")

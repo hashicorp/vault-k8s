@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -118,11 +119,14 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 		{"vault.hashicorp.com/agent-inject-secret-server.crt", "creds/tls/somecert", "server.crt", "creds/tls/somecert"},
 		{"vault.hashicorp.com/agent-inject-secret", "test4", "", ""},
 		{"vault.hashicorp.com/agent-inject-secret-", "test5", "", ""},
+		// explicitly turn on preserve case sensitivity flag
+		{"vault.hashicorp.com/agent-inject-secret-FOOBAR_EXPLICIT", "test2", "FOOBAR_EXPLICIT", "test2"},
 	}
 
 	for _, tt := range tests {
 		annotation := map[string]string{
 			tt.key: tt.value,
+			fmt.Sprintf("%s-%s", AnnotationPreserveSecretCase, "FOOBAR_EXPLICIT"): "true",
 		}
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
