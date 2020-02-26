@@ -52,7 +52,13 @@ type Specification struct {
 	VaultAuthPath string `split_words:"true"`
 
 	// RevokeOnShutdown is AGENT_INJECT_REVOKE_ON_SHUTDOWN environment variable.
-	RevokeOnShutdown string `split_words:"true" `
+	RevokeOnShutdown string `split_words:"true"`
+
+	// RunAsUser is the AGENT_INJECT_RUN_AS_USER environment variable. (uid)
+	RunAsUser string `envconfig:"AGENT_INJECT_RUN_AS_USER"`
+
+	// RunAsGroup is the AGENT_INJECT_RUN_AS_GROUP environment variable. (gid)
+	RunAsGroup string `envconfig:"AGENT_INJECT_RUN_AS_GROUP"`
 }
 
 func (c *Command) init() {
@@ -78,6 +84,10 @@ func (c *Command) init() {
 		fmt.Sprintf("Mount Path of the Vault Kubernetes Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
 	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
 		"Automatically revoke Vault Token on Pod termination.")
+	c.flagSet.StringVar(&c.flagRunAsUser, "run-as-user", strconv.Itoa(agent.DefaultAgentRunAsUser),
+		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
+	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
+		fmt.Sprintf("Group (gid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsGroup))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -156,6 +166,14 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.RunAsUser != "" {
+		c.flagRunAsUser = envs.RunAsUser
+	}
+
+	if envs.RunAsGroup != "" {
+		c.flagRunAsGroup = envs.RunAsGroup
 	}
 
 	return nil
