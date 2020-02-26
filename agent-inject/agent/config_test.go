@@ -2,9 +2,9 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
-	"fmt"
 
 	"github.com/mattbaird/jsonpatch"
 )
@@ -29,10 +29,10 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
 
 		// render this secret at a different path
-		"vault.hashicorp.com/agent-inject-secret-different-path":   "different-path",
+		"vault.hashicorp.com/agent-inject-secret-different-path":                "different-path",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
-		"vault.hashicorp.com/agent-inject-command-bar":  "pkill -HUP app",
+		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 	}
 
 	pod := testPod(annotations)

@@ -209,7 +209,7 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = secretVolumePath
-  }
+	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(revokeOnShutdown)
@@ -349,5 +349,5 @@ func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 			return false, nil
 		}
 	}
-	return strconv.ParseBool(raw)	
+	return strconv.ParseBool(raw)
 }

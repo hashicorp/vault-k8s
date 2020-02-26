@@ -3,8 +3,8 @@ package agent
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -42,7 +42,7 @@ func (a *Agent) ContainerVolumes() []corev1.Volume {
 	}
 	for index, _ := range a.getUniqueMountPaths() {
 		containerVolumes = append(
-			containerVolumes, 
+			containerVolumes,
 			corev1.Volume{
 				Name: fmt.Sprintf("%s-custom-%d", secretVolumeName, index),
 				VolumeSource: corev1.VolumeSource{
@@ -87,7 +87,7 @@ func (a *Agent) ContainerTLSSecretVolume() corev1.Volume {
 // ContainerVolumeMounts mounts the shared memory volume where secrets
 // will be rendered.
 func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
-	volumeMounts := []corev1.VolumeMount {
+	volumeMounts := []corev1.VolumeMount{
 		corev1.VolumeMount{
 			Name:      secretVolumeName,
 			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],

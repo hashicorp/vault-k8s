@@ -13,13 +13,13 @@ func TestContainerSidecarVolume(t *testing.T) {
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
 		// this will have different mount path
-		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret1"): "secrets/secret1",
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret1"):     "secrets/secret1",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret1"): "/etc/container_environment",
 
 		// this secret will have same mount path as default mount path
 		// adding this so we can make sure we don't have duplicate
 		// volume mounts
-		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret2"): "secret/secret2",
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret2"):     "secret/secret2",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret2"): "/etc/default_path",
 
 		// Default path for all secrets

@@ -1,10 +1,10 @@
 package agent
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -168,7 +168,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 
 	for _, tt := range tests {
 		annotation := map[string]string{
-			tt.key: tt.value,
+			tt.key:                       tt.value,
 			AnnotationPreserveSecretCase: "true",
 		}
 		pod := testPod(annotation)
