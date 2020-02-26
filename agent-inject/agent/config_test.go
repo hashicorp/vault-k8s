@@ -31,6 +31,8 @@ func TestNewConfig(t *testing.T) {
 		// render this secret at a different path
 		"vault.hashicorp.com/agent-inject-secret-different-path":   "different-path",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
+
+		"vault.hashicorp.com/agent-inject-command-bar":  "pkill -HUP app",
 	}
 
 	pod := testPod(annotations)
@@ -107,6 +109,9 @@ func TestNewConfig(t *testing.T) {
 
 			if !strings.Contains(template.Contents, "with secret \"db/creds/bar\"") {
 				t.Errorf("expected template contents to contain %s, got %s", "with secret \"db/creds/bar\"", template.Contents)
+			}
+			if !strings.Contains(template.Command, "pkill -HUP app") {
+				t.Errorf("expected command contents to contain %s, got %s", "pkill -HUP app", template.Command)
 			}
 		} else if strings.Contains(template.Destination, "different-path") {
 			if template.Destination != "/etc/container_environment/different-path" {

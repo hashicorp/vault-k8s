@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage = "vault:1.3.1"
+	DefaultVaultImage    = "vault:1.3.1"
 	DefaultVaultAuthPath = "auth/kubernetes"
 )
 
@@ -52,8 +52,16 @@ type Agent struct {
 	PrePopulate bool
 
 	// PrePopulateOnly controls whether an init container is the _only_ container
-	//added to the request.
+	// added to the request.
 	PrePopulateOnly bool
+
+	// RevokeOnShutdown controls whether a sidecar container will attempt to revoke its Vault
+	// token on shutting down.
+	RevokeOnShutdown bool
+
+	// RevokeGrace controls after receiving the signal for pod
+	// termination that the container will attempt to revoke its own Vault token.
+	RevokeGrace uint64
 
 	// RequestsCPU is the requested minimum CPU amount required  when being scheduled to deploy.
 	RequestsCPU string
@@ -100,6 +108,8 @@ type Secret struct {
 	// Mount Path
 	MountPath string
 
+	// Command is the optional command to run after rendering the secret.
+	Command string
 }
 
 type Vault struct {
@@ -132,6 +142,12 @@ type Vault struct {
 	// ClientTimeout is the max number in seconds the client should attempt to
 	// make a request to the Vault server.
 	ClientTimeout string
+
+	// LogLevel sets the Vault Agent log level.  Defaults to info.
+	LogLevel string
+
+	// Namespace is the Vault namespace to prepend to secret paths.
+	Namespace string
 
 	// Role is the name of the Vault role to use for authentication.
 	Role string
@@ -175,6 +191,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientKey:        pod.Annotations[AnnotationVaultClientKey],
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
+			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
+			Namespace:        pod.Annotations[AnnotationVaultNamespace],
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
@@ -194,6 +212,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.PrePopulateOnly, err = agent.prePopulateOnly()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeOnShutdown, err = agent.revokeOnShutdown()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RevokeGrace, err = agent.revokeGrace()
 	if err != nil {
 		return agent, err
 	}
@@ -356,4 +384,24 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 		}
 	}
 	return serviceAccountName, serviceAccountPath
+}
+
+func (a *Agent) vaultCliFlags() []string {
+	flags := []string{
+		fmt.Sprintf("-address=%s", a.Vault.Address),
+	}
+
+	if a.Vault.CACert != "" {
+		flags = append(flags, fmt.Sprintf("-ca-cert=%s", a.Vault.CACert))
+	}
+
+	if a.Vault.ClientCert != "" {
+		flags = append(flags, fmt.Sprintf("-client-cert=%s", a.Vault.ClientCert))
+	}
+
+	if a.Vault.ClientKey != "" {
+		flags = append(flags, fmt.Sprintf("-client-key=%s", a.Vault.ClientKey))
+	}
+
+	return flags
 }

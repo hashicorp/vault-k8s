@@ -24,6 +24,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	if a.Vault.LogLevel != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_LOG_LEVEL",
+			Value: a.Vault.LogLevel,
+		})
+	}
+
 	if a.ConfigMapName == "" {
 		config, err := a.newConfig(init)
 		if err != nil {

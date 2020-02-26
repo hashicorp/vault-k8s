@@ -15,7 +15,7 @@ func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -27,6 +27,7 @@ func TestInitCanSet(t *testing.T) {
 		{annotationKey: AnnotationVaultService, annotationValue: "http://foobar:8200"},
 		{annotationKey: AnnotationAgentImage, annotationValue: "foobar-image"},
 		{annotationKey: AnnotationAgentRequestNamespace, annotationValue: "test"},
+		{annotationKey: AnnotationAgentRevokeOnShutdown, annotationValue: "true"},
 	}
 
 	for _, tt := range tests {
@@ -46,7 +47,7 @@ func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "", "http://foobar:8200", "test", "test")
+	err := Init(pod, "", "http://foobar:8200", "test", "test", true)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -75,7 +76,7 @@ func TestInitError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, "image", "", "authPath", "namespace")
+	err := Init(pod, "image", "", "authPath", "namespace", true)
 	if err == nil {
 		t.Error("expected error no address, got none")
 	}
@@ -85,7 +86,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, "image", "address", "", "namespace")
+	err = Init(pod, "image", "address", "", "namespace", true)
 	if err == nil {
 		t.Error("expected error no authPath, got none")
 	}
@@ -95,7 +96,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, "image", "address", "authPath", "")
+	err = Init(pod, "image", "address", "authPath", "", true)
 	if err == nil {
 		t.Error("expected error for no namespace, got none")
 	}
@@ -323,6 +324,49 @@ func TestTemplateShortcuts(t *testing.T) {
 	}
 }
 
+func TestSecretCommandAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations     map[string]string
+		expectedKey     string
+		expectedCommand string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
+				"vault.hashicorp.com/agent-inject-command-foobar": "pkill -HUP nginx",
+			}, "foobar", "pkill -HUP nginx",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":   "test2",
+				"vault.hashicorp.com/agent-inject-command-foobar2": "pkill -HUP nginx",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Command != tt.expectedCommand {
+			t.Errorf("expected command %s, got %s", tt.expectedCommand, agent.Secrets[0].Command)
+		}
+	}
+}
+
 func TestCouldErrorAnnotations(t *testing.T) {
 	tests := []struct {
 		key   string
@@ -376,6 +420,24 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationVaultTLSSkipVerify, "tRuE", false},
 		{AnnotationVaultTLSSkipVerify, "fAlSe", false},
 		{AnnotationVaultTLSSkipVerify, "", false},
+
+		{AnnotationAgentRevokeOnShutdown, "true", true},
+		{AnnotationAgentRevokeOnShutdown, "false", true},
+		{AnnotationAgentRevokeOnShutdown, "TRUE", true},
+		{AnnotationAgentRevokeOnShutdown, "FALSE", true},
+		{AnnotationAgentRevokeOnShutdown, "0", true},
+		{AnnotationAgentRevokeOnShutdown, "1", true},
+		{AnnotationAgentRevokeOnShutdown, "t", true},
+		{AnnotationAgentRevokeOnShutdown, "f", true},
+		{AnnotationAgentRevokeOnShutdown, "tRuE", false},
+		{AnnotationAgentRevokeOnShutdown, "fAlSe", false},
+		{AnnotationAgentRevokeOnShutdown, "", false},
+
+		{AnnotationAgentRevokeGrace, "5", true},
+		{AnnotationAgentRevokeGrace, "0", true},
+		{AnnotationAgentRevokeGrace, "01", true},
+		{AnnotationAgentRevokeGrace, "-1", false},
+		{AnnotationAgentRevokeGrace, "foobar", false},
 	}
 
 	for i, tt := range tests {
@@ -395,8 +457,38 @@ func TestCouldErrorAnnotations(t *testing.T) {
 func TestInitEmptyPod(t *testing.T) {
 	var pod *corev1.Pod
 
-	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err == nil {
 		t.Errorf("got no error, shouldn have")
+	}
+}
+
+func TestVaultNamespaceAnnotation(t *testing.T) {
+	tests := []struct {
+		key           string
+		value         string
+		expectedValue string
+	}{
+		{"", "", ""},
+		{"vault.hashicorp.com/namespace", "", ""},
+		{"vault.hashicorp.com/namespace", "foobar", "foobar"},
+		{"vault.hashicorp.com/namespace", "fooBar", "fooBar"},
+	}
+
+	for _, tt := range tests {
+		annotation := map[string]string{
+			tt.key: tt.value,
+		}
+		pod := testPod(annotation)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if agent.Vault.Namespace != tt.expectedValue {
+			t.Errorf("expected %s, got %s", tt.expectedValue, agent.Vault.Namespace)
+		}
 	}
 }
