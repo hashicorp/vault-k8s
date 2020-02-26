@@ -70,6 +70,7 @@ type Template struct {
 	Contents       string `json:"contents"`
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
+	Command        string `json:"command,omitempty"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
@@ -85,6 +86,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			Destination: fmt.Sprintf("%s/%s", a.Annotations[AnnotationVaultSecretVolumePath], secret.Name),
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
+			Command:     secret.Command,
 		}
 		templates = append(templates, tmpl)
 	}
@@ -107,6 +109,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		AutoAuth: &AutoAuth{
 			Method: &Method{
 				Type:      "kubernetes",
+				Namespace: a.Vault.Namespace,
 				MountPath: a.Vault.AuthPath,
 				Config: map[string]interface{}{
 					"role": a.Vault.Role,

@@ -27,15 +27,17 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen       	string // Address of Vault Server
-	flagLogLevel     	string // Log verbosity
-	flagCertFile     	string // TLS Certificate to serve
-	flagKeyFile      	string // TLS private key to serve
-	flagAutoName     	string // MutatingWebhookConfiguration for updating
-	flagAutoHosts    	string // SANs for the auto-generated TLS cert.
-	flagVaultService 	string // Name of the Vault service
-	flagVaultImage   	string // Name of the Vault Image to use
-	flagVaultAuthPath	string // Mount Path of the Vault Kubernetes Auth Method
+	flagListen           string // Address of Vault Server
+	flagLogLevel         string // Log verbosity
+	flagLogFormat        string // Log format
+	flagCertFile         string // TLS Certificate to serve
+	flagKeyFile          string // TLS private key to serve
+	flagAutoName         string // MutatingWebhookConfiguration for updating
+	flagAutoHosts        string // SANs for the auto-generated TLS cert.
+	flagVaultService     string // Name of the Vault service
+	flagVaultImage       string // Name of the Vault Image to use
+	flagVaultAuthPath    string // Mount Path of the Vault Kubernetes Auth Method
+	flagRevokeOnShutdown bool   // Revoke Vault Token on pod shutdown
 
 	flagSet *flag.FlagSet
 
@@ -102,8 +104,10 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	logger := hclog.Default().Named("handler")
-	logger.SetLevel(level)
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:       "handler",
+		Level:      level,
+		JSONFormat: (c.flagLogFormat == "json")})
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -113,6 +117,7 @@ func (c *Command) Run(args []string) int {
 		Clientset:         clientset,
 		RequireAnnotation: true,
 		Log:               logger,
+		RevokeOnShutdown:  c.flagRevokeOnShutdown,
 	}
 
 	mux := http.NewServeMux()

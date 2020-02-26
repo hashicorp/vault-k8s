@@ -15,7 +15,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", false)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -30,15 +30,24 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	if len(container.Env) != 1 {
-		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), 1)
+	expectedEnvs := 2
+	if len(container.Env) != expectedEnvs {
+		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	if container.Env[0].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[0].Name)
+	if container.Env[0].Name != "VAULT_LOG_LEVEL" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_LEVEL", container.Env[0].Name)
 	}
 
 	if container.Env[0].Value == "" {
+		t.Error("env value empty, it shouldn't be")
+	}
+
+	if container.Env[1].Name != "VAULT_CONFIG" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[1].Name)
+	}
+
+	if container.Env[1].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
@@ -73,6 +82,66 @@ func TestContainerSidecar(t *testing.T) {
 	}
 }
 
+func TestContainerSidecarRevokeHook(t *testing.T) {
+	trueString := "true"
+	falseString := "false"
+
+	tests := []struct {
+		revokeFlag       bool
+		revokeAnnotation *string
+		expectedPresence bool
+	}{
+		{revokeFlag: true, revokeAnnotation: nil, expectedPresence: true},
+		{revokeFlag: false, revokeAnnotation: nil, expectedPresence: false},
+		{revokeFlag: true, revokeAnnotation: &trueString, expectedPresence: true},
+		{revokeFlag: true, revokeAnnotation: &falseString, expectedPresence: false},
+		{revokeFlag: false, revokeAnnotation: &trueString, expectedPresence: true},
+		{revokeFlag: false, revokeAnnotation: &falseString, expectedPresence: false},
+	}
+
+	for _, tt := range tests {
+		t.Run("revoke test", func(t *testing.T) {
+			var revokeAnnotation string
+
+			annotations := map[string]string{
+				AnnotationVaultRole: "foobar",
+			}
+
+			if tt.revokeAnnotation == nil {
+				revokeAnnotation = "<absent>"
+			} else {
+				annotations[AnnotationAgentRevokeOnShutdown] = *tt.revokeAnnotation
+			}
+
+			pod := testPod(annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			if err := agent.Validate(); err != nil {
+				t.Errorf("agent validation failed, it shouldn't have: %s", err)
+			}
+
+			container, err := agent.ContainerSidecar()
+			if err != nil {
+				t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
+			}
+
+			if tt.expectedPresence && container.Lifecycle.PreStop == nil {
+				t.Errorf("revoke flag was %t and annotation was %s but preStop hook was absent when it was expected to be present", tt.revokeFlag, revokeAnnotation)
+			}
+
+			if !tt.expectedPresence && container.Lifecycle.PreStop != nil {
+				t.Errorf("revoke flag was %t and annotation was %s but preStop hook was present when it was expected to not be present", tt.revokeFlag, revokeAnnotation)
+			}
+		})
+	}
+}
+
 func TestContainerSidecarConfigMap(t *testing.T) {
 	// None of these custom configs should matter since
 	// we have AnnotationAgentConfigMap set
@@ -96,7 +165,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test")
+	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -111,11 +180,12 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	if len(container.Env) != 0 {
-		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), 0)
+	expectedEnvs := 1
+	if len(container.Env) != expectedEnvs {
+		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	arg := fmt.Sprintf("vault agent -config=%s/config.hcl", configVolumePath)
+	arg := fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	if container.Args[0] != arg {
 		t.Errorf("arg value wrong, should have been %s, got %s", arg, container.Args[0])
 	}
