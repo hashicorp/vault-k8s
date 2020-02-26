@@ -55,34 +55,6 @@ func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpa
 	return result
 }
 
-func modifyEntrypoint(target, envVars []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
-	first := len(target) == 0
-	var value interface{}
-	for _, v := range envVars {
-		value = v
-		path := base
-		if first {
-			first = false
-			value = []corev1.EnvVar{
-				{
-					Name:  "VAULT_ADDR",
-					Value: "addr",
-				},
-			}
-		} else {
-			path = path + "/-"
-		}
-
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
-	}
-	return result
-}
-
 func addContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
 	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0

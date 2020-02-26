@@ -37,7 +37,7 @@ type Handler struct {
 	// If this is false, injection is default.
 	RequireAnnotation bool
 	VaultAddress      string
-	VaultAuthPath	  string
+	VaultAuthPath     string
 	ImageVault        string
 	Clientset         *kubernetes.Clientset
 	Log               hclog.Logger
@@ -112,6 +112,11 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		}
 	}
 
+	//Mutate pod spec
+	var podSpec *corev1.PodSpec
+	podSpec = &pod.Spec
+	mutateContainers(podSpec.Containers, "default")
+
 	// Build the basic response
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
@@ -175,4 +180,22 @@ func admissionError(err error) *v1beta1.AdmissionResponse {
 			Message: err.Error(),
 		},
 	}
+}
+
+func mutateContainers(containers []corev1.Container, ns string) (bool, error) {
+	mutated := false
+	for i, container := range containers {
+		if i == 0 {
+			mutated = true
+
+			// add args to command list; cmd arg arg
+			args := append(container.Command, container.Args...)
+
+			container.Command = []string{"/vault/vault-env"}
+			container.Args = args
+
+			containers[i] = container
+		}
+	}
+	return mutated, nil
 }
