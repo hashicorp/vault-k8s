@@ -167,6 +167,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	podSpec = &pod.Spec
 	vaultEnabled := agentSidecar.Inject
 	if vaultEnabled {
+		h.Log.Debug("Mutating main container")
 		mainContainer := corev1.Container{
 			Name:                     podSpec.Containers[0].Name,
 			Image:                    podSpec.Containers[0].Image,
@@ -209,7 +210,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 				h.Log.Debug("Error patching main container")
 			}
 		}
-
+		h.Log.Debug(string(mainContainerJson))
 		patch = append(patch, mainContainerJson...)
 	}
 	// h.Log.Debug("mutating pod spec...")
