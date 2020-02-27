@@ -194,7 +194,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		var mainContainerPatch []*jsonpatch.JsonPatchOperation
 		var value interface{}
 		value = mainContainer
-		path := "/spec/template/spec/containers"
+		path := "/spec/template/spec/containers/0"
 
 		mainContainerPatch = append(mainContainerPatch, &jsonpatch.JsonPatchOperation{
 			Operation: "replace",
