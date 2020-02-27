@@ -91,6 +91,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		return
 	}
+	h.Log.Debug(string(resp))
 
 	if _, err := w.Write(resp); err != nil {
 		h.Log.Error("error writing response", "Error", err)
@@ -211,6 +212,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		h.Log.Debug(string(mainContainerJson))
 		patch = append(patch, mainContainerJson...)
 	}
+	h.Log.Debug(string(patch[0]))
 	// h.Log.Debug("mutating pod spec...")
 	// if vaultEnabled {
 	// 	h.Log.Debug(podSpec.Containers[0].Command[0])
