@@ -337,6 +337,12 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Pod.Annotations,
 		map[string]string{AnnotationAgentStatus: "injected"})...)
 
+	// // Modify main container
+	// a.Patches = append(a.Patches, modifyContainers(
+	// 	a.Pod.Spec.Containers,
+	// 	"/spec/containers",
+	// )...)
+
 	// Generate the patch
 	if len(a.Patches) > 0 {
 		var err error

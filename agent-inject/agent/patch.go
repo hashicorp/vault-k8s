@@ -102,6 +102,35 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 	return result
 }
 
+// func modifyContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
+// 	var result []*jsonpatch.JsonPatchOperation
+// 	first := true
+// 	var value interface{}
+// 	for _, container := range target {
+// 		value = container
+
+// 		container.Command = append(container.Command, "/vault/vault-env")
+// 		copy(container.Command[1:], container.Command[0:])
+// 		container.Command[0] = "/vault/vault-env"
+// 		value = container
+// 		path := base
+// 		if first {
+// 			first = false
+// 			value = []corev1.Container{container}
+// 		} else {
+// 			path = path + "/-"
+// 		}
+
+// 		result = append(result, &jsonpatch.JsonPatchOperation{
+// 			Operation: "replace",
+// 			Path:      path,
+// 			Value:     value,
+// 		})
+// 	}
+
+// 	return result
+// }
+
 // EscapeJSONPointer escapes a JSON string to be compliant with the
 // JavaScript Object Notation (JSON) Pointer syntax RFC:
 // https://tools.ietf.org/html/rfc6901.
@@ -110,32 +139,3 @@ func EscapeJSONPointer(s string) string {
 	s = strings.Replace(s, "/", "~1", -1)
 	return s
 }
-
-// func mutateContainers(containers []corev1.Container) (bool, error) {
-// 	mutated := false
-// 	for i, container := range containers {
-// 		var envVars []corev1.EnvVar
-
-// 		for _, env := range container.Env {
-// 			if strings.HasPrefix(env.Value, "vault:") {
-// 				envVars = append(envVars, env)
-// 			}
-// 		}
-
-// 		if len(envVars) == 0 {
-// 			continue
-// 		}
-
-// 		mutated = true
-
-// 		// add args to command list; cmd arg arg
-// 		args := append(container.Command, container.Args...)
-
-// 		container.Command = []string{"/vault/vault-env"}
-// 		container.Args = args
-
-// 		// transform pod annotations to env vars for vault-env execution
-// 		containers[i] = container
-// 	}
-// 	return mutated, nil
-// }

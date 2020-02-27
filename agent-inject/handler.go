@@ -112,14 +112,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		}
 	}
 
-	//Mutate pod spec
-	h.Log.Debug("mutating pod spec...")
-	var podSpec *corev1.PodSpec
-	podSpec = &pod.Spec
-	h.Log.Debug(podSpec.Containers[0].Command[0])
-	mutateContainers(podSpec.Containers, "default")
-	h.Log.Debug(podSpec.Containers[0].Command[0])
-
 	// Build the basic response
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
@@ -169,6 +161,62 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		err := fmt.Errorf("error creating patch for agent: %s", err)
 		return admissionError(err)
 	}
+
+	//Mutate pod spec
+	var podSpec *corev1.PodSpec
+	podSpec = &pod.Spec
+	// vaultEnabled := agentSidecar.Inject
+	mainContainer := corev1.Container{
+		Name:                     podSpec.Containers[0].Name,
+		Image:                    podSpec.Containers[0].Image,
+		Command:                  podSpec.Containers[0].Command,
+		Args:                     podSpec.Containers[0].Args,
+		WorkingDir:               podSpec.Containers[0].WorkingDir,
+		Ports:                    podSpec.Containers[0].Ports,
+		EnvFrom:                  podSpec.Containers[0].EnvFrom,
+		Env:                      podSpec.Containers[0].Env,
+		Resources:                podSpec.Containers[0].Resources,
+		VolumeMounts:             podSpec.Containers[0].VolumeMounts,
+		VolumeDevices:            podSpec.Containers[0].VolumeDevices,
+		LivenessProbe:            podSpec.Containers[0].LivenessProbe,
+		ReadinessProbe:           podSpec.Containers[0].ReadinessProbe,
+		Lifecycle:                podSpec.Containers[0].Lifecycle,
+		TerminationMessagePath:   podSpec.Containers[0].TerminationMessagePath,
+		TerminationMessagePolicy: podSpec.Containers[0].TerminationMessagePolicy,
+		ImagePullPolicy:          podSpec.Containers[0].ImagePullPolicy,
+		SecurityContext:          podSpec.Containers[0].SecurityContext,
+		Stdin:                    podSpec.Containers[0].Stdin,
+		StdinOnce:                podSpec.Containers[0].StdinOnce,
+		TTY:                      podSpec.Containers[0].TTY,
+	}
+	var mainContainerPatch []*jsonpatch.JsonPatchOperation
+	var value interface{}
+	value = mainContainer
+	path := "/spec"
+
+	mainContainerPatch = append(mainContainerPatch, &jsonpatch.JsonPatchOperation{
+		Operation: "add",
+		Path:      path,
+		Value:     value,
+	})
+	var mainContainerJson []byte
+
+	if len(mainContainerPatch) > 0 {
+		var err error
+		mainContainerJson, err = json.Marshal(mainContainerPatch)
+		if err != nil {
+			h.Log.Debug("Error patching main container")
+		}
+	}
+
+	patch = append(patch, mainContainerJson...)
+
+	// h.Log.Debug("mutating pod spec...")
+	// if vaultEnabled {
+	// 	h.Log.Debug(podSpec.Containers[0].Command[0])
+	// 	mutateContainers(podSpec.Containers, "default")
+	// 	h.Log.Debug(podSpec.Containers[0].Command[0])
+	// }
 
 	resp.Patch = patch
 	patchType := v1beta1.PatchTypeJSONPatch
