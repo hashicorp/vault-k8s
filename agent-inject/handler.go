@@ -191,24 +191,22 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			StdinOnce:                podSpec.Containers[0].StdinOnce,
 			TTY:                      podSpec.Containers[0].TTY,
 		}
-		var mainContainerPatch []*jsonpatch.JsonPatchOperation
+		// var mainContainerPatch []*jsonpatch.JsonPatchOperation
 		var value interface{}
 		value = mainContainer
 		path := "/spec/template/spec/containers/0"
 
-		mainContainerPatch = append(mainContainerPatch, &jsonpatch.JsonPatchOperation{
+		mainContainerPatch := &jsonpatch.JsonPatchOperation{
 			Operation: "replace",
 			Path:      path,
 			Value:     value,
-		})
+		}
 		var mainContainerJson []byte
 
-		if len(mainContainerPatch) > 0 {
-			var err error
-			mainContainerJson, err = json.Marshal(mainContainerPatch)
-			if err != nil {
-				h.Log.Debug("Error patching main container")
-			}
+		var err error
+		mainContainerJson, err = json.Marshal(mainContainerPatch)
+		if err != nil {
+			h.Log.Debug("Error patching main container")
 		}
 		h.Log.Debug(string(mainContainerJson))
 		patch = append(patch, mainContainerJson...)
