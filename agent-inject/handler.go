@@ -194,10 +194,10 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		var mainContainerPatch []*jsonpatch.JsonPatchOperation
 		var value interface{}
 		value = mainContainer
-		path := "/spec"
+		path := "/spec/template/spec/containers"
 
 		mainContainerPatch = append(mainContainerPatch, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
+			Operation: "replace",
 			Path:      path,
 			Value:     value,
 		})
