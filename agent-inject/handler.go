@@ -168,13 +168,18 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	podSpec = &pod.Spec
 	vaultEnabled := agentSidecar.Inject
 	var allPatches []byte
+	var vaultCommand []string
+
+	vaultCommand = append(vaultCommand, "/vault/vault-env")
 
 	if vaultEnabled {
 		h.Log.Debug("Mutating main container")
+
+		vaultCommand = append(vaultCommand, podSpec.Containers[0].Command...)
 		mainContainer := corev1.Container{
 			Name:                     podSpec.Containers[0].Name,
 			Image:                    podSpec.Containers[0].Image,
-			Command:                  []string{"/vault/vault-env"},
+			Command:                  vaultCommand,
 			Args:                     podSpec.Containers[0].Args,
 			WorkingDir:               podSpec.Containers[0].WorkingDir,
 			Ports:                    podSpec.Containers[0].Ports,
