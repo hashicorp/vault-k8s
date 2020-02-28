@@ -167,6 +167,8 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	var podSpec *corev1.PodSpec
 	podSpec = &pod.Spec
 	vaultEnabled := agentSidecar.Inject
+	var allPatches []byte
+
 	if vaultEnabled {
 		h.Log.Debug("Mutating main container")
 		mainContainer := corev1.Container{
@@ -202,17 +204,22 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			Path:      path,
 			Value:     value,
 		}
-		var mainContainerJson []byte
 
-		var err error
-		mainContainerJson, err = json.Marshal(mainContainerPatch)
-		if err != nil {
-			h.Log.Debug("Error patching main container")
+		patch = append(patch, mainContainerPatch)
+		// var err error
+		// mainContainerJson, err = json.Marshal(mainContainerPatch)
+		// if err != nil {
+		// 	h.Log.Debug("Error patching main container")
+		// }
+		if len(patch) > 0 {
+			var err error
+			allPatches, err = json.Marshal(patch)
+			if err != nil {
+				h.Log.Debug("Error Marshal patch")
+			}
 		}
-		h.Log.Debug(string(mainContainerJson))
-		patch = append(patch, mainContainerJson...)
 	}
-	h.Log.Debug(string(patch[0]))
+	h.Log.Debug(string(allPatches))
 	// h.Log.Debug("mutating pod spec...")
 	// if vaultEnabled {
 	// 	h.Log.Debug(podSpec.Containers[0].Command[0])
@@ -220,7 +227,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	// 	h.Log.Debug(podSpec.Containers[0].Command[0])
 	// }
 
-	resp.Patch = patch
+	resp.Patch = allPatches
 	patchType := v1beta1.PatchTypeJSONPatch
 	resp.PatchType = &patchType
 

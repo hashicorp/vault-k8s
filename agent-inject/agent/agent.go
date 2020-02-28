@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -274,8 +273,9 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 
 // Patch creates the necessary pod patches to inject the Vault Agent
 // containers.
-func (a *Agent) Patch() ([]byte, error) {
-	var patches []byte
+func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
+	// var patches []byte
+	var patches []*jsonpatch.JsonPatchOperation
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
@@ -344,13 +344,14 @@ func (a *Agent) Patch() ([]byte, error) {
 	// )...)
 
 	// Generate the patch
-	if len(a.Patches) > 0 {
-		var err error
-		patches, err = json.Marshal(a.Patches)
-		if err != nil {
-			return patches, err
-		}
-	}
+	// if len(a.Patches) > 0 {
+	// 	var err error
+	// 	patches, err = json.Marshal(a.Patches)
+	// 	if err != nil {
+	// 		return patches, err
+	// 	}
+	// } Move out of func to handler
+	patches = a.Patches
 	return patches, nil
 }
 
