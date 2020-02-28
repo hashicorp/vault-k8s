@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	"strings"
 )
 
 const (
@@ -81,9 +82,16 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
+		destination := fmt.Sprintf("/vault/secrets/%s", secret.Name)
+
+		if strings.HasPrefix(secret.Name, "/") {
+			// it is only possible to use an absolute directory location with AnnotationAgentInjectLocation
+			destination = secret.Name
+		}
+
 		tmpl := &Template{
 			Contents:    template,
-			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
+			Destination: destination,
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,

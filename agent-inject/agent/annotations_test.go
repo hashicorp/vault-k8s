@@ -119,6 +119,7 @@ func TestSecretAnnotations(t *testing.T) {
 		{"vault.hashicorp.com/agent-inject-secret-server.crt", "creds/tls/somecert", "server.crt", "creds/tls/somecert"},
 		{"vault.hashicorp.com/agent-inject-secret", "test4", "", ""},
 		{"vault.hashicorp.com/agent-inject-secret-", "test5", "", ""},
+		{"vault.hashicorp.com/agent-inject-secret-this_is_very_long_and_would_fail_in_kubernetes", "test6", "", "test6"},
 	}
 
 	for _, tt := range tests {
@@ -130,26 +131,77 @@ func TestSecretAnnotations(t *testing.T) {
 
 		agent, err := New(pod, patches)
 		if err != nil {
+
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
 		if tt.expectedKey != "" {
 			if len(agent.Secrets) == 0 {
 				t.Error("Secrets length was zero, it shouldn't have been")
+			}
+			if agent.Secrets[0].Name != tt.expectedKey {
+				t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+			}
 
-				if agent.Secrets[0].Name != tt.expectedKey {
-					t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
-				}
-
-				if agent.Secrets[0].Path != tt.expectedPath {
-					t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
-				}
+			if agent.Secrets[0].Path != tt.expectedPath {
+				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
 			}
 		} else if len(agent.Secrets) > 0 {
-			t.Error("Secrets length was greater than zero, it shouldn't have been")
+			t.Errorf("Secrets length was greater than zero, it shouldn't have been %s", tt.key)
+		}
+	}
+}
+
+func TestSecretLocationFilenameAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations      map[string]string
+		expectedFilename string
+		expectedLocation string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-location-foobar": "vault/test1",
+				"vault.hashicorp.com/agent-inject-filename-foobar": "foobar_simple_name",
+			}, "foobar_simple_name", "vault/test1",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-location-foobar": "vault/test2",
+				"vault.hashicorp.com/agent-inject-filename-foobar": "this_is_very_long_and/would_fail_in_kubernetes/if_in_annotation",
+			}, "this_is_very_long_and/would_fail_in_kubernetes/if_in_annotation", "vault/test2",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-location-foobar": "vault/test2",
+				"vault.hashicorp.com/agent-inject-filename-notcorresponding": "this_is_very_long_and/would_fail_in_kubernetes/if_in_annotation",
+			}, "", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
+		if tt.expectedFilename != "" {
+			if len(agent.Secrets) == 0 {
+				t.Error("Secrets length was zero, it shouldn't have been")
+			}
+
+			if agent.Secrets[0].Name != tt.expectedFilename {
+				t.Errorf("expected name %s, got %s", tt.expectedFilename, agent.Secrets[0].Name)
+			}
+
+			if agent.Secrets[0].Path != tt.expectedLocation {
+				t.Errorf("expected path %s, got %s", tt.expectedLocation, agent.Secrets[0].Path)
+			}
+		} else if len(agent.Secrets) > 0 {
+			t.Errorf("Secrets length was greater than zero, it shouldn't have been",)
+		}
 	}
 }
 
@@ -193,7 +245,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
 				"vault.hashicorp.com/agent-inject-TEMPLATE-foobar": "foobarTemplate",
-			}, "foobar2", "foobarTemplate",
+			}, "foobar2", "",
 		},
 	}
 
@@ -214,7 +266,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
 		}
 
-		if agent.Secrets[0].Name != tt.expectedKey {
+		if agent.Secrets[0].Template != tt.expectedTemplate {
 			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
 		}
 	}
