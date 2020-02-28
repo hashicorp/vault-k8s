@@ -210,7 +210,8 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			Value:     value,
 		}
 
-		patch = append(patch, mainContainerPatch)
+		// patch = append(patch, mainContainerPatch)
+		patch = append([]*jsonpatch.JsonPatchOperation{mainContainerPatch}, patch...)
 		// var err error
 		// mainContainerJson, err = json.Marshal(mainContainerPatch)
 		// if err != nil {
