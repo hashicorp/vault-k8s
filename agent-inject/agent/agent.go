@@ -146,6 +146,8 @@ type Vault struct {
 	// TLSServerName is the name of the Vault server to use when validating Vault's
 	// TLS certificates.
 	TLSServerName string
+
+	InjectMode string
 }
 
 type Pluton struct {
@@ -192,6 +194,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
+			InjectMode:       pod.Annotations[AnnotationAgentInjectMode],
 		},
 	}
 

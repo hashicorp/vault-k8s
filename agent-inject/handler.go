@@ -165,10 +165,21 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 
 	//Mutate pod spec
 	var podSpec *corev1.PodSpec
-	podSpec = &pod.Spec
-	vaultEnabled := agentSidecar.Inject
+	var vaultEnvEnabled corev1.EnvVar
+	var vaultEnvInjectMode corev1.EnvVar
 	var allPatches []byte
 	var vaultCommand []string
+
+	podSpec = &pod.Spec
+	vaultEnabled := agentSidecar.Inject
+	vaultEnvs := podSpec.Containers[0].Env
+	vaultEnvEnabled.Name = "VAULT_ENABLED"
+	vaultEnvEnabled.Value = fmt.Sprintf("%t", agentSidecar.Inject)
+	vaultEnvs = append(vaultEnvs, vaultEnvEnabled)
+
+	vaultEnvInjectMode.Name = "VAULT_INJECT_MODE"
+	vaultEnvInjectMode.Value = agentSidecar.Vault.InjectMode
+	vaultEnvs = append(vaultEnvs, vaultEnvInjectMode)
 
 	vaultCommand = append(vaultCommand, "/vault/vault-env")
 
@@ -184,7 +195,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			WorkingDir:               podSpec.Containers[0].WorkingDir,
 			Ports:                    podSpec.Containers[0].Ports,
 			EnvFrom:                  podSpec.Containers[0].EnvFrom,
-			Env:                      podSpec.Containers[0].Env,
+			Env:                      vaultEnvs,
 			Resources:                podSpec.Containers[0].Resources,
 			VolumeMounts:             podSpec.Containers[0].VolumeMounts,
 			VolumeDevices:            podSpec.Containers[0].VolumeDevices,
