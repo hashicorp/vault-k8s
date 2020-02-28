@@ -174,7 +174,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		mainContainer := corev1.Container{
 			Name:                     podSpec.Containers[0].Name,
 			Image:                    podSpec.Containers[0].Image,
-			Command:                  podSpec.Containers[0].Command,
+			Command:                  []string{"/vault/vault-env"},
 			Args:                     podSpec.Containers[0].Args,
 			WorkingDir:               podSpec.Containers[0].WorkingDir,
 			Ports:                    podSpec.Containers[0].Ports,

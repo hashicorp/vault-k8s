@@ -102,35 +102,6 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 	return result
 }
 
-// func modifyContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
-// 	var result []*jsonpatch.JsonPatchOperation
-// 	first := true
-// 	var value interface{}
-// 	for _, container := range target {
-// 		value = container
-
-// 		container.Command = append(container.Command, "/vault/vault-env")
-// 		copy(container.Command[1:], container.Command[0:])
-// 		container.Command[0] = "/vault/vault-env"
-// 		value = container
-// 		path := base
-// 		if first {
-// 			first = false
-// 			value = []corev1.Container{container}
-// 		} else {
-// 			path = path + "/-"
-// 		}
-
-// 		result = append(result, &jsonpatch.JsonPatchOperation{
-// 			Operation: "replace",
-// 			Path:      path,
-// 			Value:     value,
-// 		})
-// 	}
-
-// 	return result
-// }
-
 // EscapeJSONPointer escapes a JSON string to be compliant with the
 // JavaScript Object Notation (JSON) Pointer syntax RFC:
 // https://tools.ietf.org/html/rfc6901.
