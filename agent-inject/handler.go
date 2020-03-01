@@ -173,12 +173,15 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	podSpec = &pod.Spec
 	vaultEnabled := agentSidecar.Inject
 	vaultEnvs := podSpec.Containers[0].Env
+
 	vaultEnvEnabled.Name = "VAULT_ENABLED"
 	vaultEnvEnabled.Value = fmt.Sprintf("%t", agentSidecar.Inject)
 	vaultEnvs = append(vaultEnvs, vaultEnvEnabled)
-
 	vaultEnvInjectMode.Name = "VAULT_INJECT_MODE"
 	vaultEnvInjectMode.Value = agentSidecar.Vault.InjectMode
+	vaultEnvs = append(vaultEnvs, vaultEnvInjectMode)
+	vaultEnvInjectMode.Name = "VAULT_VAULT_ADDRINJECT_MODE"
+	vaultEnvInjectMode.Value = "https://vault.dev.tiki.services"
 	vaultEnvs = append(vaultEnvs, vaultEnvInjectMode)
 
 	vaultCommand = append(vaultCommand, "/vault/vault-env")
