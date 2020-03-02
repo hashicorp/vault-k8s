@@ -322,7 +322,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		// which they run matters.  This reorders the init containers to put the agent first.
 		if a.InitFirst {
 
-			// Remove all init containers from the document so we can readd them after the agent.
+			// Remove all init containers from the document so we can re-add them after the agent.
 			a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
 
 			containers := []corev1.Container{container}
