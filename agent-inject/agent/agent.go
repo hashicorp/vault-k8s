@@ -86,9 +86,10 @@ type Agent struct {
 	Vault Vault
 
 	// Pluton is the structure holding all the Pluton specific configurations.
-	InjectPluton bool
-	Pluton       Pluton
-	PlutonEnvs   []*PlutonEnv
+	InjectPluton   bool
+	Pluton         Pluton
+	PlutonEnvs     []*PlutonEnv
+	MainEntrypoint string
 }
 
 type Secret struct {
@@ -220,6 +221,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.Vault.TLSSkipVerify, err = agent.tlsSkipVerify()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.MainEntrypoint, err = agent.getEntrypoint()
 	if err != nil {
 		return agent, err
 	}

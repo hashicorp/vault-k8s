@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -122,6 +123,7 @@ const (
 
 	AnnotationAgentInjectStructure = "vault.hashicorp.com/agent-inject-structure"
 	AnnotationAgentInjectMode      = "vault.hashicorp.com/agent-inject-mode"
+	AnnotationMainEntrypoint       = "vault.hashicorp.com/main-container"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -287,4 +289,20 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) getEntrypoint() (string, error) {
+	raw, ok := a.Annotations[AnnotationMainEntrypoint]
+	if !ok {
+		return "", nil
+	}
+	data, err := base64.StdEncoding.DecodeString(raw)
+	if err != nil {
+		fmt.Println("error:", err)
+		return "", err
+	}
+
+	dataStr := string(data)
+	fmt.Printf(dataStr)
+	return string(data), nil
 }
