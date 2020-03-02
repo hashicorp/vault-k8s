@@ -196,7 +196,6 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		h.Log.Debug("Mutating main container")
 		h.Log.Debug(vaultMainEntrypoint)
 
-		vaultCommand = append(vaultCommand, podSpec.Containers[0].Command...)
 		mainContainer := corev1.Container{
 			Name:                     podSpec.Containers[0].Name,
 			Image:                    podSpec.Containers[0].Image,
