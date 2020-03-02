@@ -174,7 +174,9 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	vaultEnabled := agentSidecar.Inject
 	vaultEnvs := podSpec.Containers[0].Env
 
-	vaultMainContainer := agentSidecar.MainEntrypoint
+	vaultMainEntrypoint := agentSidecar.MainEntrypoint
+	vaultMainEntrypoint = strings.Replace(vaultMainEntrypoint, "\"", "", -1)
+	vaultMainEntrypointList := strings.Split(vaultMainEntrypoint, "\n")
 
 	vaultEnvEnabled.Name = "VAULT_ENABLED"
 	vaultEnvEnabled.Value = fmt.Sprintf("%t", agentSidecar.Inject)
@@ -184,10 +186,11 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	vaultEnvs = append(vaultEnvs, vaultEnvVaultAddr)
 
 	vaultCommand = append(vaultCommand, "/vault/vault-env")
+	vaultCommand = append(vaultCommand, vaultMainEntrypointList...)
 
 	if vaultEnabled {
 		h.Log.Debug("Mutating main container")
-		h.Log.Debug(vaultMainContainer)
+		h.Log.Debug(vaultMainEntrypoint)
 
 		vaultCommand = append(vaultCommand, podSpec.Containers[0].Command...)
 		mainContainer := corev1.Container{
