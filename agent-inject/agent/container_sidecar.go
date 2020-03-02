@@ -26,16 +26,12 @@ const (
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      secretVolumeName,
-			MountPath: secretVolumePath,
-			ReadOnly:  false,
-		},
-		{
 			Name:      a.ServiceAccountName,
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,
 		},
 	}
+	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
 	arg := DefaultContainerArg
 

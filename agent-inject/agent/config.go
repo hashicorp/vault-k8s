@@ -83,7 +83,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 
 		tmpl := &Template{
 			Contents:    template,
-			Destination: fmt.Sprintf("/vault/secrets/%s", secret.Name),
+			Destination: fmt.Sprintf("%s/%s", secret.MountPath, secret.Name),
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,

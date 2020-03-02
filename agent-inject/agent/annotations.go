@@ -138,6 +138,14 @@ const (
 	// AnnotationVaultAuthPath specifies the mount path to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultAuthPath = "vault.hashicorp.com/auth-path"
+
+	// AnnotationVaultSecretVolumePath specifies where the secrets are to be
+	// Mounted after fetching.
+	AnnotationVaultSecretVolumePath = "vault.hashicorp.com/secret-volume-path"
+
+	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
+	// by default the name is converted to lower case.
+	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -199,6 +207,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = secretVolumePath
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(revokeOnShutdown)
 	}
@@ -220,18 +232,23 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
 // name: foobar, value: db/creds/foobar
-func secrets(annotations map[string]string) []*Secret {
+func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
+
 	// First check for the token-only injection annotation
-	if _, found := annotations[AnnotationAgentInjectToken]; found {
-		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
-		annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
+	if _, found := a.Annotations[AnnotationAgentInjectToken]; found {
+		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
+		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
 	}
-	for name, path := range annotations {
+	for name, path := range a.Annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
 			raw := strings.ReplaceAll(name, secretName, "")
-			name := strings.ToLower(raw)
+			name := raw
+
+			if ok, _ := a.preserveSecretCase(raw); !ok {
+				name = strings.ToLower(raw)
+			}
 
 			if name == "" {
 				continue
@@ -240,18 +257,25 @@ func secrets(annotations map[string]string) []*Secret {
 			var template string
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 
-			if val, ok := annotations[templateName]; ok {
+			if val, ok := a.Annotations[templateName]; ok {
 				template = val
+			}
+
+			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
+			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
+
+			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
+				mountPath = val
 			}
 
 			var command string
 			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
 
-			if val, ok := annotations[commandName]; ok {
+			if val, ok := a.Annotations[commandName]; ok {
 				command = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command})
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command, MountPath: mountPath})
 		}
 	}
 	return secrets
@@ -308,5 +332,22 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 		return false, nil
 	}
 
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
+
+	preserveSecretCaseAnnotationName := fmt.Sprintf("%s-%s", AnnotationPreserveSecretCase, secretName)
+
+	var raw string
+
+	if val, ok := a.Annotations[preserveSecretCaseAnnotationName]; ok {
+		raw = val
+	} else {
+		raw, ok = a.Annotations[AnnotationPreserveSecretCase]
+		if !ok {
+			return false, nil
+		}
+	}
 	return strconv.ParseBool(raw)
 }

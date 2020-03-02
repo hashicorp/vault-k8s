@@ -105,6 +105,9 @@ type Secret struct {
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
 
+	// Mount Path
+	MountPath string
+
 	// Command is the optional command to run after rendering the secret.
 	Command string
 }
@@ -176,7 +179,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Pod:                pod,
 		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		Secrets:            secrets(pod.Annotations),
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
@@ -198,6 +200,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	var err error
+	agent.Secrets = agent.secrets()
 	agent.Inject, err = agent.inject()
 	if err != nil {
 		return agent, err
@@ -273,7 +276,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// for passing data in the pod.
 	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
-		[]corev1.Volume{a.ContainerVolume()},
+		a.ContainerVolumes(),
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
@@ -296,7 +299,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	for i, container := range a.Pod.Spec.Containers {
 		a.Patches = append(a.Patches, addVolumeMounts(
 			container.VolumeMounts,
-			[]corev1.VolumeMount{a.ContainerVolumeMount()},
+			a.ContainerVolumeMounts(),
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 	}
 
