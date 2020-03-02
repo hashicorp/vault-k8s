@@ -147,6 +147,51 @@ func TestHandlerHandle(t *testing.T) {
 		},
 
 		{
+			"init first ",
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			v1beta1.AdmissionRequest{
+				Namespace: "test",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject: "true",
+							agent.AnnotationVaultRole:   "demo",
+							agent.AnnotationAgentInitFirst: "true",
+						},
+					},
+					Spec: basicSpec,
+				}),
+			},
+			"",
+			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/0/volumeMounts/-",
+				},
+				{
+					Operation: "remove",
+					Path:      "/spec/initContainers",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
+				},
+			},
+		},
+
+		{
 			"configmap pod injection",
 			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
 			v1beta1.AdmissionRequest{

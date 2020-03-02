@@ -33,6 +33,9 @@ type Agent struct {
 	// in a pod request.
 	Inject bool
 
+	// InitFirst controls whether an init container is first to run.
+	InitFirst bool
+
 	// LimitsCPU is the upper CPU limit the sidecar container is allowed to consume.
 	LimitsCPU string
 
@@ -206,6 +209,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
+	agent.InitFirst, err = agent.initFirst()
+	if err != nil {
+		return agent, err
+	}
+
 	agent.PrePopulate, err = agent.prePopulate()
 	if err != nil {
 		return agent, err
@@ -309,10 +317,27 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		a.Patches = append(a.Patches, addContainers(
-			a.Pod.Spec.InitContainers,
-			[]corev1.Container{container},
-			"/spec/initContainers")...)
+
+		// Init Containers run sequentially in Kubernetes and sometimes the order in
+		// which they run matters.  This reorders the init containers to put the agent first.
+		if a.InitFirst {
+
+			// Remove all init containers from the document so we can readd them after the agent.
+			a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+
+			containers := []corev1.Container{container}
+			containers = append(containers, a.Pod.Spec.InitContainers...)
+
+			a.Patches = append(a.Patches, addContainers(
+				[]corev1.Container{},
+				containers,
+				"/spec/initContainers")...)
+		} else {
+			a.Patches = append(a.Patches, addContainers(
+				a.Pod.Spec.InitContainers,
+				[]corev1.Container{container},
+				"/spec/initContainers")...)
+		}
 	}
 
 	// Sidecar Container
