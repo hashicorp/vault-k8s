@@ -322,6 +322,8 @@ func (a *Agent) Patch() ([]byte, error) {
 
 		// Init Containers run sequentially in Kubernetes and sometimes the order in
 		// which they run matters.  This reorders the init containers to put the agent first.
+		// For example, if an init container needed Vault secrets to work, the agent would need
+		// to run first.
 		if a.InitFirst {
 
 			// Remove all init containers from the document so we can re-add them after the agent.

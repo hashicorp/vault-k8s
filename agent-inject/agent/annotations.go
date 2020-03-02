@@ -54,7 +54,7 @@ const (
 	AnnotationAgentRequestNamespace = "vault.hashicorp.com/agent-request-namespace"
 
 	// AnnotationAgentInitFirst makes the initialization container the first container
-	// to run when a pod starts.  Default is last.
+	// to run when a pod starts. Default is last.
 	AnnotationAgentInitFirst = "vault.hashicorp.com/agent-init-first"
 
 	// AnnotationAgentPrePopulate controls whether an init container is included
