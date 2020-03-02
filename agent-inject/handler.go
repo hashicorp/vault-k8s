@@ -186,7 +186,11 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	vaultEnvs = append(vaultEnvs, vaultEnvVaultAddr)
 
 	vaultCommand = append(vaultCommand, "/vault/vault-env")
-	vaultCommand = append(vaultCommand, vaultMainEntrypointList...)
+	if len(podSpec.Containers[0].Command) > 0 {
+		vaultCommand = append(vaultCommand, podSpec.Containers[0].Command...)
+	} else {
+		vaultCommand = append(vaultCommand, vaultMainEntrypointList...)
+	}
 
 	if vaultEnabled {
 		h.Log.Debug("Mutating main container")
