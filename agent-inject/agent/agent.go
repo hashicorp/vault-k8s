@@ -318,6 +318,8 @@ func (a *Agent) Patch() ([]byte, error) {
 			return patches, err
 		}
 
+		containers := a.Pod.Spec.InitContainers
+
 		// Init Containers run sequentially in Kubernetes and sometimes the order in
 		// which they run matters.  This reorders the init containers to put the agent first.
 		if a.InitFirst {
@@ -325,7 +327,7 @@ func (a *Agent) Patch() ([]byte, error) {
 			// Remove all init containers from the document so we can re-add them after the agent.
 			a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
 
-			containers := []corev1.Container{container}
+			containers = []corev1.Container{container}
 			containers = append(containers, a.Pod.Spec.InitContainers...)
 
 			a.Patches = append(a.Patches, addContainers(
@@ -337,6 +339,17 @@ func (a *Agent) Patch() ([]byte, error) {
 				a.Pod.Spec.InitContainers,
 				[]corev1.Container{container},
 				"/spec/initContainers")...)
+		}
+
+		//Add Volume Mounts
+		for i, container := range containers {
+			if container.Name == "vault-agent-init" {
+				continue
+			}
+			a.Patches = append(a.Patches, addVolumeMounts(
+				container.VolumeMounts,
+				a.ContainerVolumeMounts(),
+				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
 		}
 	}
 
