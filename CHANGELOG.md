@@ -7,6 +7,8 @@ Features:
 * Added annotation to configure Vault namespace: [GH-82](https://github.com/hashicorp/vault-k8s/pull/82)
 * Added annotation to configure Vault Agent log level: [GH-82](https://github.com/hashicorp/vault-k8s/pull/82)
 * Added annotations to configure token revocation during shutdown: [GH-67](https://github.com/hashicorp/vault-k8s/pull/67)
+* Added annotations to customize render path of secrets (per secret and global default): [GH-71](https://github.com/hashicorp/vault-k8s/pull/71)
+* Added annotation to preserve case: [GH-71](https://github.com/hashicorp/vault-k8s/pull/71)
 
 Improvements:
 
