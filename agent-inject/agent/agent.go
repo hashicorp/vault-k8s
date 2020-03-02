@@ -327,7 +327,9 @@ func (a *Agent) Patch() ([]byte, error) {
 		if a.InitFirst {
 
 			// Remove all init containers from the document so we can re-add them after the agent.
-			a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+			if len(a.Pod.Spec.InitContainers) != 0 {
+				a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+			}
 
 			containers = []corev1.Container{container}
 			containers = append(containers, a.Pod.Spec.InitContainers...)
