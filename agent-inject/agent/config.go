@@ -94,6 +94,18 @@ func (a *Agent) newTemplateConfigs() []*Template {
 }
 
 func (a *Agent) newConfig(init bool) ([]byte, error) {
+	config_map := make(map[string]interface{})
+	switch a.AutoAuthMethod {
+	case "approle":
+		config_map["role_id_file_path"] = "/vault/approle/roleid"
+		config_map["secret_id_file_path"] = "/vault/approle/secretid"
+		config_map["remove_secret_id_file_after_reading"] = false
+	case "kubernetes":
+		config_map["role"] = a.Vault.Role
+	default:
+		config_map["role"] = a.Vault.Role
+	}
+
 	config := Config{
 		PidFile:       PidFile,
 		ExitAfterAuth: init,
@@ -108,12 +120,10 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type:      "kubernetes",
+				Type:      a.AutoAuthMethod,
 				Namespace: a.Vault.Namespace,
 				MountPath: a.Vault.AuthPath,
-				Config: map[string]interface{}{
-					"role": a.Vault.Role,
-				},
+				Config:    config_map,
 			},
 			Sinks: []*Sink{
 				{

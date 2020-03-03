@@ -93,6 +93,9 @@ type Agent struct {
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
+
+	// AutoAuthMethod specifies whether to use default 'kubernetes' or 'approle' Vault Agent auto-auth methods
+	AutoAuthMethod string
 }
 
 type Secret struct {
@@ -182,6 +185,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
+		AutoAuthMethod:     pod.Annotations[AnnotationAgentAutoAuthMethod],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
@@ -272,6 +276,14 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 func (a *Agent) Patch() ([]byte, error) {
 	var patches []byte
 
+	// Add our special vault-approle-secrets volume
+	if a.AutoAuthMethod == "approle" {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.ContainerApproleVolume()},
+			"/spec/volumes")...)
+	}
+
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
 	a.Patches = append(a.Patches, addVolumes(
@@ -358,9 +370,17 @@ func (a *Agent) Validate() error {
 		return errors.New("no Vault image found")
 	}
 
+	if a.AutoAuthMethod == "approle" {
+		if a.Annotations[AnnotationApproleSecretName] == "" {
+			return errors.New("no Vault approle secret specified. Required when using 'approle' auto-auth method")
+		}
+	}
+
 	if a.ConfigMapName == "" {
-		if a.Vault.Role == "" {
-			return errors.New("no Vault role found")
+		if a.AutoAuthMethod == "kubernetes" {
+			if a.Vault.Role == "" {
+				return errors.New("no Vault role found")
+			}
 		}
 
 		if a.Vault.AuthPath == "" {

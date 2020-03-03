@@ -19,6 +19,7 @@ const (
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
+	DefaultAgentAutoAuth      = "kubernetes"
 )
 
 // ContainerSidecar creates a new container to be added
@@ -32,6 +33,14 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		},
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
+
+	if a.AutoAuthMethod == "approle" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "vault-approle-secrets",
+			MountPath: approleSecretVolumePath,
+			ReadOnly:  true,
+		})
+	}
 
 	arg := DefaultContainerArg
 
