@@ -14,7 +14,20 @@ const (
 	tlsSecretVolumeName = "vault-tls-secrets"
 	tlsSecretVolumePath = "/vault/tls"
 	secretVolumePath    = "/vault/secrets"
+	approleSecretVolumePath = "/vault/approle"
 )
+
+// ContainerApproleVolume returns a volume to mount Approle secrets
+func (a *Agent) ContainerApproleVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: "vault-approle-secrets",
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: a.Annotations[AnnotationApproleSecretName],
+			},
+		},
+	}
+}
 
 func (a *Agent) getUniqueMountPaths() []string {
 	var mountPaths []string

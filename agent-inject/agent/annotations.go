@@ -67,6 +67,10 @@ const (
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
 
+	// AnnotationAgentAutoAuthMethod specifies which auto-auth method to use in the Vault Agent.
+	// Defaults to 'kubernetes', but 'approle' is another option.
+	AnnotationAgentAutoAuthMethod = "vault.hashicorp.com/agent-auto-auth-method"
+
 	// AnnotationAgentLimitsCPU sets the CPU limit on the Vault Agent containers.
 	AnnotationAgentLimitsCPU = "vault.hashicorp.com/agent-limits-cpu"
 
@@ -146,6 +150,10 @@ const (
 	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
 	// by default the name is converted to lower case.
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
+
+	// AnnotationApproleSecretName is the name of the secret containing the approle roleid and
+	// secretid to use in the agent when auto-auth method == approle
+	AnnotationApproleSecretName = "vault.hashicorp.com/agent-approle-secret-name"
 )
 
 // Init configures the expected annotations required to create a new instance
@@ -221,6 +229,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentAutoAuthMethod]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentAutoAuthMethod] = DefaultAgentAutoAuth
 	}
 
 	return nil
