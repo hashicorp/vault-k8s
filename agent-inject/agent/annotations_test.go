@@ -459,7 +459,7 @@ func TestInitEmptyPod(t *testing.T) {
 
 	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
 	if err == nil {
-		t.Errorf("got no error, shouldn have")
+		t.Errorf("got no error, should have")
 	}
 }
 
@@ -489,6 +489,33 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 
 		if agent.Vault.Namespace != tt.expectedValue {
 			t.Errorf("expected %s, got %s", tt.expectedValue, agent.Vault.Namespace)
+		}
+	}
+}
+
+func TestAnnotationAgentAutoAuthMethod(t *testing.T) {
+	tests := []struct {
+		key           string
+		value         string
+		expectedValue string
+	}{
+		{"", "", "kubernetes"},
+		{"vault.hashicorp.com/agent-auto-auth-method", "approle", "approle"},
+	}
+
+	for _, tt := range tests {
+		annotation := map[string]string{
+			tt.key: tt.value,
+		}
+
+		pod := testPod(annotation)
+		err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
+
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+		if pod.Annotations[AnnotationAgentAutoAuthMethod] != tt.expectedValue {
+			t.Errorf("expected %s, got %s %s", tt.expectedValue, pod.Annotations[AnnotationApproleSecretName], err)
 		}
 	}
 }

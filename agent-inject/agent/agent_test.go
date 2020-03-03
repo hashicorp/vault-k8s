@@ -82,6 +82,82 @@ func TestValidate(t *testing.T) {
 			}, true,
 		},
 		{
+			// kubernetes auth-method with Vault.Role and ConfigMapName
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				ConfigMapName:      "testconfigmap",
+				AutoAuthMethod:     "kubernetes",
+				ImageName:          "test",
+				Vault: Vault{
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+				},
+			}, true,
+		},
+		{
+			// approle auth-method with ApproleSecretName and ConfigMapName
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				ConfigMapName:      "testconfigmap",
+				AutoAuthMethod:     "approle",
+				ApproleSecretName:  "foobar",
+				ImageName:          "test",
+				Vault: Vault{
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+				},
+			}, true,
+		},
+		{
+			// kubernetes auth-method without Vault.Role or ConfigMapName
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				AutoAuthMethod:     "kubernetes",
+				ImageName:          "test",
+				Vault: Vault{
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+				},
+			}, false,
+		},
+		{
+			// approle auth-method without ApproleSecretName
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				AutoAuthMethod:     "approle",
+				ImageName:          "test",
+				Vault: Vault{
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+				},
+			}, false,
+		},
+		{
+			// approle auth-method with Vault.Role
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				AutoAuthMethod:     "approle",
+				ApproleSecretName:  "foobar",
+				ImageName:          "test",
+				Vault: Vault{
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+				},
+			}, false,
+		},
+		{
 			Agent{
 				Namespace:          "",
 				ServiceAccountPath: "foobar",

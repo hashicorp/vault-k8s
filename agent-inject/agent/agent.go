@@ -96,6 +96,9 @@ type Agent struct {
 
 	// AutoAuthMethod specifies whether to use default 'kubernetes' or 'approle' Vault Agent auto-auth methods
 	AutoAuthMethod string
+
+	// The name of the Kubernetes secret to lookup that contains the roleid and secretid for the approle
+	ApproleSecretName string
 }
 
 type Secret struct {
@@ -186,6 +189,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
 		AutoAuthMethod:     pod.Annotations[AnnotationAgentAutoAuthMethod],
+		ApproleSecretName:  pod.Annotations[AnnotationApproleSecretName],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
@@ -276,7 +280,7 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 func (a *Agent) Patch() ([]byte, error) {
 	var patches []byte
 
-	// Add our special vault-approle-secrets volume
+	// Add our vault-approle-secrets volume
 	if a.AutoAuthMethod == "approle" {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
@@ -371,8 +375,14 @@ func (a *Agent) Validate() error {
 	}
 
 	if a.AutoAuthMethod == "approle" {
-		if a.Annotations[AnnotationApproleSecretName] == "" {
+		if a.ApproleSecretName == "" {
 			return errors.New("no Vault approle secret specified. Required when using 'approle' auto-auth method")
+		}
+	}
+
+	if a.AutoAuthMethod == "approle" {
+		if a.Vault.Role != "" {
+			return errors.New("AutoAuth method 'approle' and Vault Role are mutually exclusive")
 		}
 	}
 
