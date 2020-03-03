@@ -55,6 +55,15 @@ func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpa
 	return result
 }
 
+func removeContainers(path string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
+
+	return append(result, &jsonpatch.JsonPatchOperation{
+		Operation: "remove",
+		Path:      path,
+	})
+}
+
 func addContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
 	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0

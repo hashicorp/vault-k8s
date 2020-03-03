@@ -33,6 +33,9 @@ type Agent struct {
 	// in a pod request.
 	Inject bool
 
+	// InitFirst controls whether an init container is first to run.
+	InitFirst bool
+
 	// LimitsCPU is the upper CPU limit the sidecar container is allowed to consume.
 	LimitsCPU string
 
@@ -206,6 +209,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
+	agent.InitFirst, err = agent.initFirst()
+	if err != nil {
+		return agent, err
+	}
+
 	agent.PrePopulate, err = agent.prePopulate()
 	if err != nil {
 		return agent, err
@@ -309,10 +317,44 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		a.Patches = append(a.Patches, addContainers(
-			a.Pod.Spec.InitContainers,
-			[]corev1.Container{container},
-			"/spec/initContainers")...)
+
+		containers := a.Pod.Spec.InitContainers
+
+		// Init Containers run sequentially in Kubernetes and sometimes the order in
+		// which they run matters.  This reorders the init containers to put the agent first.
+		// For example, if an init container needed Vault secrets to work, the agent would need
+		// to run first.
+		if a.InitFirst {
+
+			// Remove all init containers from the document so we can re-add them after the agent.
+			if len(a.Pod.Spec.InitContainers) != 0 {
+				a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+			}
+
+			containers = []corev1.Container{container}
+			containers = append(containers, a.Pod.Spec.InitContainers...)
+
+			a.Patches = append(a.Patches, addContainers(
+				[]corev1.Container{},
+				containers,
+				"/spec/initContainers")...)
+		} else {
+			a.Patches = append(a.Patches, addContainers(
+				a.Pod.Spec.InitContainers,
+				[]corev1.Container{container},
+				"/spec/initContainers")...)
+		}
+
+		//Add Volume Mounts
+		for i, container := range containers {
+			if container.Name == "vault-agent-init" {
+				continue
+			}
+			a.Patches = append(a.Patches, addVolumeMounts(
+				container.VolumeMounts,
+				a.ContainerVolumeMounts(),
+				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
+		}
 	}
 
 	// Sidecar Container
