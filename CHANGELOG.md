@@ -2,7 +2,7 @@
 
 Features:
 
-* Added annotation to change log-format for the injector: [GH-50](https://github.com/hashicorp/vault-k8s/pull/50)
+* Added flag/env to change log-format for the injector: [GH-50](https://github.com/hashicorp/vault-k8s/pull/50)
 * Added annotation to run a command after template has been rendered: [GH-57](https://github.com/hashicorp/vault-k8s/pull/57)
 * Added annotation to configure Vault namespace: [GH-82](https://github.com/hashicorp/vault-k8s/pull/82)
 * Added annotation to configure Vault Agent log level: [GH-82](https://github.com/hashicorp/vault-k8s/pull/82)
