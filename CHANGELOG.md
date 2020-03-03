@@ -10,6 +10,7 @@ Features:
 * Added annotations to configure token revocation during shutdown: [GH-67](https://github.com/hashicorp/vault-k8s/pull/67)
 * Added annotations to customize render path of secrets (per secret and global default): [GH-71](https://github.com/hashicorp/vault-k8s/pull/71)
 * Added annotation to preserve case: [GH-71](https://github.com/hashicorp/vault-k8s/pull/71)
+* Added annotation to configure if the init container runs first or last: [GH-91](https://github.com/hashicorp/vault-k8s/pull/91)
 
 Improvements:
 
@@ -17,6 +18,7 @@ Improvements:
 * Changed token location from `/home/vault/.token` to `/home/vault/.vault-token`: [GH-66](https://github.com/hashicorp/vault-k8s/pull/66)
 
 Bugs:
+* Fixed bug where secret volumes were not shared with other init containers: [GH-91](https://github.com/hashicorp/vault-k8s/pull/91)
 
 ## 0.2.0 (January 31st, 2020)
 
