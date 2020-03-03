@@ -9,6 +9,72 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+func TestContainerSidecarVolumeApprole(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationAgentAutoAuthMethod: "approle",
+		AnnotationApproleSecretName:   "secret/test/test",
+		// this will have different mount path
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret1"):     "secrets/secret1",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret1"): "/etc/container_environment",
+
+		// this secret will have same mount path as default mount path
+		// adding this so we can make sure we don't have duplicate
+		// volume mounts
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret2"):     "secret/secret2",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret2"): "/etc/default_path",
+
+		// Default path for all secrets
+		AnnotationVaultSecretVolumePath: "/etc/default_path",
+
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret3"): "secret/secret3",
+	}
+
+	pod := testPod(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, patches)
+	if err := agent.Validate(); err != nil {
+		t.Errorf("agent validation failed, it shouldn't have: %s", err)
+	}
+
+	container, err := agent.ContainerSidecar()
+
+	// One config volume mount and two secrets volume mounts
+	require.Equal(t, 4, len(container.VolumeMounts))
+
+	require.Equal(
+		t,
+		[]corev1.VolumeMount{
+			corev1.VolumeMount{
+				Name:      agent.ServiceAccountName,
+				MountPath: agent.ServiceAccountPath,
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
+				MountPath: "/etc/container_environment",
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      "vault-approle-secrets",
+				MountPath: approleSecretVolumePath,
+				ReadOnly:  true,
+			},
+		},
+		container.VolumeMounts,
+	)
+}
+
 func TestContainerSidecarVolume(t *testing.T) {
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",

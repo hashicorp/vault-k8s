@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -20,6 +21,14 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		},
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
+
+	if a.AutoAuthMethod == "approle" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "vault-approle-secrets",
+			MountPath: approleSecretVolumePath,
+			ReadOnly:  true,
+		})
+	}
 
 	arg := DefaultContainerArg
 

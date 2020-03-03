@@ -38,6 +38,11 @@ func TestNewConfig(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
+	if err != nil {
+		t.Errorf("got error intializing annotations, shouldn't have")
+	}
+
 	agent, err := New(pod, patches)
 	cfg, err := agent.newConfig(true)
 	if err != nil {
@@ -93,6 +98,18 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("expected 3 template, got %d", len(config.Templates))
 	}
 
+	if _, ok := config.AutoAuth.Method.Config["role_id_file_path"]; ok {
+		t.Errorf("expected role_id_file_path to not be set, it was")
+	}
+
+	if _, ok := config.AutoAuth.Method.Config["secret_id_file_path"]; ok {
+		t.Errorf("expected secret_id_file_path to not be set, it was")
+	}
+
+	if _, ok := config.AutoAuth.Method.Config["remove_secret_id_file_after_reading"]; ok {
+		t.Errorf("expected remove_secret_id_file_after_reading to not be set, it was")
+	}
+
 	for _, template := range config.Templates {
 		if strings.Contains(template.Destination, "foo") {
 			if template.Destination != "/vault/secrets/foo" {
@@ -121,4 +138,72 @@ func TestNewConfig(t *testing.T) {
 			t.Error("shouldn't have got here")
 		}
 	}
+}
+
+func TestNewConfigApprole(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationAgentImage:                            "vault",
+		AnnotationVaultService:                          "https://vault:8200",
+		AnnotationAgentStatus:                           "",
+		AnnotationAgentRequestNamespace:                 "foobar",
+		AnnotationVaultRole:                             "foobar",
+		AnnotationAgentPrePopulate:                      "true",
+		AnnotationAgentPrePopulateOnly:                  "true",
+		AnnotationVaultTLSServerName:                    "foobar.server",
+		AnnotationVaultCACert:                           "ca-cert",
+		AnnotationVaultCAKey:                            "ca-key",
+		AnnotationVaultClientCert:                       "client-cert",
+		AnnotationVaultClientKey:                        "client-key",
+		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
+		AnnotationAgentAutoAuthMethod:                   "approle",
+		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
+		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
+		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
+
+		// render this secret at a different path
+		"vault.hashicorp.com/agent-inject-secret-different-path":                "different-path",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
+
+		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
+	}
+
+	pod := testPod(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	err := Init(pod, "foobar-image", "http://foobar:8200", "test", "test", true)
+	if err != nil {
+		t.Errorf("got error intializing annotations, shouldn't have")
+	}
+
+	agent, err := New(pod, patches)
+	cfg, err := agent.newConfig(true)
+	if err != nil {
+		t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+	}
+
+	config := &Config{}
+	if err := json.Unmarshal(cfg, config); err != nil {
+		t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+	}
+
+	if config.AutoAuth.Method.Type != "approle" {
+		t.Error("expected auto_auth method to be approle, it wasn't")
+	}
+
+	if _, ok := config.AutoAuth.Method.Config["role_id_file_path"]; !ok {
+		t.Errorf("expected role_id_file_path to be set, it wasn't")
+	}
+
+	if _, ok := config.AutoAuth.Method.Config["secret_id_file_path"]; !ok {
+		t.Errorf("expected secret_id_file_path to be set, it wasn't")
+	}
+
+	if _, ok := config.AutoAuth.Method.Config["remove_secret_id_file_after_reading"]; !ok {
+		t.Errorf("expected remove_secret_id_file_after_reading to be set, it wasn't")
+	}
+
+	if config.AutoAuth.Method.Config["role"] != nil {
+		t.Errorf("auto_auth role: expected role to be %s, got %s", annotations[AnnotationVaultRole], config.AutoAuth.Method.Config["role"])
+	}
+
 }
