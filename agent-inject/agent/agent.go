@@ -90,6 +90,7 @@ type Agent struct {
 	Pluton         Pluton
 	PlutonEnvs     []*PlutonEnv
 	MainEntrypoint string
+	MainConfig     string
 }
 
 type Secret struct {
@@ -170,6 +171,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ImageName:     pod.Annotations[AnnotationAgentImage],
 		LimitsCPU:     pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:     pod.Annotations[AnnotationAgentLimitsMem],
+		MainConfig:    pod.Annotations[AnnotationMainConfig],
 		Namespace:     pod.Annotations[AnnotationAgentRequestNamespace],
 		Patches:       patches,
 		Pluton: Pluton{

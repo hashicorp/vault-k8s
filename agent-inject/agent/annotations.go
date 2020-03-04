@@ -124,6 +124,7 @@ const (
 	AnnotationAgentInjectStructure = "vault.hashicorp.com/agent-inject-structure"
 	AnnotationAgentInjectMode      = "vault.hashicorp.com/agent-inject-mode"
 	AnnotationMainEntrypoint       = "vault.hashicorp.com/main-entrypoint"
+	AnnotationMainConfig           = "vault.hashicorp.com/main-config"
 )
 
 // Init configures the expected annotations required to create a new instance
