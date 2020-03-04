@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 0.3.0 (March 5th, 2020)
+
 Features:
 
 * Added flag/env to change log-format for the injector: [GH-50](https://github.com/hashicorp/vault-k8s/pull/50)
