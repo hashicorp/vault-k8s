@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -25,7 +26,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		},
 	}
 
-	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json && /usr/local/bin/sync_token"
 
 	if a.ConfigMapName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
