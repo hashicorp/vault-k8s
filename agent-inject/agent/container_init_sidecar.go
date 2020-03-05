@@ -26,7 +26,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		},
 	}
 
-	arg := "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json && /usr/local/bin/sync_token 1"
+	arg := "echo ${VAULT_CONFIG} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json && /usr/local/bin/sync_token 1"
 
 	if a.ConfigMapName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
