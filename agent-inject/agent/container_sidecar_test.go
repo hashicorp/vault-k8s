@@ -32,7 +32,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -44,8 +44,8 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 	container, err := agent.ContainerSidecar()
 
-	// One config volume mount and two secrets volume mounts
-	require.Equal(t, 3, len(container.VolumeMounts))
+	// One token volume mount, one config volume mount and two secrets volume mounts
+	require.Equal(t, 4, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
@@ -54,6 +54,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
 			},
 			corev1.VolumeMount{
 				Name:      secretVolumeName,

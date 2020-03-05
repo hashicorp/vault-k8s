@@ -30,6 +30,11 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,
 		},
+		{
+			Name:      tokenVolumeName,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
@@ -112,7 +117,6 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 	resources.Requests = requests
 
 	return resources, nil
-
 }
 
 func parseQuantity(raw string) (resource.Quantity, error) {

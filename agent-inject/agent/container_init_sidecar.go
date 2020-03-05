@@ -14,6 +14,11 @@ import (
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
+			Name:      tokenVolumeName,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
+		{
 			Name:      a.ServiceAccountName,
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,

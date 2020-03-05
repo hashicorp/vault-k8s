@@ -298,6 +298,12 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 func (a *Agent) Patch() ([]byte, error) {
 	var patches []byte
 
+	// Add a volume for the token sink
+	a.Patches = append(a.Patches, addVolumes(
+		a.Pod.Spec.Volumes,
+		[]corev1.Volume{a.ContainerTokenVolume()},
+		"/spec/volumes")...)
+
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
 	a.Patches = append(a.Patches, addVolumes(

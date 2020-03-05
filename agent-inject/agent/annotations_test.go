@@ -181,6 +181,11 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100"})
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
 		agent, err := New(pod, patches)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -289,9 +294,10 @@ func TestTemplateShortcuts(t *testing.T) {
 			},
 			map[string]Secret{
 				"token": Secret{
-					Name:     "token",
-					Path:     TokenSecret,
-					Template: TokenTemplate,
+					Name:      "token",
+					Path:      TokenSecret,
+					Template:  TokenTemplate,
+					MountPath: secretVolumePath,
 				},
 			},
 		},
