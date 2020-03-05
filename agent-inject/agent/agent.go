@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage      = "vault:1.3.1"
+	DefaultVaultImage      = "vault:1.3.2"
 	DefaultVaultAuthPath   = "auth/kubernetes"
 	DefaultAgentRunAsUser  = 100
 	DefaultAgentRunAsGroup = 1000

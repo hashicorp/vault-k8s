@@ -1,7 +1,7 @@
 FROM alpine:latest
 
 ARG NAME=vault-k8s
-ARG VERSION=0.2.0
+ARG VERSION=0.3.0
 
 # Set ARGs as ENV so that they can be used in ENTRYPOINT/CMD
 ENV NAME=$NAME
