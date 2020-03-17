@@ -33,6 +33,7 @@ workflows:
                     branches:
                         only:
                             - master
+                            - add-istio
 
 
 
