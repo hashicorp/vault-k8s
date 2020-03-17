@@ -14,8 +14,10 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage    = "vault:1.3.2"
-	DefaultVaultAuthPath = "auth/kubernetes"
+	DefaultVaultImage      = "vault:1.3.2"
+	DefaultVaultAuthPath   = "auth/kubernetes"
+	DefaultAgentRunAsUser  = 100
+	DefaultAgentRunAsGroup = 1000
 )
 
 // Agent is the top level structure holding all the
@@ -96,6 +98,12 @@ type Agent struct {
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
+
+	// RunAsUser is the user ID to run the Vault agent container(s) as.
+	RunAsUser int64
+
+	// RunAsGroup is the group ID to run the Vault agent container(s) as.
+	RunAsGroup int64
 }
 
 type Secret struct {
@@ -239,6 +247,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
+	agent.RunAsUser, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsUser], 10, 64)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
+	if err != nil {
+		return agent, err
+	}
+
 	return agent, nil
 }
 
@@ -279,6 +297,12 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 // containers.
 func (a *Agent) Patch() ([]byte, error) {
 	var patches []byte
+
+	// Add a volume for the token sink
+	a.Patches = append(a.Patches, addVolumes(
+		a.Pod.Spec.Volumes,
+		[]corev1.Volume{a.ContainerTokenVolume()},
+		"/spec/volumes")...)
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.

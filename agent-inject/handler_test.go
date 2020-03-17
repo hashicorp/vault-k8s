@@ -140,6 +140,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
@@ -169,8 +173,8 @@ func TestHandlerHandle(t *testing.T) {
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							agent.AnnotationAgentInject: "true",
-							agent.AnnotationVaultRole:   "demo",
+							agent.AnnotationAgentInject:    "true",
+							agent.AnnotationVaultRole:      "demo",
 							agent.AnnotationAgentInitFirst: "true",
 						},
 					},
@@ -179,6 +183,10 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"",
 			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",
@@ -231,6 +239,10 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"",
 			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",
@@ -294,6 +306,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
@@ -333,6 +349,10 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"",
 			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",
@@ -393,6 +413,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
@@ -425,6 +449,10 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"",
 			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",

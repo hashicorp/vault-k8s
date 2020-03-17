@@ -95,6 +95,12 @@ const (
 	// AnnotationVaultNamespace is the Vault namespace where secrets can be found.
 	AnnotationVaultNamespace = "vault.hashicorp.com/namespace"
 
+	// AnnotationAgentRunAsUser sets the User ID to run the Vault Agent containers as.
+	AnnotationAgentRunAsUser = "vault.hashicorp.com/agent-run-as-user"
+
+	// AnnotationAgentRunAsGroup sets the Group ID to run the Vault Agent containers as.
+	AnnotationAgentRunAsGroup = "vault.hashicorp.com/agent-run-as-group"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -152,23 +158,33 @@ const (
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
 )
 
+type AgentConfig struct {
+	Image            string
+	Address          string
+	AuthPath         string
+	Namespace        string
+	RevokeOnShutdown bool
+	UserID           string
+	GroupID          string
+}
+
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
-func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnShutdown bool) error {
+func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
 
-	if address == "" {
+	if cfg.Address == "" {
 		return errors.New("address for Vault required")
 	}
 
-	if authPath == "" {
+	if cfg.AuthPath == "" {
 		return errors.New("Vault Auth Path required")
 	}
 
-	if namespace == "" {
+	if cfg.Namespace == "" {
 		return errors.New("kubernetes namespace required")
 	}
 
@@ -177,22 +193,22 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultService]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationVaultService] = address
+		pod.ObjectMeta.Annotations[AnnotationVaultService] = cfg.Address
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = authPath
+		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentImage]; !ok {
-		if image == "" {
-			image = DefaultVaultImage
+		if cfg.Image == "" {
+			cfg.Image = DefaultVaultImage
 		}
-		pod.ObjectMeta.Annotations[AnnotationAgentImage] = image
+		pod.ObjectMeta.Annotations[AnnotationAgentImage] = cfg.Image
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace] = namespace
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace] = cfg.Namespace
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU]; !ok {
@@ -216,7 +232,7 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(revokeOnShutdown)
+		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(cfg.RevokeOnShutdown)
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace]; !ok {
@@ -225,6 +241,20 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !ok {
+		if cfg.UserID == "" {
+			cfg.UserID = strconv.Itoa(DefaultAgentRunAsUser)
+		}
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = cfg.UserID
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !ok {
+		if cfg.GroupID == "" {
+			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
+		}
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
 	}
 
 	return nil

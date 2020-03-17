@@ -121,6 +121,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_TLS_AUTO", value: "mutationWebhook", cmdPtr: &cmd.flagAutoName},
 		{env: "AGENT_INJECT_LOG_LEVEL", value: "info", cmdPtr: &cmd.flagLogLevel},
 		{env: "AGENT_INJECT_LOG_FORMAT", value: "standard", cmdPtr: &cmd.flagLogFormat},
+		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
+		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
 	}
 
 	for _, tt := range tests {

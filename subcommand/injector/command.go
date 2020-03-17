@@ -38,6 +38,8 @@ type Command struct {
 	flagVaultImage       string // Name of the Vault Image to use
 	flagVaultAuthPath    string // Mount Path of the Vault Kubernetes Auth Method
 	flagRevokeOnShutdown bool   // Revoke Vault Token on pod shutdown
+	flagRunAsUser        string // User (uid) to run Vault agent as
+	flagRunAsGroup       string // Group (gid) to run Vault agent as
 
 	flagSet *flag.FlagSet
 
@@ -118,6 +120,8 @@ func (c *Command) Run(args []string) int {
 		RequireAnnotation: true,
 		Log:               logger,
 		RevokeOnShutdown:  c.flagRevokeOnShutdown,
+		UserID:            c.flagRunAsUser,
+		GroupID:           c.flagRunAsGroup,
 	}
 
 	mux := http.NewServeMux()

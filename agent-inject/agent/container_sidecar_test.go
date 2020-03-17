@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/mattbaird/jsonpatch"
@@ -31,7 +32,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -43,8 +44,8 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 	container, err := agent.ContainerSidecar()
 
-	// One config volume mount and two secrets volume mounts
-	require.Equal(t, 3, len(container.VolumeMounts))
+	// One token volume mount, one config volume mount and two secrets volume mounts
+	require.Equal(t, 4, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
@@ -53,6 +54,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
 			},
 			corev1.VolumeMount{
 				Name:      secretVolumeName,
@@ -77,7 +83,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", false)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100"})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -178,7 +184,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag)
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100"})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -227,7 +233,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -516,6 +522,95 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				if resources.Requests.Memory().String() != tt.expectedRequestMem {
 					t.Errorf("%s expected mem request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitMem, resources.Requests.Memory().String())
 				}
+			}
+		})
+	}
+}
+
+func TestContainerSidecarSecurityContext(t *testing.T) {
+	tests := []struct {
+		name                 string
+		runAsUser            int
+		runAsGroup           int
+		expectedRunAsUser    int64
+		expectedRunAsGroup   int64
+		expectedRunAsNonRoot bool
+	}{
+		{
+			name:                 "Defaults",
+			runAsUser:            DefaultAgentRunAsUser,
+			runAsGroup:           DefaultAgentRunAsGroup,
+			expectedRunAsUser:    DefaultAgentRunAsUser,
+			expectedRunAsGroup:   DefaultAgentRunAsGroup,
+			expectedRunAsNonRoot: true,
+		},
+		{
+			name:                 "non-root user and non-root group",
+			runAsUser:            1001,
+			runAsGroup:           1001,
+			expectedRunAsUser:    1001,
+			expectedRunAsGroup:   1001,
+			expectedRunAsNonRoot: true,
+		},
+		{
+			name:                 "root user and group",
+			runAsUser:            0,
+			runAsGroup:           0,
+			expectedRunAsUser:    0,
+			expectedRunAsGroup:   0,
+			expectedRunAsNonRoot: false,
+		},
+		{
+			name:                 "root user and non-root group",
+			runAsUser:            0,
+			runAsGroup:           100,
+			expectedRunAsUser:    0,
+			expectedRunAsGroup:   100,
+			expectedRunAsNonRoot: false,
+		},
+		{
+			name:                 "non-root user and root group",
+			runAsUser:            100,
+			runAsGroup:           0,
+			expectedRunAsUser:    100,
+			expectedRunAsGroup:   0,
+			expectedRunAsNonRoot: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			annotations := map[string]string{
+				AnnotationVaultRole:       "foobar",
+				AnnotationAgentRunAsUser:  strconv.Itoa(tt.runAsUser),
+				AnnotationAgentRunAsGroup: strconv.Itoa(tt.runAsGroup),
+			}
+			pod := testPod(annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			if err := agent.Validate(); err != nil {
+				t.Errorf("agent validation failed, it shouldn't have: %s", err)
+			}
+
+			container, err := agent.ContainerSidecar()
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			if *container.SecurityContext.RunAsUser != tt.expectedRunAsUser {
+				t.Errorf("expected RunAsUser mismatch: wanted %d, got %d", tt.expectedRunAsUser, *container.SecurityContext.RunAsUser)
+			}
+			if *container.SecurityContext.RunAsGroup != tt.expectedRunAsGroup {
+				t.Errorf("expected RunAsGroup mismatch: wanted %d, got %d", tt.expectedRunAsGroup, *container.SecurityContext.RunAsGroup)
+			}
+			if *container.SecurityContext.RunAsNonRoot != tt.expectedRunAsNonRoot {
+				t.Errorf("expected RunAsNonRoot mismatch: wanted %t, got %t", tt.expectedRunAsNonRoot, *container.SecurityContext.RunAsNonRoot)
 			}
 		})
 	}

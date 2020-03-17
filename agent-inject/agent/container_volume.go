@@ -8,6 +8,8 @@ import (
 )
 
 const (
+	tokenVolumeName     = "home"
+	tokenVolumePath     = "/home/vault"
 	configVolumeName    = "vault-config"
 	configVolumePath    = "/vault/configs"
 	secretVolumeName    = "vault-secrets"
@@ -54,6 +56,19 @@ func (a *Agent) ContainerVolumes() []corev1.Volume {
 		)
 	}
 	return containerVolumes
+}
+
+// ContainerTokenVolume returns a volume to mount the
+// home directory where the token sink will write to.
+func (a *Agent) ContainerTokenVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: tokenVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium: "Memory",
+			},
+		},
+	}
 }
 
 // ContainerConfigMapVolume returns a volume to mount a config map

@@ -30,6 +30,11 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: a.ServiceAccountPath,
 			ReadOnly:  true,
 		},
+		{
+			Name:      tokenVolumeName,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
@@ -65,19 +70,15 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	lifecycle := a.createLifecycle()
 
 	return corev1.Container{
-		Name:      "vault-agent",
-		Image:     a.ImageName,
-		Env:       envs,
-		Resources: resources,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    pointerutil.Int64Ptr(100),
-			RunAsGroup:   pointerutil.Int64Ptr(1000),
-			RunAsNonRoot: pointerutil.BoolPtr(true),
-		},
-		Lifecycle:    &lifecycle,
-		VolumeMounts: volumeMounts,
-		Command:      []string{"/bin/sh", "-ec"},
-		Args:         []string{arg},
+		Name:            "vault-agent",
+		Image:           a.ImageName,
+		Env:             envs,
+		Resources:       resources,
+		SecurityContext: a.securityContext(),
+		VolumeMounts:    volumeMounts,
+		Lifecycle:       &lifecycle,
+		Command:         []string{"/bin/sh", "-ec"},
+		Args:            []string{arg},
 	}, nil
 }
 
@@ -116,7 +117,6 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 	resources.Requests = requests
 
 	return resources, nil
-
 }
 
 func parseQuantity(raw string) (resource.Quantity, error) {
@@ -144,4 +144,16 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 	}
 
 	return lifecycle
+}
+
+func (a *Agent) securityContext() *corev1.SecurityContext {
+	runAsNonRoot := true
+	if a.RunAsUser == 0 || a.RunAsGroup == 0 {
+		runAsNonRoot = false
+	}
+	return &corev1.SecurityContext{
+		RunAsUser:    pointerutil.Int64Ptr(a.RunAsUser),
+		RunAsGroup:   pointerutil.Int64Ptr(a.RunAsGroup),
+		RunAsNonRoot: pointerutil.BoolPtr(runAsNonRoot),
+	}
 }

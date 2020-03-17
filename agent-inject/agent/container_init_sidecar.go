@@ -2,7 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/vault/sdk/helper/pointerutil"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -13,6 +13,11 @@ import (
 // two config files.
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      tokenVolumeName,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
 		{
 			Name:      a.ServiceAccountName,
 			MountPath: a.ServiceAccountPath,
@@ -51,17 +56,13 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 
 	return corev1.Container{
-		Name:      "vault-agent-init",
-		Image:     a.ImageName,
-		Env:       envs,
-		Resources: resources,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    pointerutil.Int64Ptr(100),
-			RunAsGroup:   pointerutil.Int64Ptr(1000),
-			RunAsNonRoot: pointerutil.BoolPtr(true),
-		},
-		VolumeMounts: volumeMounts,
-		Command:      []string{"/bin/sh", "-ec"},
-		Args:         []string{arg},
+		Name:            "vault-agent-init",
+		Image:           a.ImageName,
+		Env:             envs,
+		Resources:       resources,
+		SecurityContext: a.securityContext(),
+		VolumeMounts:    volumeMounts,
+		Command:         []string{"/bin/sh", "-ec"},
+		Args:            []string{arg},
 	}, nil
 }
