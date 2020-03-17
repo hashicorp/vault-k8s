@@ -85,6 +85,9 @@ type Agent struct {
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
 
+	//IstioInjection contain config value of Istio
+	Istio IstioInjection
+
 	// Pluton is the structure holding all the Pluton specific configurations.
 	InjectPluton   bool
 	Pluton         Pluton
@@ -152,6 +155,11 @@ type Vault struct {
 	InjectMode string
 }
 
+type IstioInjection struct {
+	IsEnableInitContainer bool
+	InitContainerImage    string
+}
+
 type Pluton struct {
 	InfluxdbUrl string
 }
@@ -199,10 +207,17 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
 			InjectMode:       pod.Annotations[AnnotationAgentInjectMode],
 		},
+		Istio: IstioInjection{},
 	}
 
 	var err error
 	agent.Inject, err = agent.inject()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.Istio.IsEnableInitContainer, err = agent.getStatusIstioInitInject()
+
 	if err != nil {
 		return agent, err
 	}
@@ -249,6 +264,28 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 			return false, nil
 		} else {
 			return true, nil
+		}
+	}
+
+	//check annotation injectIstio and status IstioInject
+	rawIstio, ok := pod.Annotations[AnnotationIstioInitInject]
+
+	if ok {
+		shouldInjectIstioInitContainer, err := strconv.ParseBool(rawIstio)
+		if err != nil {
+			return false, err
+		}
+		if shouldInjectIstioInitContainer {
+			istioInjectStatus, ok := pod.Annotations[AnnotationIstioInitStatus]
+			if ok {
+				if istioInjectStatus == "injected" {
+					return false, nil
+				} else {
+					return true, nil
+				}
+			} else {
+				return true, nil
+			}
 		}
 	}
 

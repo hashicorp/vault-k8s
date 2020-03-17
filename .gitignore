@@ -14,3 +14,5 @@
 /bin/*
 /.idea/*
 /.build/*
+/vendor/*
+vault-k8s
