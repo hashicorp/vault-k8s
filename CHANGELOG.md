@@ -1,5 +1,12 @@
 ## Unreleased
 
+Features:
+* Added annotations/envs to change the UID and GID of the Vault Agent process: [GH-60](https://github.com/hashicorp/vault-k8s/pull/60)
+
+Improvements:
+
+Bugs:
+
 ## 0.3.0 (March 5th, 2020)
 
 Features:
