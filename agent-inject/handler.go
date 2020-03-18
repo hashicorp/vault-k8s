@@ -243,12 +243,12 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		// if err != nil {
 		// 	h.Log.Debug("Error patching main container")
 		// }
-		if len(patch) > 0 {
-			var err error
-			allPatches, err = json.Marshal(patch)
-			if err != nil {
-				h.Log.Debug("Error Marshal patch")
-			}
+	}
+	if len(patch) > 0 {
+		var err error
+		allPatches, err = json.Marshal(patch)
+		if err != nil {
+			h.Log.Debug("Error Marshal patch")
 		}
 	}
 	h.Log.Debug(string(allPatches))
