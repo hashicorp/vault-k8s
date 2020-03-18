@@ -256,7 +256,7 @@ func plutonEnvs(annotations map[string]string) []*PlutonEnv {
 func (a *Agent) inject() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentInject]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)
