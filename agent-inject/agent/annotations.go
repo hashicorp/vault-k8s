@@ -204,6 +204,10 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectStructure] = DefaultAgentInjectStructure
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationIstioInitStatus]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationIstioInitStatus] = "injected"
+	}
+
 	return nil
 }
 
@@ -298,10 +302,10 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) getStatusIstioInitInject() (bool, error) {
+func (a *Agent) getIstioInitInjectFlag() (bool, error) {
 	raw, ok := a.Annotations[AnnotationIstioInitInject]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)

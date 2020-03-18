@@ -216,7 +216,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agent.Istio.IsEnableInitContainer, err = agent.getStatusIstioInitInject()
+	agent.Istio.IsEnableInitContainer, err = agent.getIstioInitInjectFlag()
 
 	if err != nil {
 		return agent, err
@@ -272,15 +272,14 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 
 	if ok {
 		shouldInjectIstioInitContainer, err := strconv.ParseBool(rawIstio)
+		fmt.Println("istio inject flat enable")
 		if err != nil {
 			return false, err
 		}
 		if shouldInjectIstioInitContainer {
 			istioInjectStatus, ok := pod.Annotations[AnnotationIstioInitStatus]
 			if ok {
-				if istioInjectStatus == "injected" {
-					return false, nil
-				} else {
+				if istioInjectStatus != "injected" {
 					return true, nil
 				}
 			} else {

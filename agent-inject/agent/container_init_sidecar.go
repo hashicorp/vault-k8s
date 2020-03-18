@@ -37,11 +37,6 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		arg = fmt.Sprintf("vault agent -config=%s/config-init.hcl", configVolumePath)
 	}
 
-	//concate command start istio-init
-	if a.Istio.IsEnableInitContainer {
-		a.rewriteContainerCommand(arg)
-	}
-
 	if a.Vault.TLSSecret != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      tlsSecretVolumeName,
@@ -51,7 +46,6 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 
 	envs, err := a.ContainerEnvVars(true)
-	envs = append(envs, a.createIstioInitEnv())
 	if err != nil {
 		return corev1.Container{}, err
 	}
@@ -61,19 +55,27 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
-	return corev1.Container{
+	container := corev1.Container{
 		Name:      "vault-agent-init",
 		Image:     a.ImageName,
 		Env:       envs,
 		Resources: resources,
 		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    pointerutil.Int64Ptr(0),
-			RunAsGroup:   pointerutil.Int64Ptr(0),
-			RunAsNonRoot: pointerutil.BoolPtr(false),
-			Capabilities: a.createIstioInitCapabilities(),
+			RunAsUser:    pointerutil.Int64Ptr(100),
+			RunAsGroup:   pointerutil.Int64Ptr(1000),
+			RunAsNonRoot: pointerutil.BoolPtr(true),
 		},
 		VolumeMounts: volumeMounts,
 		Command:      []string{"/bin/sh", "-ec"},
 		Args:         []string{arg},
-	}, nil
+	}
+
+	//Pass Inject Istio to init container
+	if a.Istio.IsEnableInitContainer {
+		a.rewriteContainerCommand(arg)
+		envs = append(envs, a.createIstioInitEnv())
+		container.SecurityContext = a.createIstioInitSecurityContext()
+	}
+
+	return container, nil
 }

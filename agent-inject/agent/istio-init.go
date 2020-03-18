@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -20,7 +21,16 @@ func (a *Agent) createIstioInitCapabilities() *corev1.Capabilities {
 	return &cap
 }
 
+func (a *Agent) createIstioInitSecurityContext() *corev1.SecurityContext {
+	return &corev1.SecurityContext{
+		RunAsUser:    pointerutil.Int64Ptr(0),
+		RunAsGroup:   pointerutil.Int64Ptr(0),
+		RunAsNonRoot: pointerutil.BoolPtr(false),
+		Capabilities: a.createIstioInitCapabilities(),
+	}
+}
+
 func (a *Agent) rewriteContainerCommand(cmd string) string {
-	cmd += "&& bash /usr/local/bin/istio-init.sh"
+	cmd += "&& /usr/local/bin/istio-init.sh"
 	return cmd
 }
