@@ -23,9 +23,9 @@ const (
 
 	// AnnotationIstioInitInject is the key of annotation that control whether
 	// injection is enabled or disabled. Should be set to true or false value
-	AnnotationIstioInitInject = "istio.tiki.vn/init"
+	AnnotationIstioInitInject = "sidecar.istio.io/inject"
 
-	AnnotationIstioInitStatus = "istio.tiki.vn/init-container-status"
+	AnnotationIstioInitStatus = "sidecar.istio.io/init-container-status"
 
 	// AnnotationAgentInjectSecret is the key annotation that configures Vault
 	// Agent to retrieve the secrets from Vault required by the app.  The name
