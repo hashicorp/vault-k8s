@@ -74,6 +74,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	if a.Istio.IsEnableInitContainer {
 		container.Args[0] = a.rewriteContainerCommand(arg)
 		envs = append(envs, a.createIstioInitEnv())
+		container.Env = envs
 		container.SecurityContext = a.createIstioInitSecurityContext()
 	}
 
