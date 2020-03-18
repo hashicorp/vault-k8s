@@ -380,9 +380,13 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 	}
 
 	// Add annotations so that we know we're injected
-	a.Patches = append(a.Patches, updateAnnotations(
-		a.Pod.Annotations,
-		map[string]string{AnnotationAgentStatus: "injected"})...)
+	annotations := map[string]string{
+		AnnotationAgentStatus: "injected",
+	}
+	if a.Istio.IsEnableInitContainer {
+		annotations[AnnotationIstioInitStatus] = "injected"
+	}
+	a.Patches = append(a.Patches, updateAnnotations(a.Pod.Annotations, annotations)...)
 
 	// // Modify main container
 	// a.Patches = append(a.Patches, modifyContainers(

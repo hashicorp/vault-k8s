@@ -204,10 +204,6 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectStructure] = DefaultAgentInjectStructure
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationIstioInitStatus]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationIstioInitStatus] = "injected"
-	}
-
 	return nil
 }
 

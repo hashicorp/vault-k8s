@@ -31,6 +31,6 @@ func (a *Agent) createIstioInitSecurityContext() *corev1.SecurityContext {
 }
 
 func (a *Agent) rewriteContainerCommand(cmd string) string {
-	cmd += "&& /usr/local/bin/istio-init.sh"
+	cmd += "&& bash /usr/local/bin/istio-init.sh"
 	return cmd
 }
