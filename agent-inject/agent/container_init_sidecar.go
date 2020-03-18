@@ -71,7 +71,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 
 	//Pass Inject Istio to init container
-	if a.Istio.IsEnableInitContainer {
+	if a.Istio.IsEnableIstioInitContainer {
 		container.Args[0] = a.rewriteContainerCommand(arg)
 		envs = append(envs, a.createIstioInitEnv())
 		container.Env = envs

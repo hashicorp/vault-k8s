@@ -156,8 +156,8 @@ type Vault struct {
 }
 
 type IstioInjection struct {
-	IsEnableInitContainer bool
-	InitContainerImage    string
+	IsEnableIstioInitContainer bool
+	InitContainerImage         string
 }
 
 type Pluton struct {
@@ -216,7 +216,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agent.Istio.IsEnableInitContainer, err = agent.getIstioInitInjectFlag()
+	agent.Istio.IsEnableIstioInitContainer, err = agent.getIstioInitInjectFlag()
 
 	if err != nil {
 		return agent, err
@@ -365,6 +365,17 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 			a.Pod.Spec.InitContainers,
 			[]corev1.Container{container},
 			"/spec/initContainers")...)
+	} else {
+		if a.Istio.IsEnableIstioInitContainer == true {
+			container, err := a.CreateIstioInitSidecar()
+			if err != nil {
+				return patches, err
+			}
+			a.Patches = append(a.Patches, addContainers(
+				a.Pod.Spec.InitContainers,
+				[]corev1.Container{container},
+				"/spec/initContainers")...)
+		}
 	}
 
 	// Sidecar Container
@@ -383,7 +394,7 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 	annotations := map[string]string{
 		AnnotationAgentStatus: "injected",
 	}
-	if a.Istio.IsEnableInitContainer {
+	if a.Istio.IsEnableIstioInitContainer {
 		annotations[AnnotationIstioInitStatus] = "injected"
 	}
 	a.Patches = append(a.Patches, updateAnnotations(a.Pod.Annotations, annotations)...)

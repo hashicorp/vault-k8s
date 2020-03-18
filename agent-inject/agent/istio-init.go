@@ -34,3 +34,25 @@ func (a *Agent) rewriteContainerCommand(cmd string) string {
 	cmd += "&& bash /usr/local/bin/istio-init.sh"
 	return cmd
 }
+
+func (a *Agent) CreateIstioInitSidecar() (corev1.Container, error) {
+
+	arg := "bash /usr/local/bin/istio-init.sh"
+
+	resources, err := a.parseResources()
+	if err != nil {
+		return corev1.Container{}, err
+	}
+
+	container := corev1.Container{
+		Name:            "istio-agent-init",
+		Image:           a.ImageName,
+		Env:             []corev1.EnvVar{a.createIstioInitEnv()},
+		Resources:       resources,
+		SecurityContext: a.createIstioInitSecurityContext(),
+		Command:         []string{"/bin/sh", "-ec"},
+		Args:            []string{arg},
+	}
+
+	return container, nil
+}
