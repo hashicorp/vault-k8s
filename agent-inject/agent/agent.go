@@ -222,7 +222,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agent.InjectInjectPlutonPluton, err = agent.injectPluton()
+	agent.InjectPluton, err = agent.injectPluton()
 	if err != nil {
 		return agent, err
 	}
@@ -395,6 +395,9 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 	}
 	if a.Istio.IsEnableIstioInitContainer {
 		annotations[AnnotationIstioInitStatus] = "injected"
+		if deployName, err := getDeploymentNameFromPodName(a.Pod.Name); err == nil {
+			a.Patches = append(a.Patches, updateLabels(a.Pod.Labels, map[string]string{"app": deployName})...)
+		}
 	}
 	a.Patches = append(a.Patches, updateAnnotations(a.Pod.Annotations, annotations)...)
 

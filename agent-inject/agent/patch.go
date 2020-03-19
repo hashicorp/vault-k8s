@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/mattbaird/jsonpatch"
@@ -100,6 +102,39 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 	}
 
 	return result
+}
+
+func updateLabels(target, labels map[string]string) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
+	if len(target) == 0 {
+		result = append(result, &jsonpatch.JsonPatchOperation{
+			Operation: "add",
+			Path:      "/metadata/labels",
+			Value:     labels,
+		})
+
+		return result
+	}
+
+	for key, value := range labels {
+		result = append(result, &jsonpatch.JsonPatchOperation{
+			Operation: "add",
+			Path:      "/metadata/labels/" + EscapeJSONPointer(key),
+			Value:     value,
+		})
+	}
+
+	return result
+}
+
+func getDeploymentNameFromPodName(name string) (string, error) {
+	deployReg := regexp.MustCompile(`-([a-z 0-9]){10}-([a-z 0-9]){5}$`)
+	matchList := deployReg.Split(name, 2)
+	if len(matchList) < 2 {
+		return "", fmt.Errorf("Wrong Pod Name")
+	} else {
+		return matchList[0], nil
+	}
 }
 
 // EscapeJSONPointer escapes a JSON string to be compliant with the
