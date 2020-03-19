@@ -222,7 +222,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agent.InjectPluton, err = agent.injectPluton()
+	agent.InjectInjectPlutonPluton, err = agent.injectPluton()
 	if err != nil {
 		return agent, err
 	}
@@ -378,7 +378,7 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 	}
 
 	// Sidecar Container
-	if !a.PrePopulateOnly {
+	if !a.PrePopulateOnly && a.Inject {
 		container, err := a.ContainerSidecar()
 		if err != nil {
 			return patches, err
