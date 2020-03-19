@@ -356,26 +356,25 @@ func (a *Agent) Patch() ([]*jsonpatch.JsonPatchOperation, error) {
 	}
 
 	// Init Container
+	var container corev1.Container
+	var getContainerErr error
 	if a.PrePopulate {
-		container, err := a.ContainerInitSidecar()
-		if err != nil {
-			return patches, err
+		container, getContainerErr = a.ContainerInitSidecar()
+	} else {
+		if a.Istio.IsEnableIstioInitContainer == true {
+			container, getContainerErr = a.CreateIstioInitSidecar()
 		}
+	}
+
+	if getContainerErr != nil {
+		return patches, getContainerErr
+	}
+	//if container with noname => container struct is not set => do not append
+	if container.Name != "" {
 		a.Patches = append(a.Patches, addContainers(
 			a.Pod.Spec.InitContainers,
 			[]corev1.Container{container},
 			"/spec/initContainers")...)
-	} else {
-		if a.Istio.IsEnableIstioInitContainer == true {
-			container, err := a.CreateIstioInitSidecar()
-			if err != nil {
-				return patches, err
-			}
-			a.Patches = append(a.Patches, addContainers(
-				a.Pod.Spec.InitContainers,
-				[]corev1.Container{container},
-				"/spec/initContainers")...)
-		}
 	}
 
 	// Sidecar Container

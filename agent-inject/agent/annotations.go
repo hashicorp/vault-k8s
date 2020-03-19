@@ -265,7 +265,7 @@ func (a *Agent) inject() (bool, error) {
 func (a *Agent) injectPluton() (bool, error) {
 	raw, ok := a.Annotations[AnnotationPlutonInject]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)
