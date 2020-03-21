@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
@@ -26,8 +27,10 @@ const (
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      a.ServiceAccountName,
-			MountPath: a.ServiceAccountPath,
+			Name: a.ServiceAccountTokenVolume.Name,
+			// Only mount the token
+			MountPath: path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath),
+			SubPath:   a.ServiceAccountTokenVolume.TokenPath,
 			ReadOnly:  true,
 		},
 		{

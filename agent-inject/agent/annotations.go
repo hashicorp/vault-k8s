@@ -139,12 +139,12 @@ const (
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
 
 	// AnnotationAgentServiceAccountTokenVolumeName is the optional name of a volume containing a
-	// projected service account token
+	// service account token
 	AnnotationAgentServiceAccountTokenVolumeName = "vault.hashicorp.com/agent-service-account-token-volume-name"
 
-	// AnnotationAgentServiceAccountTokenVolumePath is the optional path to a projected service
-	// account token within a volume named by
-	// "vault.hashicorp.com/agent-service-account-token-volume-name" - the default path is "token"
+	// AnnotationAgentServiceAccountTokenVolumePath is the optional path to a service account token
+	// within a volume named by "vault.hashicorp.com/agent-service-account-token-volume-name" or
+	// discovered by searching for service account volume mounts - the default is "token"
 	AnnotationAgentServiceAccountTokenVolumePath = "vault.hashicorp.com/agent-service-account-token-volume-path"
 
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the

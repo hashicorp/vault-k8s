@@ -66,19 +66,25 @@ func TestValidate(t *testing.T) {
 	}{
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
-				ConfigMapName:      "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
 			}, true,
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName: "test",
 				Vault: Vault{
 					Role:     "test",
 					Address:  "https://foobar.com:8200",
@@ -89,46 +95,61 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			Agent{
-				Namespace:          "",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
-				ConfigMapName:      "test",
+				Namespace: "",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
 			}, false,
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
-				ConfigMapName:      "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "",
+					TokenPath: "foobar",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
 			}, false,
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "",
-				ImageName:          "test",
-				ConfigMapName:      "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
 			}, false,
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "",
-				ConfigMapName:      "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName:     "",
+				ConfigMapName: "test",
 			}, false,
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName: "test",
 				Vault: Vault{
 					Role:     "",
 					Address:  "https://foobar.com:8200",
@@ -138,10 +159,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName: "test",
 				Vault: Vault{
 					Role:     "test",
 					Address:  "",
@@ -151,10 +175,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "foobar",
+				},
+				ImageName: "test",
 				Vault: Vault{
 					Role:     "test",
 					Address:  "https://foobar.com:8200",

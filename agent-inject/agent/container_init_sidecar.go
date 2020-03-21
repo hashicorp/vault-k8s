@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"path"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -19,8 +20,10 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			ReadOnly:  false,
 		},
 		{
-			Name:      a.ServiceAccountName,
-			MountPath: a.ServiceAccountPath,
+			Name: a.ServiceAccountTokenVolume.Name,
+			// Only mount the token
+			MountPath: path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath),
+			SubPath:   a.ServiceAccountTokenVolume.TokenPath,
 			ReadOnly:  true,
 		},
 	}
