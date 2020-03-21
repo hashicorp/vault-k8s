@@ -67,7 +67,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -79,7 +79,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -96,7 +96,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -108,19 +108,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
-					Name:      "foobar",
-					MountPath: "",
-					TokenPath: "foobar",
-				},
-				ImageName:     "test",
-				ConfigMapName: "test",
-			}, false,
-		},
-		{
-			Agent{
-				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -132,7 +120,31 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "",
+					TokenPath: "foobar",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
+			}, false,
+		},
+		{
+			Agent{
+				Namespace: "test",
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "",
+				},
+				ImageName:     "test",
+				ConfigMapName: "test",
+			}, false,
+		},
+		{
+			Agent{
+				Namespace: "test",
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -144,7 +156,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -160,7 +172,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -176,7 +188,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",

@@ -558,11 +558,10 @@ func (a *Agent) Validate() error {
 		return errors.New("namespace missing from request")
 	}
 
-	if a.ServiceAccountTokenVolume == nil ||
-		(a.ServiceAccountTokenVolume.Name == "" ||
-			a.ServiceAccountTokenVolume.MountPath == "" ||
-			a.ServiceAccountTokenVolume.TokenPath == "") {
-		return errors.New("no service account name or path found")
+	if a.ServiceAccountTokenVolume.Name == "" ||
+		a.ServiceAccountTokenVolume.MountPath == "" ||
+		a.ServiceAccountTokenVolume.TokenPath == "" {
+		return errors.New("no service account token volume name, mount path or token path found")
 	}
 
 	if a.ImageName == "" {
