@@ -1,8 +1,6 @@
-REGISTRY_NAME?=docker.io/hashicorp
 IMAGE_NAME=vault-k8s
 VERSION?=0.3.0
 IMAGE_TAG=$(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
-IMAGE_TAG_LATEST=$(REGISTRY_NAME)/$(IMAGE_NAME):latest
 DOCKER_DIR=./build/docker
 BUILD_DIR=.build
 GOOS?=linux
@@ -17,14 +15,6 @@ build:
 
 image: build
 	docker build --build-arg NAME=$(IMAGE_NAME) --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dockerfile.dev .
-
-docker-login:
-	echo $(DOCKER_PASSWORD) | docker login -u $(DOCKER_USERNAME) --password-stdin
-
-deploy: image docker-login
-	docker push $(IMAGE_TAG)
-	docker tag $(IMAGE_TAG) $(IMAGE_TAG_LATEST)
-	docker push $(IMAGE_TAG_LATEST)
 
 clean:
 	-rm -rf $(BUILD_DIR)
