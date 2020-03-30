@@ -16,7 +16,7 @@ build:
 	GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
 
 image: build
-	docker build --build-arg NAME=$(IMAGE_NAME) --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dev.dockerfile .
+	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dev.dockerfile .
 
 #This target is used as part of the release pipeline in CircleCI, but can also be used to build the production image locally.
 #The released/signed linux binary will be pulled from releases.hashicorp.com instead of a local build of the binary.
