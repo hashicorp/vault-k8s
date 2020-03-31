@@ -22,7 +22,6 @@ image: build
 #The released/signed linux binary will be pulled from releases.hashicorp.com instead of a local build of the binary.
 prod-image:
 	docker build -t $(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION) \
-	--build-arg NAME=$(IMAGE_NAME) \
 	--build-arg VERSION=$(VERSION) \
 	--build-arg LOCATION=$(PUBLISH_LOCATION) \
 	-f $(DOCKER_DIR)/Release.dockerfile .
