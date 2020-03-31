@@ -76,18 +76,17 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admReq v1beta1.AdmissionReview
-	var admResp v1beta1.AdmissionReview
-	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
+	var admRew v1beta1.AdmissionReview
+	if _, _, err := deserializer().Decode(body, nil, &admRew); err != nil {
 		msg := fmt.Sprintf("error decoding admission request: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		return
 	} else {
-		admResp.Response = h.Mutate(admReq.Request)
+		admRew.Response = h.Mutate(admRew.Request)
 	}
 
-	resp, err := json.Marshal(&admResp)
+	resp, err := json.Marshal(&admRew)
 	if err != nil {
 		msg := fmt.Sprintf("error marshalling admission response: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
