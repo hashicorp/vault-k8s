@@ -8,14 +8,16 @@ import (
 )
 
 const (
-	tokenVolumeName     = "home"
-	tokenVolumePath     = "/home/vault"
-	configVolumeName    = "vault-config"
-	configVolumePath    = "/vault/configs"
-	secretVolumeName    = "vault-secrets"
-	tlsSecretVolumeName = "vault-tls-secrets"
-	tlsSecretVolumePath = "/vault/tls"
-	secretVolumePath    = "/vault/secrets"
+	tokenVolumeName       = "home"
+	tokenVolumePath       = "/home/vault"
+	configVolumeName      = "vault-config"
+	configVolumePath      = "/vault/configs"
+	secretVolumeName      = "vault-secrets"
+	tlsSecretVolumeName   = "vault-tls-secrets"
+	tlsSecretVolumePath   = "/vault/tls"
+	secretVolumePath      = "/vault/secrets"
+	extraSecretVolumeName = "extra-secrets"
+	extraSecretVolumePath = "/vault/custom"
 )
 
 func (a *Agent) getUniqueMountPaths() []string {
@@ -81,6 +83,19 @@ func (a *Agent) ContainerConfigMapVolume() corev1.Volume {
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: a.ConfigMapName,
 				},
+			},
+		},
+	}
+}
+
+// ContainerExtraSecretVolume returns a volume to mount a Kube secret
+// if the user supplied one.
+func (a *Agent) ContainerExtraSecretVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: extraSecretVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: a.ExtraSecret,
 			},
 		},
 	}

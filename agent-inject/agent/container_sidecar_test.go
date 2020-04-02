@@ -27,6 +27,9 @@ func TestContainerSidecarVolume(t *testing.T) {
 		AnnotationVaultSecretVolumePath: "/etc/default_path",
 
 		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret3"): "secret/secret3",
+
+		// Test adding an extra secret from Kube secrets for reference by Agent config
+		fmt.Sprintf("%s", AnnotationAgentExtraSecret): "extrasecret",
 	}
 
 	pod := testPod(annotations)
@@ -45,7 +48,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	container, err := agent.ContainerSidecar()
 
 	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 4, len(container.VolumeMounts))
+	require.Equal(t, 5, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
@@ -69,6 +72,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      extraSecretVolumeName,
+				MountPath: extraSecretVolumePath,
+				ReadOnly:  true,
 			},
 		},
 		container.VolumeMounts,
