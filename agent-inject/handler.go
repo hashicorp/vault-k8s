@@ -44,6 +44,7 @@ type Handler struct {
 	RevokeOnShutdown  bool
 	UserID            string
 	GroupID           string
+	SameID            bool
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -146,6 +147,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		RevokeOnShutdown: h.RevokeOnShutdown,
 		UserID:           h.UserID,
 		GroupID:          h.GroupID,
+		SameID:           h.SameID,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

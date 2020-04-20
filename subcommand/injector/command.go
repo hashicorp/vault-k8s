@@ -40,6 +40,7 @@ type Command struct {
 	flagRevokeOnShutdown bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser        string // User (uid) to run Vault agent as
 	flagRunAsGroup       string // Group (gid) to run Vault agent as
+	flagRunAsSameUser    bool   // User (gid) to run Vault agent same as User (uid) application
 
 	flagSet *flag.FlagSet
 
@@ -122,6 +123,7 @@ func (c *Command) Run(args []string) int {
 		RevokeOnShutdown:  c.flagRevokeOnShutdown,
 		UserID:            c.flagRunAsUser,
 		GroupID:           c.flagRunAsGroup,
+		SameID:            c.flagRunAsSameUser,
 	}
 
 	mux := http.NewServeMux()

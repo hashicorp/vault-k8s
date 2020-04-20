@@ -166,6 +166,7 @@ type AgentConfig struct {
 	RevokeOnShutdown bool
 	UserID           string
 	GroupID          string
+	SameID           bool
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -244,8 +245,12 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !ok {
+
 		if cfg.UserID == "" {
 			cfg.UserID = strconv.Itoa(DefaultAgentRunAsUser)
+		}
+		if cfg.SameID {
+			cfg.UserID = strconv.FormatInt(*pod.Spec.Containers[0].SecurityContext.RunAsUser, 10)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = cfg.UserID
 	}
@@ -253,6 +258,9 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !ok {
 		if cfg.GroupID == "" {
 			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
+		}
+		if cfg.SameID {
+			cfg.GroupID = strconv.Itoa(0)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
 	}

@@ -8,6 +8,7 @@ import (
 )
 
 func testPod(annotations map[string]string) *corev1.Pod {
+	var RunAsUser int64 = 1000720000
 	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "foo",
@@ -22,6 +23,9 @@ func testPod(annotations map[string]string) *corev1.Pod {
 							Name:      "foobar",
 							MountPath: "serviceaccount/somewhere",
 						},
+					},
+					SecurityContext: &corev1.SecurityContext{
+						RunAsUser: &RunAsUser,
 					},
 				},
 			},

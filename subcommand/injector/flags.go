@@ -59,6 +59,9 @@ type Specification struct {
 
 	// RunAsGroup is the AGENT_INJECT_RUN_AS_GROUP environment variable. (gid)
 	RunAsGroup string `envconfig:"AGENT_INJECT_RUN_AS_GROUP"`
+
+	// RunAsSameUser is the AGENT_INJECT_RUN_AS_SAME_USER environment variable. (gid)
+	RunAsSameUser string `envconfig:"AGENT_INJECT_RUN_AS_SAME_USER"`
 }
 
 func (c *Command) init() {
@@ -88,6 +91,8 @@ func (c *Command) init() {
 		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
 	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
 		fmt.Sprintf("Group (gid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsGroup))
+	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", true,
+		"User (gid) to run Vault agent same as User (uid) application.")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -174,6 +179,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.RunAsGroup != "" {
 		c.flagRunAsGroup = envs.RunAsGroup
+	}
+
+	if envs.RunAsSameUser != "" {
+		c.flagRunAsSameUser, err = strconv.ParseBool(envs.RunAsSameUser)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

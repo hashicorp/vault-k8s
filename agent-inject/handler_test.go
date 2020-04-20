@@ -17,6 +17,7 @@ import (
 )
 
 func TestHandlerHandle(t *testing.T) {
+	var RunAsUser int64 = 1000720000
 	basicSpec := corev1.PodSpec{
 		InitContainers: []corev1.Container{
 			{
@@ -37,6 +38,9 @@ func TestHandlerHandle(t *testing.T) {
 						Name:      "foobar",
 						MountPath: "serviceaccount/somewhere",
 					},
+				},
+				SecurityContext: &corev1.SecurityContext{
+					RunAsUser: &RunAsUser,
 				},
 			},
 		},

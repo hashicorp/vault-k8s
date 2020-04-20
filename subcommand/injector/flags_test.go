@@ -152,6 +152,8 @@ func TestCommandEnvBools(t *testing.T) {
 	}{
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: true, cmdPtr: &cmd.flagRevokeOnShutdown},
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: false, cmdPtr: &cmd.flagRevokeOnShutdown},
+		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: true, cmdPtr: &cmd.flagRunAsSameUser},
+		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: false, cmdPtr: &cmd.flagRunAsSameUser},
 	}
 
 	for _, tt := range tests {
