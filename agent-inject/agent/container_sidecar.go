@@ -16,7 +16,7 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && consul login -method kubernetes -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' -token-sink-file '/home/vault/consul.token' && export CONSUL_HTTP_TOKEN=$(cat /home/vault/consul.token) && vault agent -config=/tmp/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 )
