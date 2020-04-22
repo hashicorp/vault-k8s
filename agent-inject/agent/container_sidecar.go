@@ -16,8 +16,7 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	// WebSummit: Added Consul login and env variable
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && consul login -method kubernetes -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' -token-sink-file '/home/vault/consul.token' && export CONSUL_HTTP_TOKEN=$(cat /home/vault/consul.token) && vault agent -config=/tmp/config.json"
+	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 )
@@ -47,7 +46,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
+		arg = fmt.Sprintf("export CONSUL_HTTP_ADDR=$HOST_IP:8500 && consul login -method kubernetes -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' -token-sink-file '/home/vault/consul.token' && export CONSUL_HTTP_TOKEN=$(cat /home/vault/consul.token) && touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {
