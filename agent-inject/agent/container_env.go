@@ -12,12 +12,12 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 
 	// WebSummit: Added consul agent env var
 	envs = append(envs, corev1.EnvVar{
-		Name:  "CONSUL_HTTP_ADDR",
+		Name:  "HOST_IP",
 		ValueFrom: &corev1.EnvVarSource{
 			FieldRef: &corev1.ObjectFieldSelector{
-				FieldPath: "status.hostIP"
-			}
-		}
+				FieldPath: "status.hostIP",
+			},
+		},
 	})
 
 	if a.Vault.ClientTimeout != "" {
