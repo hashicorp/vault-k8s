@@ -34,7 +34,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("export CONSUL_HTTP_ADDR=$HOST_IP:8500 && consul login -method kubernetes -bearer-token-file '/run/secrets/kubernetes.io/serviceaccount/token' -token-sink-file '/home/vault/consul.token' && export CONSUL_HTTP_TOKEN=$(cat /home/vault/consul.token) && touch %s && vault agent -config=%s/config-init.hcl", TokenFile, configVolumePath)
+		arg = fmt.Sprintf("export CONSUL_HTTP_ADDR=$HOST_IP:8500 && touch %s && vault agent -config=%s/config-init.hcl", TokenFile, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {
