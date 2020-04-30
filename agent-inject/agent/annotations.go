@@ -250,6 +250,15 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 			cfg.UserID = strconv.Itoa(DefaultAgentRunAsUser)
 		}
 		if cfg.SameID {
+			if len(pod.Spec.Containers) == 0 {
+				return errors.New("No containers found in Pod Spec")
+			}
+			if pod.Spec.Containers[0].SecurityContext == nil {
+				return errors.New("No SecurityContext found for Container 0")
+			}
+			if pod.Spec.Containers[0].SecurityContext.RunAsUser == nil {
+				return errors.New("RunAsUser is nil for Container 0's SecurityContext")
+			}
 			cfg.UserID = strconv.FormatInt(*pod.Spec.Containers[0].SecurityContext.RunAsUser, 10)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = cfg.UserID
