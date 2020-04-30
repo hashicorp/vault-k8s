@@ -60,7 +60,7 @@ type Specification struct {
 	// RunAsGroup is the AGENT_INJECT_RUN_AS_GROUP environment variable. (gid)
 	RunAsGroup string `envconfig:"AGENT_INJECT_RUN_AS_GROUP"`
 
-	// RunAsSameUser is the AGENT_INJECT_RUN_AS_SAME_USER environment variable. (gid)
+	// RunAsSameUser is the AGENT_INJECT_RUN_AS_SAME_USER environment variable.
 	RunAsSameUser string `envconfig:"AGENT_INJECT_RUN_AS_SAME_USER"`
 }
 
