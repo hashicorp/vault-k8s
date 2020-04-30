@@ -40,7 +40,7 @@ type Command struct {
 	flagRevokeOnShutdown bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser        string // User (uid) to run Vault agent as
 	flagRunAsGroup       string // Group (gid) to run Vault agent as
-	flagRunAsSameUser    bool   // User (gid) to run Vault agent same as User (uid) application
+	flagRunAsSameUser    bool   // Run Vault agent as the User (uid) of the first application container
 
 	flagSet *flag.FlagSet
 
