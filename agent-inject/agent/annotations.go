@@ -268,9 +268,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		if cfg.GroupID == "" {
 			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
 		}
-		if cfg.SameID {
-			cfg.GroupID = strconv.Itoa(0)
-		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
 	}
 
