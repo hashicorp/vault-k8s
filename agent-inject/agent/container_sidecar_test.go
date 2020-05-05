@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -612,6 +613,93 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			if *container.SecurityContext.RunAsNonRoot != tt.expectedRunAsNonRoot {
 				t.Errorf("expected RunAsNonRoot mismatch: wanted %t, got %t", tt.expectedRunAsNonRoot, *container.SecurityContext.RunAsNonRoot)
 			}
+		})
+	}
+}
+
+func TestContainerSidecar_RunAsSameUser(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		runAsSameUser      bool
+		AppSCC             *corev1.SecurityContext
+		expectedSidecarSCC *corev1.SecurityContext
+		expectedErr        bool
+	}{
+		{
+			name:          "false with no app SCC",
+			runAsSameUser: false,
+			AppSCC:        nil,
+			expectedSidecarSCC: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+			expectedErr: false,
+		},
+		{
+			name:          "true with app SCC",
+			runAsSameUser: true,
+			AppSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSidecarSCC: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(123456),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+			expectedErr: false,
+		},
+		{
+			name:          "false with app SCC",
+			runAsSameUser: false,
+			AppSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSidecarSCC: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+			expectedErr: false,
+		},
+		{
+			name:          "true with no app SCC",
+			runAsSameUser: true,
+			AppSCC:        nil,
+			expectedSidecarSCC: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+			expectedErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			annotations := map[string]string{
+				AnnotationVaultRole: "foobar",
+			}
+			pod := testPod(annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			pod.Spec.Containers[0].SecurityContext = tt.AppSCC
+
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "100", "1000", tt.runAsSameUser})
+			require.Equal(t, err != nil, tt.expectedErr)
+			if err != nil {
+				return
+			}
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			require.NoError(t, agent.Validate())
+
+			container, err := agent.ContainerSidecar()
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectedSidecarSCC, container.SecurityContext)
 		})
 	}
 }

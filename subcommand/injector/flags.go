@@ -91,9 +91,10 @@ func (c *Command) init() {
 		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
 	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
 		fmt.Sprintf("Group (gid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsGroup))
-	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", true,
-		"Run Vault agent as the User (uid) of the first application container. "+
-		"Requires SecurityContext.RunAsUser to be set in application Pods.")
+	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", false,
+		"Run the injected Vault agent containers as the User (uid) of the first application container in the pod. "+
+			"Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the pod spec. "+
+			"Defaults to false.")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
