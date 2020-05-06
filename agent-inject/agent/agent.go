@@ -18,6 +18,10 @@ const (
 	DefaultVaultAuthPath   = "auth/kubernetes"
 	DefaultAgentRunAsUser  = 100
 	DefaultAgentRunAsGroup = 1000
+
+	DefaultAgentCacheEnable           = "false"
+	DefaultAgentCacheUseAutoAuthToken = "true"
+	DefaultAgentCacheListenerAddress  = "127.0.0.1:8200"
 )
 
 // Agent is the top level structure holding all the
@@ -99,6 +103,9 @@ type Agent struct {
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
 
+	// VaultAgentCache is the structure holding the Vault agent cache specific configurations
+	VaultAgentCache VaultAgentCache
+
 	// RunAsUser is the user ID to run the Vault agent container(s) as.
 	RunAsUser int64
 
@@ -173,6 +180,17 @@ type Vault struct {
 	// TLSServerName is the name of the Vault server to use when validating Vault's
 	// TLS certificates.
 	TLSServerName string
+}
+
+type VaultAgentCache struct {
+	// Enable configures whether the cache is enabled or not
+	Enable bool
+
+	// ListenerAddress is the address the cache should listen to
+	ListenerAddress string
+
+	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
+	UseAutoAuthToken string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -255,6 +273,17 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
 	if err != nil {
 		return agent, err
+	}
+
+	agentCacheEnable, err := agent.agentCacheEnable()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.VaultAgentCache = VaultAgentCache{
+		Enable:           agentCacheEnable,
+		ListenerAddress:  pod.Annotations[AnnotationAgentCacheListenerAddress],
+		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 	}
 
 	return agent, nil

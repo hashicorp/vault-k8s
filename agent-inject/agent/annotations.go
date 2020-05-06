@@ -156,6 +156,17 @@ const (
 	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
 	// by default the name is converted to lower case.
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
+
+	// AnnotationAgentCacheEnable if enabled will configure the sidecar container
+	// to enable agent caching
+	AnnotationAgentCacheEnable = "vault.hashicorp.com/agent-cache-enable"
+
+	// AnnotationAgentCacheUseAutoAuthToken configures the agent cache to use the
+	// auto auth token or not. Can be set to "force" to force usage of the auto-auth token
+	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auth-auth-token"
+
+	// AnnotationAgentCacheListenerAddress configures the address the agent cache should listen on
+	AnnotationAgentCacheListenerAddress = "vault.hashicorp.com/agent-cache-listener-address"
 )
 
 type AgentConfig struct {
@@ -255,6 +266,18 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable] = DefaultAgentCacheEnable
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerAddress]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerAddress] = DefaultAgentCacheListenerAddress
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
 	}
 
 	return nil
@@ -392,5 +415,14 @@ func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 			return false, nil
 		}
 	}
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) agentCacheEnable() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
+	if !ok {
+		return false, nil
+	}
+
 	return strconv.ParseBool(raw)
 }

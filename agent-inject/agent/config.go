@@ -22,6 +22,8 @@ type Config struct {
 	PidFile       string       `json:"pid_file"`
 	Vault         *VaultConfig `json:"vault"`
 	Templates     []*Template  `json:"template"`
+	Listener      []*Listener  `json:"listener,omitempty"`
+	Cache         *Cache       `json:"cache,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -71,6 +73,18 @@ type Template struct {
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
 	Command        string `json:"command,omitempty"`
+}
+
+// Listener defines the configuration for Vault Agent Cache Listener
+type Listener struct {
+	Type       string `json:"type"`
+	Address    string `json:"address"`
+	TLSDisable bool   `json:"tls_disable"`
+}
+
+// Cache defines the configuration for the Vault Agent Cache
+type Cache struct {
+	UseAuthAuthToken string `json:"use_auto_auth_token"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
@@ -125,6 +139,19 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+	}
+
+	if a.VaultAgentCache.Enable && !init {
+		config.Listener = []*Listener{
+			{
+				Type:       "tcp",
+				Address:    a.VaultAgentCache.ListenerAddress,
+				TLSDisable: true,
+			},
+		}
+		config.Cache = &Cache{
+			UseAuthAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+		}
 	}
 
 	return config.render()
