@@ -35,16 +35,17 @@ var (
 type Handler struct {
 	// RequireAnnotation means that the annotation must be given to inject.
 	// If this is false, injection is default.
-	RequireAnnotation bool
-	VaultAddress      string
-	VaultAuthPath     string
-	ImageVault        string
-	Clientset         *kubernetes.Clientset
-	Log               hclog.Logger
-	RevokeOnShutdown  bool
-	UserID            string
-	GroupID           string
-	SameID            bool
+	RequireAnnotation  bool
+	VaultAddress       string
+	VaultAuthPath      string
+	ImageVault         string
+	Clientset          *kubernetes.Clientset
+	Log                hclog.Logger
+	RevokeOnShutdown   bool
+	UserID             string
+	GroupID            string
+	SameID             bool
+	SetSecurityContext bool
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the

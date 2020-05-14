@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -69,17 +68,21 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 
 	lifecycle := a.createLifecycle()
 
-	return corev1.Container{
-		Name:            "vault-agent",
-		Image:           a.ImageName,
-		Env:             envs,
-		Resources:       resources,
-		SecurityContext: a.securityContext(),
-		VolumeMounts:    volumeMounts,
-		Lifecycle:       &lifecycle,
-		Command:         []string{"/bin/sh", "-ec"},
-		Args:            []string{arg},
-	}, nil
+	newContainer := corev1.Container{
+		Name:         "vault-agent",
+		Image:        a.ImageName,
+		Env:          envs,
+		Resources:    resources,
+		VolumeMounts: volumeMounts,
+		Lifecycle:    &lifecycle,
+		Command:      []string{"/bin/sh", "-ec"},
+		Args:         []string{arg},
+	}
+	if a.SetSecurityContext {
+		newContainer.SecurityContext = a.securityContext()
+	}
+
+	return newContainer, nil
 }
 
 // Valid resource notations: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu

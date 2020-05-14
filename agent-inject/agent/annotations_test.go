@@ -9,14 +9,16 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -48,7 +50,7 @@ func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "", "", false})
+	err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "", "", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -78,7 +80,7 @@ func TestInitError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	err := Init(pod, AgentConfig{"image", "", "authPath", "namespace", true, "1000", "100", false})
+	err := Init(pod, AgentConfig{"image", "", "authPath", "namespace", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err == nil {
 		t.Error("expected error no address, got none")
 	}
@@ -88,7 +90,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, AgentConfig{"image", "address", "", "namespace", true, "1000", "100", false})
+	err = Init(pod, AgentConfig{"image", "address", "", "namespace", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err == nil {
 		t.Error("expected error no authPath, got none")
 	}
@@ -98,7 +100,7 @@ func TestInitError(t *testing.T) {
 		t.Errorf("expected '%s' error, got %s", errMsg, err)
 	}
 
-	err = Init(pod, AgentConfig{"image", "address", "authPath", "", true, "1000", "100", false})
+	err = Init(pod, AgentConfig{"image", "address", "authPath", "", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err == nil {
 		t.Error("expected error for no namespace, got none")
 	}
@@ -134,7 +136,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -181,7 +183,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -257,7 +259,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -313,7 +315,7 @@ func TestTemplateShortcuts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+			err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -369,7 +371,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -466,6 +468,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRevokeGrace, "01", true},
 		{AnnotationAgentRevokeGrace, "-1", false},
 		{AnnotationAgentRevokeGrace, "foobar", false},
+
 		{AnnotationAgentRunAsUser, "0", true},
 		{AnnotationAgentRunAsUser, "100", true},
 		{AnnotationAgentRunAsUser, "root", false},
@@ -473,6 +476,11 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRunAsGroup, "0", true},
 		{AnnotationAgentRunAsGroup, "100", true},
 		{AnnotationAgentRunAsGroup, "root", false},
+
+		{AnnotationAgentSetSecurityContext, "true", true},
+		{AnnotationAgentSetSecurityContext, "false", true},
+		{AnnotationAgentSetSecurityContext, "secure", false},
+		{AnnotationAgentSetSecurityContext, "", false},
 	}
 
 	for i, tt := range tests {
@@ -480,7 +488,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		pod := testPod(annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -497,7 +505,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 func TestInitEmptyPod(t *testing.T) {
 	var pod *corev1.Pod
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err == nil {
 		t.Errorf("got no error, should have")
 	}
@@ -522,7 +530,7 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", false})
+		err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -535,5 +543,91 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 		if agent.Vault.Namespace != tt.expectedValue {
 			t.Errorf("expected %s, got %s", tt.expectedValue, agent.Vault.Namespace)
 		}
+	}
+}
+
+func Test_runAsSameID(t *testing.T) {
+
+	tests := []struct {
+		name           string
+		runAsSameUser  string
+		appSCC         *corev1.SecurityContext
+		expectedResult bool
+		expectedErr    bool
+		expectedUserID int64
+	}{
+		{
+			name:           "false with no app SCC",
+			runAsSameUser:  "false",
+			appSCC:         nil,
+			expectedResult: false,
+			expectedErr:    false,
+			expectedUserID: DefaultAgentRunAsUser,
+		},
+		{
+			name:          "true with app SCC",
+			runAsSameUser: "true",
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedResult: true,
+			expectedErr:    false,
+			expectedUserID: 123456,
+		},
+		{
+			name:          "false with app SCC",
+			runAsSameUser: "false",
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedResult: false,
+			expectedErr:    false,
+			expectedUserID: DefaultAgentRunAsUser,
+		},
+		{
+			name:           "true with no app SCC",
+			runAsSameUser:  "true",
+			appSCC:         nil,
+			expectedResult: false,
+			expectedErr:    true,
+			expectedUserID: DefaultAgentRunAsUser,
+		},
+		{
+			name:           "annotation not set",
+			runAsSameUser:  "",
+			appSCC:         nil,
+			expectedResult: false,
+			expectedErr:    false,
+			expectedUserID: DefaultAgentRunAsUser,
+		},
+		{
+			name:           "invalid annotation set",
+			runAsSameUser:  "rooooooot",
+			appSCC:         nil,
+			expectedResult: false,
+			expectedErr:    true,
+			expectedUserID: DefaultAgentRunAsUser,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			annotations := map[string]string{}
+			if len(tt.runAsSameUser) > 0 {
+				annotations[AnnotationAgentRunAsSameUser] = tt.runAsSameUser
+			}
+			pod := testPod(annotations)
+			pod.Spec.Containers[0].SecurityContext = tt.appSCC
+
+			agent := &Agent{
+				Annotations: annotations,
+				RunAsUser:   DefaultAgentRunAsUser,
+			}
+			result, err := agent.runAsSameID(pod)
+			require.Equal(t, tt.expectedResult, result)
+			require.Equal(t, tt.expectedErr, err != nil)
+			require.Equal(t, tt.expectedUserID, agent.RunAsUser)
+		})
 	}
 }

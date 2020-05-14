@@ -33,7 +33,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", false})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -84,7 +84,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100", false})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -185,7 +185,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100", false})
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -234,7 +234,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", false})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -529,67 +529,216 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 }
 
 func TestContainerSidecarSecurityContext(t *testing.T) {
+	type startupOptions struct {
+		runAsUser          int64
+		runAsGroup         int64
+		runAsSameUser      bool
+		setSecurityContext bool
+	}
 	tests := []struct {
-		name                 string
-		runAsUser            int
-		runAsGroup           int
-		expectedRunAsUser    int64
-		expectedRunAsGroup   int64
-		expectedRunAsNonRoot bool
+		name                    string
+		startup                 startupOptions
+		annotations             map[string]string
+		appSCC                  *corev1.SecurityContext
+		expectedSecurityContext *corev1.SecurityContext
 	}{
 		{
-			name:                 "Defaults",
-			runAsUser:            DefaultAgentRunAsUser,
-			runAsGroup:           DefaultAgentRunAsGroup,
-			expectedRunAsUser:    DefaultAgentRunAsUser,
-			expectedRunAsGroup:   DefaultAgentRunAsGroup,
-			expectedRunAsNonRoot: true,
+			name: "Runtime defaults, no annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{},
+			appSCC:      nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
 		},
 		{
-			name:                 "non-root user and non-root group",
-			runAsUser:            1001,
-			runAsGroup:           1001,
-			expectedRunAsUser:    1001,
-			expectedRunAsGroup:   1001,
-			expectedRunAsNonRoot: true,
+			name: "Runtime defaults, non-root user and group annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "1001",
+				AnnotationAgentRunAsGroup: "1001",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(1001),
+				RunAsGroup:   pointerutil.Int64Ptr(1001),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
 		},
 		{
-			name:                 "root user and group",
-			runAsUser:            0,
-			runAsGroup:           0,
-			expectedRunAsUser:    0,
-			expectedRunAsGroup:   0,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, root user and group annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(0),
+				RunAsGroup:   pointerutil.Int64Ptr(0),
+				RunAsNonRoot: pointerutil.BoolPtr(false),
+			},
 		},
 		{
-			name:                 "root user and non-root group",
-			runAsUser:            0,
-			runAsGroup:           100,
-			expectedRunAsUser:    0,
-			expectedRunAsGroup:   100,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, root user and non-root group annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(0),
+				RunAsGroup:   pointerutil.Int64Ptr(100),
+				RunAsNonRoot: pointerutil.BoolPtr(false),
+			},
 		},
 		{
-			name:                 "non-root user and root group",
-			runAsUser:            100,
-			runAsGroup:           0,
-			expectedRunAsUser:    100,
-			expectedRunAsGroup:   0,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, non-root user and root group annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "100",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(100),
+				RunAsGroup:   pointerutil.Int64Ptr(0),
+				RunAsNonRoot: pointerutil.BoolPtr(false),
+			},
+		},
+		{
+			name: "Runtime no security context, no annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: false,
+			},
+			annotations:             map[string]string{},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime no security context, but user annotation",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: false,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(100),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+		},
+		{
+			name: "Runtime defaults, but user annotation with no security context",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:          "100",
+				AnnotationAgentSetSecurityContext: "false",
+			},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime sameAsUser, no annotations",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      true,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(123456),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
+		},
+		{
+			name: "Runtime defaults, sameAsUser annotation",
+			startup: startupOptions{
+				runAsUser:          DefaultAgentRunAsUser,
+				runAsGroup:         DefaultAgentRunAsGroup,
+				runAsSameUser:      DefaultAgentRunAsSameUser,
+				setSecurityContext: DefaultAgentSetSecurityContext,
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsSameUser: "true",
+			},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:    pointerutil.Int64Ptr(123456),
+				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot: pointerutil.BoolPtr(true),
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			annotations := map[string]string{
-				AnnotationVaultRole:       "foobar",
-				AnnotationAgentRunAsUser:  strconv.Itoa(tt.runAsUser),
-				AnnotationAgentRunAsGroup: strconv.Itoa(tt.runAsGroup),
+			agentConfig := AgentConfig{
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             strconv.FormatInt(tt.startup.runAsUser, 10),
+				GroupID:            strconv.FormatInt(tt.startup.runAsGroup, 10),
+				SetSecurityContext: tt.startup.setSecurityContext,
+				SameID:             tt.startup.runAsSameUser,
 			}
-			pod := testPod(annotations)
+
+			tt.annotations[AnnotationVaultRole] = "foobar"
+			pod := testPod(tt.annotations)
+			pod.Spec.Containers[0].SecurityContext = tt.appSCC
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", false})
+			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -604,102 +753,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			if *container.SecurityContext.RunAsUser != tt.expectedRunAsUser {
-				t.Errorf("expected RunAsUser mismatch: wanted %d, got %d", tt.expectedRunAsUser, *container.SecurityContext.RunAsUser)
-			}
-			if *container.SecurityContext.RunAsGroup != tt.expectedRunAsGroup {
-				t.Errorf("expected RunAsGroup mismatch: wanted %d, got %d", tt.expectedRunAsGroup, *container.SecurityContext.RunAsGroup)
-			}
-			if *container.SecurityContext.RunAsNonRoot != tt.expectedRunAsNonRoot {
-				t.Errorf("expected RunAsNonRoot mismatch: wanted %t, got %t", tt.expectedRunAsNonRoot, *container.SecurityContext.RunAsNonRoot)
-			}
-		})
-	}
-}
-
-func TestContainerSidecar_RunAsSameUser(t *testing.T) {
-
-	tests := []struct {
-		name               string
-		runAsSameUser      bool
-		AppSCC             *corev1.SecurityContext
-		expectedSidecarSCC *corev1.SecurityContext
-		expectedErr        bool
-	}{
-		{
-			name:          "false with no app SCC",
-			runAsSameUser: false,
-			AppSCC:        nil,
-			expectedSidecarSCC: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
-			},
-			expectedErr: false,
-		},
-		{
-			name:          "true with app SCC",
-			runAsSameUser: true,
-			AppSCC: &corev1.SecurityContext{
-				RunAsUser: pointerutil.Int64Ptr(123456),
-			},
-			expectedSidecarSCC: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(123456),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
-			},
-			expectedErr: false,
-		},
-		{
-			name:          "false with app SCC",
-			runAsSameUser: false,
-			AppSCC: &corev1.SecurityContext{
-				RunAsUser: pointerutil.Int64Ptr(123456),
-			},
-			expectedSidecarSCC: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
-			},
-			expectedErr: false,
-		},
-		{
-			name:          "true with no app SCC",
-			runAsSameUser: true,
-			AppSCC:        nil,
-			expectedSidecarSCC: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
-			},
-			expectedErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			annotations := map[string]string{
-				AnnotationVaultRole: "foobar",
-			}
-			pod := testPod(annotations)
-			var patches []*jsonpatch.JsonPatchOperation
-
-			pod.Spec.Containers[0].SecurityContext = tt.AppSCC
-
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "100", "1000", tt.runAsSameUser})
-			require.Equal(t, err != nil, tt.expectedErr)
-			if err != nil {
-				return
-			}
-
-			agent, err := New(pod, patches)
-			require.NoError(t, err)
-			require.NoError(t, agent.Validate())
-
-			container, err := agent.ContainerSidecar()
-			require.NoError(t, err)
-
-			require.Equal(t, tt.expectedSidecarSCC, container.SecurityContext)
+			require.Equal(t, tt.expectedSecurityContext, container.SecurityContext)
 		})
 	}
 }

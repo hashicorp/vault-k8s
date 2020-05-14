@@ -55,14 +55,18 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
-	return corev1.Container{
-		Name:            "vault-agent-init",
-		Image:           a.ImageName,
-		Env:             envs,
-		Resources:       resources,
-		SecurityContext: a.securityContext(),
-		VolumeMounts:    volumeMounts,
-		Command:         []string{"/bin/sh", "-ec"},
-		Args:            []string{arg},
-	}, nil
+	newContainer := corev1.Container{
+		Name:         "vault-agent-init",
+		Image:        a.ImageName,
+		Env:          envs,
+		Resources:    resources,
+		VolumeMounts: volumeMounts,
+		Command:      []string{"/bin/sh", "-ec"},
+		Args:         []string{arg},
+	}
+	if a.SetSecurityContext {
+		newContainer.SecurityContext = a.securityContext()
+	}
+
+	return newContainer, nil
 }

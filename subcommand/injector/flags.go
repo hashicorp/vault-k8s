@@ -62,6 +62,9 @@ type Specification struct {
 
 	// RunAsSameUser is the AGENT_INJECT_RUN_AS_SAME_USER environment variable.
 	RunAsSameUser string `envconfig:"AGENT_INJECT_RUN_AS_SAME_USER"`
+
+	// SetSecurityContext is the AGENT_INJECT_SET_SECURITY_CONTEXT environment variable.
+	SetSecurityContext string `envconfig:"AGENT_INJECT_SET_SECURITY_CONTEXT"`
 }
 
 func (c *Command) init() {
@@ -91,10 +94,13 @@ func (c *Command) init() {
 		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
 	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
 		fmt.Sprintf("Group (gid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsGroup))
-	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", false,
+	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", agent.DefaultAgentRunAsSameUser,
 		"Run the injected Vault agent containers as the User (uid) of the first application container in the pod. "+
 			"Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the pod spec. "+
 			"Defaults to false.")
+	c.flagSet.BoolVar(&c.flagSetSecurityContext, "set-security-context", agent.DefaultAgentSetSecurityContext,
+		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext),
+	)
 
 	c.help = flags.Usage(help, c.flagSet)
 }
