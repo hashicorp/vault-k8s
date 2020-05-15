@@ -141,14 +141,15 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
 	cfg := agent.AgentConfig{
-		Image:            h.ImageVault,
-		Address:          h.VaultAddress,
-		AuthPath:         h.VaultAuthPath,
-		Namespace:        req.Namespace,
-		RevokeOnShutdown: h.RevokeOnShutdown,
-		UserID:           h.UserID,
-		GroupID:          h.GroupID,
-		SameID:           h.SameID,
+		Image:              h.ImageVault,
+		Address:            h.VaultAddress,
+		AuthPath:           h.VaultAuthPath,
+		Namespace:          req.Namespace,
+		RevokeOnShutdown:   h.RevokeOnShutdown,
+		UserID:             h.UserID,
+		GroupID:            h.GroupID,
+		SameID:             h.SameID,
+		SetSecurityContext: h.SetSecurityContext,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

@@ -196,5 +196,12 @@ func (c *Command) parseEnvs() error {
 		}
 	}
 
+	if envs.SetSecurityContext != "" {
+		c.flagSetSecurityContext, err = strconv.ParseBool(envs.SetSecurityContext)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
