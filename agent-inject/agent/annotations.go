@@ -448,6 +448,9 @@ func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
 		if pod.Spec.Containers[0].SecurityContext.RunAsUser == nil {
 			return DefaultAgentRunAsSameUser, errors.New("RunAsUser is nil for Container 0's SecurityContext")
 		}
+		if *pod.Spec.Containers[0].SecurityContext.RunAsUser == 0 {
+			return DefaultAgentRunAsSameUser, errors.New("container not allowed to run as root")
+		}
 		a.RunAsUser = *pod.Spec.Containers[0].SecurityContext.RunAsUser
 	}
 	return runAsSameID, nil
