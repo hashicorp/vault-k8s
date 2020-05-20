@@ -14,14 +14,14 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage      = "vault:1.3.2"
+	DefaultVaultImage      = "vault:1.4.1"
 	DefaultVaultAuthPath   = "auth/kubernetes"
 	DefaultAgentRunAsUser  = 100
 	DefaultAgentRunAsGroup = 1000
 
 	DefaultAgentCacheEnable           = "false"
 	DefaultAgentCacheUseAutoAuthToken = "true"
-	DefaultAgentCacheListenerAddress  = "127.0.0.1:8200"
+	DefaultAgentCacheListenerPort     = "8200"
 )
 
 // Agent is the top level structure holding all the
@@ -186,8 +186,8 @@ type VaultAgentCache struct {
 	// Enable configures whether the cache is enabled or not
 	Enable bool
 
-	// ListenerAddress is the address the cache should listen to
-	ListenerAddress string
+	// ListenerPort is the port the cache should listen to
+	ListenerPort string
 
 	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
 	UseAutoAuthToken string
@@ -282,7 +282,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 
 	agent.VaultAgentCache = VaultAgentCache{
 		Enable:           agentCacheEnable,
-		ListenerAddress:  pod.Annotations[AnnotationAgentCacheListenerAddress],
+		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 	}
 

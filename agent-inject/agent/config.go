@@ -145,7 +145,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		config.Listener = []*Listener{
 			{
 				Type:       "tcp",
-				Address:    a.VaultAgentCache.ListenerAddress,
+				Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
 				TLSDisable: true,
 			},
 		}

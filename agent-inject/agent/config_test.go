@@ -173,7 +173,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	annotations := map[string]string{
 		AnnotationAgentCacheEnable:           "true",
 		AnnotationAgentCacheUseAutoAuthToken: "force",
-		AnnotationAgentCacheListenerAddress:  "127.0.0.1:8100",
+		AnnotationAgentCacheListenerPort:     "8100",
 	}
 
 	pod := testPod(annotations)
@@ -212,7 +212,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	}
 
 	if config.Listener[0].Address != "127.0.0.1:8100" {
-		t.Errorf("agent Cache listener address should be127.0.0.1:8100, got %s", config.Listener[0].Address)
+		t.Errorf("agent Cache listener address should be 127.0.0.1:8100, got %s", config.Listener[0].Address)
 	}
 
 	if !config.Listener[0].TLSDisable {

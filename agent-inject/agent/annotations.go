@@ -165,8 +165,8 @@ const (
 	// auto auth token or not. Can be set to "force" to force usage of the auto-auth token
 	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auth-auth-token"
 
-	// AnnotationAgentCacheListenerAddress configures the address the agent cache should listen on
-	AnnotationAgentCacheListenerAddress = "vault.hashicorp.com/agent-cache-listener-address"
+	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
+	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
 )
 
 type AgentConfig struct {
@@ -272,8 +272,8 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable] = DefaultAgentCacheEnable
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerAddress]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerAddress] = DefaultAgentCacheListenerAddress
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort] = DefaultAgentCacheListenerPort
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
