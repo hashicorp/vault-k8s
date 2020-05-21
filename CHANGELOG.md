@@ -2,6 +2,7 @@
 
 Features:
 * Added annotations/envs to change the UID and GID of the Vault Agent process: [GH-60](https://github.com/hashicorp/vault-k8s/pull/60)
+* Added command line options, annotations, and envs for run-as-same-user and set-security-context [GH-131](https://github.com/hashicorp/vault-k8s/pull/131)
 
 Improvements:
 
