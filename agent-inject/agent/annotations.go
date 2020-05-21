@@ -101,6 +101,16 @@ const (
 	// AnnotationAgentRunAsGroup sets the Group ID to run the Vault Agent containers as.
 	AnnotationAgentRunAsGroup = "vault.hashicorp.com/agent-run-as-group"
 
+	// AnnotationAgentRunAsSameUser sets the User ID of the injected Vault Agent
+	// containers to the User ID of the first application container in the Pod.
+	// Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the
+	// Pod Spec.
+	AnnotationAgentRunAsSameUser = "vault.hashicorp.com/agent-run-as-same-user"
+
+	// AnnotationAgentSetSecurityContext controls whether a SecurityContext (uid
+	// and gid) is set on the injected Vault Agent containers
+	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -159,19 +169,26 @@ const (
 )
 
 type AgentConfig struct {
-	Image            string
-	Address          string
-	AuthPath         string
-	Namespace        string
-	RevokeOnShutdown bool
-	UserID           string
-	GroupID          string
+	Image              string
+	Address            string
+	AuthPath           string
+	Namespace          string
+	RevokeOnShutdown   bool
+	UserID             string
+	GroupID            string
+	SameID             bool
+	SetSecurityContext bool
 }
 
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
 func Init(pod *corev1.Pod, cfg AgentConfig) error {
+	var securityContextIsSet bool
+	var runAsUserIsSet bool
+	var runAsSameUserIsSet bool
+	var runAsGroupIsSet bool
+
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
@@ -243,18 +260,35 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !ok {
+	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(cfg.SetSecurityContext)
+	}
+
+	if _, runAsUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !runAsUserIsSet {
+
 		if cfg.UserID == "" {
 			cfg.UserID = strconv.Itoa(DefaultAgentRunAsUser)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = cfg.UserID
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !ok {
+	if _, runAsSameUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser]; !runAsSameUserIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser] = strconv.FormatBool(cfg.SameID)
+	}
+
+	if _, runAsGroupIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !runAsGroupIsSet {
 		if cfg.GroupID == "" {
 			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
+	}
+
+	// If the SetSecurityContext startup option is false, and the analogous
+	// annotation isn't set, but one of the user or group annotations is set,
+	// flip SetSecurityContext to true so that the user and group options are
+	// set in the containers.
+	if !cfg.SetSecurityContext && !securityContextIsSet && (runAsUserIsSet || runAsSameUserIsSet || runAsGroupIsSet) {
+		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(true)
 	}
 
 	return nil
@@ -392,5 +426,41 @@ func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 			return false, nil
 		}
 	}
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentRunAsSameUser]
+	if !ok {
+		return DefaultAgentRunAsSameUser, nil
+	}
+	runAsSameID, err := strconv.ParseBool(raw)
+	if err != nil {
+		return DefaultAgentRunAsSameUser, err
+	}
+	if runAsSameID {
+		if len(pod.Spec.Containers) == 0 {
+			return DefaultAgentRunAsSameUser, errors.New("No containers found in Pod Spec")
+		}
+		if pod.Spec.Containers[0].SecurityContext == nil {
+			return DefaultAgentRunAsSameUser, errors.New("No SecurityContext found for Container 0")
+		}
+		if pod.Spec.Containers[0].SecurityContext.RunAsUser == nil {
+			return DefaultAgentRunAsSameUser, errors.New("RunAsUser is nil for Container 0's SecurityContext")
+		}
+		if *pod.Spec.Containers[0].SecurityContext.RunAsUser == 0 {
+			return DefaultAgentRunAsSameUser, errors.New("container not allowed to run as root")
+		}
+		a.RunAsUser = *pod.Spec.Containers[0].SecurityContext.RunAsUser
+	}
+	return runAsSameID, nil
+}
+
+func (a *Agent) setSecurityContext() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentSetSecurityContext]
+	if !ok {
+		return DefaultAgentSetSecurityContext, nil
+	}
+
 	return strconv.ParseBool(raw)
 }
