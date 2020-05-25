@@ -40,7 +40,11 @@ func TestNewConfig(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100"})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}
@@ -144,7 +148,11 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100"})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}
@@ -179,7 +187,11 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:8200", "test", "test", true, "1000", "100"})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}

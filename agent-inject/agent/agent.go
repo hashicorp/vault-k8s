@@ -14,10 +14,12 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage      = "vault:1.4.1"
-	DefaultVaultAuthPath   = "auth/kubernetes"
-	DefaultAgentRunAsUser  = 100
-	DefaultAgentRunAsGroup = 1000
+	DefaultVaultImage              = "vault:1.4.1"
+	DefaultVaultAuthPath           = "auth/kubernetes"
+	DefaultAgentRunAsUser          = 100
+	DefaultAgentRunAsGroup         = 1000
+	DefaultAgentRunAsSameUser      = false
+	DefaultAgentSetSecurityContext = true
 
 	DefaultAgentCacheEnable           = "false"
 	DefaultAgentCacheUseAutoAuthToken = "true"
@@ -111,6 +113,14 @@ type Agent struct {
 
 	// RunAsGroup is the group ID to run the Vault agent container(s) as.
 	RunAsGroup int64
+
+	// RunAsSameID sets the user ID of the Vault agent container(s) to be the
+	// same as the first application container
+	RunAsSameID bool
+
+	// SetSecurityContext controls whether the injected containers have a
+	// SecurityContext set.
+	SetSecurityContext bool
 }
 
 type Secret struct {
@@ -271,6 +281,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RunAsSameID, err = agent.runAsSameID(pod)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.SetSecurityContext, err = agent.setSecurityContext()
 	if err != nil {
 		return agent, err
 	}
