@@ -20,6 +20,7 @@ const (
 	DefaultAgentRunAsGroup         = 1000
 	DefaultAgentRunAsSameUser      = false
 	DefaultAgentSetSecurityContext = true
+	DefaultAgentReadOnlyRoot       = true
 )
 
 // Agent is the top level structure holding all the
