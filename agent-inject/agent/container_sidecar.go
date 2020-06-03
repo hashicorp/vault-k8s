@@ -156,9 +156,9 @@ func (a *Agent) securityContext() *corev1.SecurityContext {
 		runAsNonRoot = false
 	}
 	return &corev1.SecurityContext{
-		RunAsUser:    pointerutil.Int64Ptr(a.RunAsUser),
-		RunAsGroup:   pointerutil.Int64Ptr(a.RunAsGroup),
-		RunAsNonRoot: pointerutil.BoolPtr(runAsNonRoot),
+		RunAsUser:              pointerutil.Int64Ptr(a.RunAsUser),
+		RunAsGroup:             pointerutil.Int64Ptr(a.RunAsGroup),
+		RunAsNonRoot:           pointerutil.BoolPtr(runAsNonRoot),
 		ReadOnlyRootFilesystem: pointerutil.BoolPtr(true),
 	}
 }
