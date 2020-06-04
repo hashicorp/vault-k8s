@@ -517,6 +517,18 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentSetSecurityContext, "false", true},
 		{AnnotationAgentSetSecurityContext, "secure", false},
 		{AnnotationAgentSetSecurityContext, "", false},
+
+		{AnnotationAgentCacheEnable, "true", true},
+		{AnnotationAgentCacheEnable, "false", true},
+		{AnnotationAgentCacheEnable, "TRUE", true},
+		{AnnotationAgentCacheEnable, "FALSE", true},
+		{AnnotationAgentCacheEnable, "0", true},
+		{AnnotationAgentCacheEnable, "1", true},
+		{AnnotationAgentCacheEnable, "t", true},
+		{AnnotationAgentCacheEnable, "f", true},
+		{AnnotationAgentCacheEnable, "tRuE", false},
+		{AnnotationAgentCacheEnable, "fAlSe", false},
+		{AnnotationAgentCacheEnable, "", false},
 	}
 
 	for i, tt := range tests {

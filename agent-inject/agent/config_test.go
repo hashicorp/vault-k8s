@@ -33,12 +33,27 @@ func TestNewConfig(t *testing.T) {
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
+
+		AnnotationAgentCacheEnable: "true",
 	}
 
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error initialising pod, shouldn't have: %s", err)
+	}
+
 	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("got error creating agent, shouldn't have: %s", err)
+	}
+
 	cfg, err := agent.newConfig(true)
 	if err != nil {
 		t.Errorf("got error creating Vault config, shouldn't have: %s", err)
@@ -89,6 +104,10 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("auto_auth mount path: expected path to be %s, got %s", annotations[AnnotationVaultAuthPath], config.AutoAuth.Method.MountPath)
 	}
 
+	if len(config.Listener) != 0 || config.Cache != nil {
+		t.Error("agent Cache should be disabled for init containers")
+	}
+
 	if len(config.Templates) != 3 {
 		t.Errorf("expected 3 template, got %d", len(config.Templates))
 	}
@@ -120,5 +139,95 @@ func TestNewConfig(t *testing.T) {
 		} else {
 			t.Error("shouldn't have got here")
 		}
+	}
+}
+
+func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
+	annotations := map[string]string{}
+
+	pod := testPod(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error initialising pod, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("got error creating agent, shouldn't have: %s", err)
+	}
+
+	cfg, err := agent.newConfig(false)
+	if err != nil {
+		t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+	}
+
+	config := &Config{}
+	if err := json.Unmarshal(cfg, config); err != nil {
+		t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+	}
+
+	if len(config.Listener) != 0 || config.Cache != nil {
+		t.Error("agent Cache should be not be enabled by default")
+	}
+}
+
+func TestConfigVaultAgentCache(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationAgentCacheEnable:           "true",
+		AnnotationAgentCacheUseAutoAuthToken: "force",
+		AnnotationAgentCacheListenerPort:     "8100",
+	}
+
+	pod := testPod(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+	}
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error initialising pod, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("got error creating agent, shouldn't have: %s", err)
+	}
+
+	cfg, err := agent.newConfig(false)
+	if err != nil {
+		t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+	}
+
+	config := &Config{}
+	if err := json.Unmarshal(cfg, config); err != nil {
+		t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+	}
+
+	if len(config.Listener) == 0 || config.Cache == nil {
+		t.Error("agent Cache should be enabled")
+	}
+
+	if config.Cache.UseAuthAuthToken != "force" {
+		t.Errorf("agent Cache use_auto_auth_token should be 'force', got %s instead", config.Cache.UseAuthAuthToken)
+	}
+
+	if config.Listener[0].Type != "tcp" {
+		t.Errorf("agent Cache listener type should be tcp, got %s instead", config.Listener[0].Type)
+	}
+
+	if config.Listener[0].Address != "127.0.0.1:8100" {
+		t.Errorf("agent Cache listener address should be 127.0.0.1:8100, got %s", config.Listener[0].Address)
+	}
+
+	if !config.Listener[0].TLSDisable {
+		t.Error("agent Cache listener TLS should be disabled")
 	}
 }

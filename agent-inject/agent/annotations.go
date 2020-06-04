@@ -166,6 +166,17 @@ const (
 	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
 	// by default the name is converted to lower case.
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
+
+	// AnnotationAgentCacheEnable if enabled will configure the sidecar container
+	// to enable agent caching
+	AnnotationAgentCacheEnable = "vault.hashicorp.com/agent-cache-enable"
+
+	// AnnotationAgentCacheUseAutoAuthToken configures the agent cache to use the
+	// auto auth token or not. Can be set to "force" to force usage of the auto-auth token
+	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auth-auth-token"
+
+	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
+	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
 )
 
 type AgentConfig struct {
@@ -289,6 +300,18 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	// set in the containers.
 	if !cfg.SetSecurityContext && !securityContextIsSet && (runAsUserIsSet || runAsSameUserIsSet || runAsGroupIsSet) {
 		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(true)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable] = DefaultAgentCacheEnable
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort] = DefaultAgentCacheListenerPort
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
 	}
 
 	return nil
@@ -460,6 +483,15 @@ func (a *Agent) setSecurityContext() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentSetSecurityContext]
 	if !ok {
 		return DefaultAgentSetSecurityContext, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) agentCacheEnable() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
+	if !ok {
+		return false, nil
 	}
 
 	return strconv.ParseBool(raw)
