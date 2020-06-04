@@ -15,7 +15,7 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 )
@@ -151,12 +151,14 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 
 func (a *Agent) securityContext() *corev1.SecurityContext {
 	runAsNonRoot := true
+
 	if a.RunAsUser == 0 || a.RunAsGroup == 0 {
 		runAsNonRoot = false
 	}
 	return &corev1.SecurityContext{
-		RunAsUser:    pointerutil.Int64Ptr(a.RunAsUser),
-		RunAsGroup:   pointerutil.Int64Ptr(a.RunAsGroup),
-		RunAsNonRoot: pointerutil.BoolPtr(runAsNonRoot),
+		RunAsUser:              pointerutil.Int64Ptr(a.RunAsUser),
+		RunAsGroup:             pointerutil.Int64Ptr(a.RunAsGroup),
+		RunAsNonRoot:           pointerutil.BoolPtr(runAsNonRoot),
+		ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 	}
 }

@@ -533,6 +533,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 		runAsUser          int64
 		runAsGroup         int64
 		runAsSameUser      bool
+		readOnlyRoot       bool
 		setSecurityContext bool
 	}
 	tests := []struct {
@@ -549,13 +550,15 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{},
 			appSCC:      nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(DefaultAgentRunAsUser),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
+				RunAsUser:              pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -565,6 +568,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "1001",
@@ -572,9 +576,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			},
 			appSCC: nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(1001),
-				RunAsGroup:   pointerutil.Int64Ptr(1001),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
+				RunAsUser:              pointerutil.Int64Ptr(1001),
+				RunAsGroup:             pointerutil.Int64Ptr(1001),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -584,6 +589,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "0",
@@ -591,9 +597,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			},
 			appSCC: nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(0),
-				RunAsGroup:   pointerutil.Int64Ptr(0),
-				RunAsNonRoot: pointerutil.BoolPtr(false),
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -603,6 +610,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "0",
@@ -610,9 +618,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			},
 			appSCC: nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(0),
-				RunAsGroup:   pointerutil.Int64Ptr(100),
-				RunAsNonRoot: pointerutil.BoolPtr(false),
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(100),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -622,6 +631,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "100",
@@ -629,9 +639,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			},
 			appSCC: nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(100),
-				RunAsGroup:   pointerutil.Int64Ptr(0),
-				RunAsNonRoot: pointerutil.BoolPtr(false),
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -641,6 +652,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: false,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations:             map[string]string{},
 			appSCC:                  nil,
@@ -653,15 +665,17 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: false,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser: "100",
 			},
 			appSCC: nil,
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(100),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -671,6 +685,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:          "100",
@@ -686,15 +701,17 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      true,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{},
 			appSCC: &corev1.SecurityContext{
 				RunAsUser: pointerutil.Int64Ptr(123456),
 			},
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(123456),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 		{
@@ -704,6 +721,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:         DefaultAgentRunAsGroup,
 				runAsSameUser:      DefaultAgentRunAsSameUser,
 				setSecurityContext: DefaultAgentSetSecurityContext,
+				readOnlyRoot:       DefaultAgentReadOnlyRoot,
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsSameUser: "true",
@@ -712,9 +730,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsUser: pointerutil.Int64Ptr(123456),
 			},
 			expectedSecurityContext: &corev1.SecurityContext{
-				RunAsUser:    pointerutil.Int64Ptr(123456),
-				RunAsGroup:   pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
-				RunAsNonRoot: pointerutil.BoolPtr(true),
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
 			},
 		},
 	}
