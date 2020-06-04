@@ -3,6 +3,9 @@
 Features:
 * Added annotations to configure agent caching/listener: [GH-132](https://github.com/hashicorp/vault-k8s/pull/132)
 
+Improvements:
+* Injected agents are now configured with `readOnlyRootFilesystem: true`: [GH-142](https://github.com/hashicorp/vault-k8s/pull/142)
+
 ## 0.4.0 (June 2, 2020)
 
 Features:
