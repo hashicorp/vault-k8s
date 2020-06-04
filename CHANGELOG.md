@@ -1,3 +1,8 @@
+## Unreleased
+
+Features:
+* Added annotations to configure agent caching/listener: [GH-132](https://github.com/hashicorp/vault-k8s/pull/132)
+
 ## 0.4.0 (June 2, 2020)
 
 Features:
