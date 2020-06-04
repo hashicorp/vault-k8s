@@ -14,13 +14,13 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage              = "vault:1.4.2"
-	DefaultVaultAuthPath           = "auth/kubernetes"
-	DefaultAgentRunAsUser          = 100
-	DefaultAgentRunAsGroup         = 1000
-	DefaultAgentRunAsSameUser      = false
-	DefaultAgentSetSecurityContext = true
-	DefaultAgentReadOnlyRoot       = true
+	DefaultVaultImage                 = "vault:1.4.2"
+	DefaultVaultAuthPath              = "auth/kubernetes"
+	DefaultAgentRunAsUser             = 100
+	DefaultAgentRunAsGroup            = 1000
+	DefaultAgentRunAsSameUser         = false
+	DefaultAgentSetSecurityContext    = true
+	DefaultAgentReadOnlyRoot          = true
 	DefaultAgentCacheEnable           = "false"
 	DefaultAgentCacheUseAutoAuthToken = "true"
 	DefaultAgentCacheListenerPort     = "8200"
