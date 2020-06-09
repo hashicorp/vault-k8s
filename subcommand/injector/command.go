@@ -19,6 +19,7 @@ import (
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/mitchellh/cli"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -131,6 +132,8 @@ func (c *Command) Run(args []string) int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
+	mux.Handle("/metrics", promhttp.Handler())
+
 	var handler http.Handler = mux
 	server := &http.Server{
 		Addr:      c.flagListen,

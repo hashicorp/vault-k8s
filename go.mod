@@ -21,6 +21,7 @@ require (
 	github.com/mitchellh/cli v1.0.0
 	github.com/pkg/errors v0.8.1
 	github.com/posener/complete v1.2.1 // indirect
+	github.com/prometheus/client_golang v0.9.2
 	github.com/radovskyb/watcher v1.0.7
 	github.com/stretchr/testify v1.3.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
