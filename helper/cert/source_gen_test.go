@@ -58,7 +58,7 @@ func TestGenSource_expiry(t *testing.T) {
 	// Generate again
 	start := time.Now()
 	next, err := source.Certificate(context.Background(), &bundle)
-	dur := time.Now().Sub(start)
+	dur := time.Since(start)
 	require.NoError(t, err)
 	require.False(t, bundle.Equal(&next))
 	require.True(t, dur > time.Second)

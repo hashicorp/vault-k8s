@@ -39,11 +39,17 @@ func TestContainerSidecarVolume(t *testing.T) {
 	}
 
 	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("agent instance creation failed, it shouldn't have: %s", err)
+	}
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
 
 	container, err := agent.ContainerSidecar()
+	if err != nil {
+		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
+	}
 
 	// One token volume mount, one config volume mount and two secrets volume mounts
 	require.Equal(t, 4, len(container.VolumeMounts))
@@ -51,22 +57,22 @@ func TestContainerSidecarVolume(t *testing.T) {
 	require.Equal(
 		t,
 		[]corev1.VolumeMount{
-			corev1.VolumeMount{
+			{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      tokenVolumeName,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      secretVolumeName,
 				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
@@ -90,6 +96,9 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("agent instance creation failed, it shouldn't have: %s", err)
+	}
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -191,6 +200,9 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			}
 
 			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("agent instance creation failed, it shouldn't have: %s", err)
+			}
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -240,6 +252,9 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	}
 
 	agent, err := New(pod, patches)
+	if err != nil {
+		t.Errorf("agent instance creation failed, it shouldn't have: %s", err)
+	}
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -763,6 +778,9 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			}
 
 			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("agent instance creation failed, it shouldn't have: %s", err)
+			}
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}

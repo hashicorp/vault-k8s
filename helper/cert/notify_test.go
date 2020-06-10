@@ -81,7 +81,7 @@ func TestNotifyRace(t *testing.T) {
 			for bundle := range certCh {
 				// we're just reading all the certs off the channel here
 				// so we won't block.
-				fmt.Sprintf("%+v", bundle)
+				_ = fmt.Sprintf("%+v", bundle)
 			}
 		}()
 	}

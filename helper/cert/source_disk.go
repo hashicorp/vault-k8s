@@ -40,7 +40,7 @@ func (s *DiskSource) Certificate(ctx context.Context, last *Bundle) (Bundle, err
 	if err := w.Add(s.KeyPath); err != nil {
 		return Bundle{}, err
 	}
-	go w.Start(pollInterval)
+	go w.Start(pollInterval) //nolint:errcheck
 
 	c := make(chan struct{})
 	go func() {
