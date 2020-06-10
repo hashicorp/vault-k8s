@@ -11,9 +11,17 @@ jobs:
         command: |
           echo 'export GO111MODULE=on' >> $BASH_ENV
     - run:
+        name: "Run Setup"
+        command: |
+          make setup
+    - run:
         name: "Run Tests"
         command: |
           make test
+    - run:
+        name: "Run Linter"
+        command: |
+          make lint
     - run:
         name: "Run Test Build"
         command: |

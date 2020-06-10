@@ -12,6 +12,11 @@ BIN_NAME=$(IMAGE_NAME)_$(GOOS)_$(GOARCH)_$(VERSION)
 .PHONY: all test build image clean 
 all: build
 
+# Install all the build and lint dependencies
+setup:
+	go mod download
+.PHONY: setup
+
 build:
 	GO111MODULE=on CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
 
@@ -28,6 +33,10 @@ prod-image:
 
 clean:
 	-rm -rf $(BUILD_DIR)
+
+lint:
+	golangci-lint run ./...
+.PHONY: lint
 
 test: unit-test
 
