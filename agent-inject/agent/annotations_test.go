@@ -433,6 +433,64 @@ func TestSecretCommandAnnotations(t *testing.T) {
 	}
 }
 
+func TestSecretPermissionAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations        map[string]string
+		expectedKey        string
+		expectedPermission string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":     "test1",
+				"vault.hashicorp.com/agent-inject-permission-foobar": "0400",
+			}, "foobar", "0400",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":      "test2",
+				"vault.hashicorp.com/agent-inject-permission-foobar2": "0400",
+			}, "foobar", "",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test3",
+				"vault.hashicorp.com/agent-inject-perm-foobar2":  "0400",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		agentConfig := AgentConfig{
+			"", "http://foobar:8200", "test", "test", true, "100", "1000",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		}
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Permission != tt.expectedPermission {
+			t.Errorf("expected permission %s, got %s", tt.expectedPermission, agent.Secrets[0].Permission)
+		}
+	}
+}
+
 func TestCouldErrorAnnotations(t *testing.T) {
 	tests := []struct {
 		key   string

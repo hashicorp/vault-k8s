@@ -11,28 +11,28 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	annotations := map[string]string{
-		AnnotationAgentImage:                            "vault",
-		AnnotationVaultService:                          "https://vault:8200",
-		AnnotationAgentStatus:                           "",
-		AnnotationAgentRequestNamespace:                 "foobar",
-		AnnotationVaultRole:                             "foobar",
-		AnnotationAgentPrePopulate:                      "true",
-		AnnotationAgentPrePopulateOnly:                  "true",
-		AnnotationVaultTLSServerName:                    "foobar.server",
-		AnnotationVaultCACert:                           "ca-cert",
-		AnnotationVaultCAKey:                            "ca-key",
-		AnnotationVaultClientCert:                       "client-cert",
-		AnnotationVaultClientKey:                        "client-key",
-		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
-		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
-		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
-		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
+		AnnotationAgentImage:                              "vault",
+		AnnotationVaultService:                            "https://vault:8200",
+		AnnotationAgentStatus:                             "",
+		AnnotationAgentRequestNamespace:                   "foobar",
+		AnnotationVaultRole:                               "foobar",
+		AnnotationAgentPrePopulate:                        "true",
+		AnnotationAgentPrePopulateOnly:                    "true",
+		AnnotationVaultTLSServerName:                      "foobar.server",
+		AnnotationVaultCACert:                             "ca-cert",
+		AnnotationVaultCAKey:                              "ca-key",
+		AnnotationVaultClientCert:                         "client-cert",
+		AnnotationVaultClientKey:                          "client-key",
+		AnnotationVaultSecretVolumePath:                   "/vault/secrets",
+		"vault.hashicorp.com/agent-inject-secret-foo":     "db/creds/foo",
+		"vault.hashicorp.com/agent-inject-template-foo":   "template foo",
+		"vault.hashicorp.com/agent-inject-secret-bar":     "db/creds/bar",
+		"vault.hashicorp.com/agent-inject-permission-bar": "0400",
+		"vault.hashicorp.com/agent-inject-command-bar":    "pkill -HUP app",
 
 		// render this secret at a different path
 		"vault.hashicorp.com/agent-inject-secret-different-path":                "different-path",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
-
-		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
 		AnnotationAgentCacheEnable: "true",
 	}
@@ -131,6 +131,9 @@ func TestNewConfig(t *testing.T) {
 			}
 			if !strings.Contains(template.Command, "pkill -HUP app") {
 				t.Errorf("expected command contents to contain %s, got %s", "pkill -HUP app", template.Command)
+			}
+			if !strings.Contains(template.Perms, "0400") {
+				t.Errorf("expected perms to contain %s, got %s", "0400", template.Perms)
 			}
 		} else if strings.Contains(template.Destination, "different-path") {
 			if template.Destination != "/etc/container_environment/different-path" {

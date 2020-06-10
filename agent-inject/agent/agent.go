@@ -136,6 +136,9 @@ type Secret struct {
 	// Mount Path
 	MountPath string
 
+	// Permission is the optional permission to render the secret
+	Permission string
+
 	// Command is the optional command to run after rendering the secret.
 	Command string
 }

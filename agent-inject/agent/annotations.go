@@ -35,6 +35,14 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectPermission is the key annotation that configures Vault
+	// Agent what permission to render the secret.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-permission-",
+	// such as "vault.hashicorp.com/agent-inject-permission-foobar".  This should map
+	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// If not provided, a default permission is used.
+	AnnotationAgentInjectPermission = "vault.hashicorp.com/agent-inject-permission"
+
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
@@ -352,6 +360,13 @@ func (a *Agent) secrets() []*Secret {
 				template = val
 			}
 
+			var permission string
+			permissionName := fmt.Sprintf("%s-%s", AnnotationAgentInjectPermission, raw)
+
+			if val, ok := a.Annotations[permissionName]; ok {
+				permission = val
+			}
+
 			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
 			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
 
@@ -366,7 +381,7 @@ func (a *Agent) secrets() []*Secret {
 				command = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command, MountPath: mountPath})
+			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Permission: permission, Command: command, MountPath: mountPath})
 		}
 	}
 	return secrets
