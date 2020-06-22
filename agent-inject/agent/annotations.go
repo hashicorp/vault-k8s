@@ -173,7 +173,7 @@ const (
 
 	// AnnotationAgentCacheUseAutoAuthToken configures the agent cache to use the
 	// auto auth token or not. Can be set to "force" to force usage of the auto-auth token
-	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auth-auth-token"
+	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auto-auth-token"
 
 	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
 	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
