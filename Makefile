@@ -8,6 +8,7 @@ BUILD_DIR=.build
 GOOS?=linux
 GOARCH?=amd64
 BIN_NAME=$(IMAGE_NAME)_$(GOOS)_$(GOARCH)_$(VERSION)
+GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 
 .PHONY: all test build image clean 
 all: build
@@ -37,3 +38,6 @@ unit-test:
 .PHONY: mod
 mod:
 	@go mod tidy
+
+fmt:
+	gofmt -w $(GOFMT_FILES)
