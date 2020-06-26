@@ -530,11 +530,13 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 
 func TestContainerSidecarSecurityContext(t *testing.T) {
 	type startupOptions struct {
-		runAsUser          int64
-		runAsGroup         int64
-		runAsSameUser      bool
-		readOnlyRoot       bool
-		setSecurityContext bool
+		runAsUser                int64
+		runAsGroup               int64
+		runAsSameUser            bool
+		readOnlyRoot             bool
+		setSecurityContext       bool
+		allowPrivilegeEscalation bool
+		capabilities             []string
 	}
 	tests := []struct {
 		name                    string
@@ -546,11 +548,13 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 		{
 			name: "Runtime defaults, no annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{},
 			appSCC:      nil,
@@ -559,16 +563,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
 				RunAsNonRoot:           pointerutil.BoolPtr(true),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, non-root user and group annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "1001",
@@ -580,16 +590,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(1001),
 				RunAsNonRoot:           pointerutil.BoolPtr(true),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, root user and group annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "0",
@@ -601,16 +617,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(0),
 				RunAsNonRoot:           pointerutil.BoolPtr(false),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, root user and non-root group annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "0",
@@ -622,16 +644,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(100),
 				RunAsNonRoot:           pointerutil.BoolPtr(false),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, non-root user and root group annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:  "100",
@@ -643,16 +671,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(0),
 				RunAsNonRoot:           pointerutil.BoolPtr(false),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime no security context, no annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: false,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations:             map[string]string{},
 			appSCC:                  nil,
@@ -661,11 +695,13 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 		{
 			name: "Runtime no security context, but user annotation",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: false,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser: "100",
@@ -676,16 +712,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
 				RunAsNonRoot:           pointerutil.BoolPtr(true),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, but user annotation with no security context",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsUser:          "100",
@@ -697,11 +739,13 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 		{
 			name: "Runtime sameAsUser, no annotations",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      true,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            true,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{},
 			appSCC: &corev1.SecurityContext{
@@ -712,16 +756,22 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
 				RunAsNonRoot:           pointerutil.BoolPtr(true),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 		{
 			name: "Runtime defaults, sameAsUser annotation",
 			startup: startupOptions{
-				runAsUser:          DefaultAgentRunAsUser,
-				runAsGroup:         DefaultAgentRunAsGroup,
-				runAsSameUser:      DefaultAgentRunAsSameUser,
-				setSecurityContext: DefaultAgentSetSecurityContext,
-				readOnlyRoot:       DefaultAgentReadOnlyRoot,
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
 			},
 			annotations: map[string]string{
 				AnnotationAgentRunAsSameUser: "true",
@@ -734,6 +784,10 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
 				RunAsNonRoot:           pointerutil.BoolPtr(true),
 				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
 	}
