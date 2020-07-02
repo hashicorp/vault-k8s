@@ -22,6 +22,7 @@ const (
 	DefaultAgentAllowPrivilegeEscalation = false
 	DefaultAgentDropCapabilities         = "ALL"
 	DefaultAgentSetSecurityContext       = true
+	DefaultAgentCopySecurityContext      = false
 	DefaultAgentReadOnlyRoot             = true
 	DefaultAgentCacheEnable              = "false"
 	DefaultAgentCacheUseAutoAuthToken    = "true"
@@ -123,6 +124,10 @@ type Agent struct {
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
 	SetSecurityContext bool
+
+	// CopySecurityContext controls whether the injected containers have a
+	// SecurityContext set.
+	CopySecurityContext bool
 }
 
 type Secret struct {
@@ -288,6 +293,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.RunAsSameID, err = agent.runAsSameID(pod)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.CopySecurityContext, err = agent.copySecurityContext()
 	if err != nil {
 		return agent, err
 	}

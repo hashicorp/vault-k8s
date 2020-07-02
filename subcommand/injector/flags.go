@@ -65,6 +65,9 @@ type Specification struct {
 
 	// SetSecurityContext is the AGENT_INJECT_SET_SECURITY_CONTEXT environment variable.
 	SetSecurityContext string `envconfig:"AGENT_INJECT_SET_SECURITY_CONTEXT"`
+
+	// CopySecurityContext is the AGENT_INJECT_COPY_SECURITY_CONTEXT environment variable.
+	CopySecurityContext string `envconfig:"AGENT_INJECT_COPY_SECURITY_CONTEXT"`
 }
 
 func (c *Command) init() {
@@ -100,6 +103,9 @@ func (c *Command) init() {
 			"Defaults to false.")
 	c.flagSet.BoolVar(&c.flagSetSecurityContext, "set-security-context", agent.DefaultAgentSetSecurityContext,
 		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext),
+	)
+	c.flagSet.BoolVar(&c.flagCopySecurityContext, "copy-security-context", agent.DefaultAgentCopySecurityContext,
+		fmt.Sprintf("Copy the SecurityContext of the first container in the Pod. Defaults to %v.", agent.DefaultAgentCopySecurityContext),
 	)
 
 	c.help = flags.Usage(help, c.flagSet)
@@ -198,6 +204,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.SetSecurityContext != "" {
 		c.flagSetSecurityContext, err = strconv.ParseBool(envs.SetSecurityContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.CopySecurityContext != "" {
+		c.flagCopySecurityContext, err = strconv.ParseBool(envs.CopySecurityContext)
 		if err != nil {
 			return err
 		}

@@ -111,6 +111,10 @@ const (
 	// and gid) is set on the injected Vault Agent containers
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
 
+	// AnnotationAgentCopySecurityContext copies the entire SecurityContext of the first
+	// application. Requires Spec.Containers[0].SecurityContext to be set in the Pod Spec.
+	AnnotationAgentCopySecurityContext = "vault.hashicorp.com/agent-copy-security-context"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -180,15 +184,16 @@ const (
 )
 
 type AgentConfig struct {
-	Image              string
-	Address            string
-	AuthPath           string
-	Namespace          string
-	RevokeOnShutdown   bool
-	UserID             string
-	GroupID            string
-	SameID             bool
-	SetSecurityContext bool
+	Image               string
+	Address             string
+	AuthPath            string
+	Namespace           string
+	RevokeOnShutdown    bool
+	UserID              string
+	GroupID             string
+	SameID              bool
+	SetSecurityContext  bool
+	CopySecurityContext bool
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -273,6 +278,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
 		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(cfg.SetSecurityContext)
+	}
+
+	if _, copySecurityContextIsSet := pod.ObjectMeta.Annotations[AnnotationAgentCopySecurityContext]; !copySecurityContextIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentCopySecurityContext] = strconv.FormatBool(cfg.CopySecurityContext)
 	}
 
 	if _, runAsUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !runAsUserIsSet {
@@ -483,6 +492,15 @@ func (a *Agent) setSecurityContext() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentSetSecurityContext]
 	if !ok {
 		return DefaultAgentSetSecurityContext, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) copySecurityContext() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCopySecurityContext]
+	if !ok {
+		return DefaultAgentCopySecurityContext, nil
 	}
 
 	return strconv.ParseBool(raw)

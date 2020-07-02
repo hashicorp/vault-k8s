@@ -150,6 +150,10 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 }
 
 func (a *Agent) securityContext() *corev1.SecurityContext {
+	if a.CopySecurityContext {
+		return a.Pod.Spec.Containers[0].SecurityContext
+	}
+	
 	runAsNonRoot := true
 
 	if a.RunAsUser == 0 || a.RunAsGroup == 0 {

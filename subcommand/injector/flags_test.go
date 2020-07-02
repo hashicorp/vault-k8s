@@ -156,6 +156,8 @@ func TestCommandEnvBools(t *testing.T) {
 		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: false, cmdPtr: &cmd.flagRunAsSameUser},
 		{env: "AGENT_INJECT_SET_SECURITY_CONTEXT", value: true, cmdPtr: &cmd.flagSetSecurityContext},
 		{env: "AGENT_INJECT_SET_SECURITY_CONTEXT", value: false, cmdPtr: &cmd.flagSetSecurityContext},
+		{env: "AGENT_INJECT_COPY_SECURITY_CONTEXT", value: true, cmdPtr: &cmd.flagCopySecurityContext},
+		{env: "AGENT_INJECT_COPY_SECURITY_CONTEXT", value: false, cmdPtr: &cmd.flagCopySecurityContext},
 	}
 
 	for _, tt := range tests {

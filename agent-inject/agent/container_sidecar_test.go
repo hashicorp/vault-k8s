@@ -33,7 +33,16 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{
+		"foobar-image",
+		"http://foobar:1234",
+		"test", "test",
+		true, "1000",
+		"100",
+		DefaultAgentRunAsSameUser,
+		DefaultAgentSetSecurityContext,
+		DefaultAgentCopySecurityContext,
+	})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -84,7 +93,18 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{
+		"foobar-image",
+		"http://foobar:1234",
+		"test",
+		"test",
+		false,
+		"1000",
+		"100",
+		DefaultAgentRunAsSameUser,
+		DefaultAgentSetSecurityContext,
+		DefaultAgentCopySecurityContext,
+	})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -185,7 +205,17 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+			err := Init(pod, AgentConfig{
+				"foobar-image",
+				"http://foobar:1234",
+				"test", "test",
+				tt.revokeFlag,
+				"1000",
+				"100",
+				DefaultAgentRunAsSameUser,
+				DefaultAgentSetSecurityContext,
+				DefaultAgentCopySecurityContext,
+			})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -234,7 +264,18 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{
+		"foobar-image",
+		"http://foobar:1234",
+		"test",
+		"test",
+		true,
+		"1000",
+		"100",
+		DefaultAgentRunAsSameUser,
+		DefaultAgentSetSecurityContext,
+		DefaultAgentCopySecurityContext,
+	})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -535,6 +576,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 		runAsSameUser            bool
 		readOnlyRoot             bool
 		setSecurityContext       bool
+		copySecurityContext      bool
 		allowPrivilegeEscalation bool
 		capabilities             []string
 	}
@@ -552,6 +594,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -576,6 +619,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -603,6 +647,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -630,6 +675,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -657,6 +703,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -684,6 +731,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       false,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -699,6 +747,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       false,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -725,6 +774,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -743,6 +793,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            true,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -769,6 +820,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				runAsGroup:               DefaultAgentRunAsGroup,
 				runAsSameUser:            DefaultAgentRunAsSameUser,
 				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
 				readOnlyRoot:             DefaultAgentReadOnlyRoot,
 				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
 				capabilities:             []string{DefaultAgentDropCapabilities},
@@ -790,20 +842,85 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 			},
 		},
+		{
+			name: "Runtime copySecurityContext, default annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentCopySecurityContext: "true",
+			},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(true),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(true),
+			},
+		},
+		{
+			name: "Runtime copySecurityContext, default annotation - empty security context",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      DefaultAgentCopySecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentCopySecurityContext: "true",
+			},
+			appSCC: nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime defaults, copy-security-context annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				copySecurityContext:      true,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(true),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(true),
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			agentConfig := AgentConfig{
-				Image:              "foobar-image",
-				Address:            "http://foobar:1234",
-				AuthPath:           "test",
-				Namespace:          "test",
-				RevokeOnShutdown:   true,
-				UserID:             strconv.FormatInt(tt.startup.runAsUser, 10),
-				GroupID:            strconv.FormatInt(tt.startup.runAsGroup, 10),
-				SetSecurityContext: tt.startup.setSecurityContext,
-				SameID:             tt.startup.runAsSameUser,
+				Image:               "foobar-image",
+				Address:             "http://foobar:1234",
+				AuthPath:            "test",
+				Namespace:           "test",
+				RevokeOnShutdown:    true,
+				UserID:              strconv.FormatInt(tt.startup.runAsUser, 10),
+				GroupID:             strconv.FormatInt(tt.startup.runAsGroup, 10),
+				SetSecurityContext:  tt.startup.setSecurityContext,
+				CopySecurityContext: tt.startup.copySecurityContext,
+				SameID:              tt.startup.runAsSameUser,
 			}
 
 			tt.annotations[AnnotationVaultRole] = "foobar"
