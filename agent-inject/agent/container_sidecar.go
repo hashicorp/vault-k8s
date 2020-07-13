@@ -160,5 +160,9 @@ func (a *Agent) securityContext() *corev1.SecurityContext {
 		RunAsGroup:             pointerutil.Int64Ptr(a.RunAsGroup),
 		RunAsNonRoot:           pointerutil.BoolPtr(runAsNonRoot),
 		ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+		},
+		AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 	}
 }

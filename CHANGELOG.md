@@ -5,6 +5,7 @@ Features:
 
 Improvements:
 * Injected agents are now configured with `readOnlyRootFilesystem: true`: [GH-142](https://github.com/hashicorp/vault-k8s/pull/142)
+* Added additional security contexts for better integration with restrictive PSPs: [GH-153](https://github.com/hashicorp/vault-k8s/pull/153)
 
 ## 0.4.0 (June 2, 2020)
 
