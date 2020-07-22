@@ -2,7 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"github.com/hashicorp/vault/sdk/helper/pointerutil"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -14,8 +14,8 @@ import (
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      secretVolumeName,
-			MountPath: secretVolumePath,
+			Name:      tokenVolumeName,
+			MountPath: tokenVolumePath,
 			ReadOnly:  false,
 		},
 		{
@@ -24,6 +24,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			ReadOnly:  true,
 		},
 	}
+	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
 	arg := DefaultContainerArg
 
@@ -54,18 +55,18 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		return corev1.Container{}, err
 	}
 
-	return corev1.Container{
-		Name:      "vault-agent-init",
-		Image:     a.ImageName,
-		Env:       envs,
-		Resources: resources,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsUser:    pointerutil.Int64Ptr(100),
-			RunAsGroup:   pointerutil.Int64Ptr(1000),
-			RunAsNonRoot: pointerutil.BoolPtr(true),
-		},
+	newContainer := corev1.Container{
+		Name:         "vault-agent-init",
+		Image:        a.ImageName,
+		Env:          envs,
+		Resources:    resources,
 		VolumeMounts: volumeMounts,
 		Command:      []string{"/bin/sh", "-ec"},
 		Args:         []string{arg},
-	}, nil
+	}
+	if a.SetSecurityContext {
+		newContainer.SecurityContext = a.securityContext()
+	}
+
+	return newContainer, nil
 }

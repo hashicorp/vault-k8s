@@ -14,3 +14,6 @@
 /bin/*
 /.idea/*
 /.build/*
+
+# Output directory for binaries built in CircleCI
+/pkg

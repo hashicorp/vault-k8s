@@ -18,6 +18,17 @@ import (
 
 func TestHandlerHandle(t *testing.T) {
 	basicSpec := corev1.PodSpec{
+		InitContainers: []corev1.Container{
+			{
+				Name: "web-init",
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      "foobar",
+						MountPath: "serviceaccount/somewhere",
+					},
+				},
+			},
+		},
 		Containers: []corev1.Container{
 			{
 				Name: "web",
@@ -129,11 +140,76 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
+				},
+			},
+		},
+
+		{
+			"init first ",
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			v1beta1.AdmissionRequest{
+				Namespace: "test",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject:    "true",
+							agent.AnnotationVaultRole:      "demo",
+							agent.AnnotationAgentInitFirst: "true",
+						},
+					},
+					Spec: basicSpec,
+				}),
+			},
+			"",
+			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/0/volumeMounts/-",
+				},
+				{
+					Operation: "remove",
 					Path:      "/spec/initContainers",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/1/volumeMounts/-",
 				},
 				{
 					Operation: "add",
@@ -173,11 +249,19 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
-					Path:      "/spec/initContainers",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
@@ -222,11 +306,19 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
-					Path:      "/spec/initContainers",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
@@ -267,11 +359,19 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
-					Path:      "/spec/initContainers",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
@@ -303,6 +403,10 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"",
 			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",
@@ -355,11 +459,19 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",
-					Path:      "/spec/initContainers",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
 				},
 				{
 					Operation: "add",

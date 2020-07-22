@@ -13,7 +13,7 @@ const (
 	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.vault-token"
-	DefaultFilePath = "/vault/secrets"
+	// DefaultFilePath = "/vault/secrets"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -24,6 +24,8 @@ type Config struct {
 	PidFile       string       `json:"pid_file"`
 	Vault         *VaultConfig `json:"vault"`
 	Templates     []*Template  `json:"template"`
+	Listener      []*Listener  `json:"listener,omitempty"`
+	Cache         *Cache       `json:"cache,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -75,6 +77,18 @@ type Template struct {
 	Command        string `json:"command,omitempty"`
 }
 
+// Listener defines the configuration for Vault Agent Cache Listener
+type Listener struct {
+	Type       string `json:"type"`
+	Address    string `json:"address"`
+	TLSDisable bool   `json:"tls_disable"`
+}
+
+// Cache defines the configuration for the Vault Agent Cache
+type Cache struct {
+	UseAuthAuthToken string `json:"use_auto_auth_token"`
+}
+
 func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
@@ -85,9 +99,9 @@ func (a *Agent) newTemplateConfigs() []*Template {
 
 		filePathAndName := secret.FilePathAndName
 		if filePathAndName == "" {
-			filePathAndName = fmt.Sprintf("%s/%s", DefaultFilePath, secret.Name)
+			filePathAndName = fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
 		} else if !filepath.IsAbs(filePathAndName) {
-			filePathAndName = filepath.Join(DefaultFilePath, filePathAndName)
+			filePathAndName = filepath.Join(secret.MountPath, filePathAndName)
 		}
 
 		tmpl := &Template{
@@ -134,6 +148,19 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+	}
+
+	if a.VaultAgentCache.Enable && !init {
+		config.Listener = []*Listener{
+			{
+				Type:       "tcp",
+				Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
+				TLSDisable: true,
+			},
+		}
+		config.Cache = &Cache{
+			UseAuthAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+		}
 	}
 
 	return config.render()

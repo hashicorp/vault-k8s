@@ -14,8 +14,18 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage    = "vault:1.3.1"
-	DefaultVaultAuthPath = "auth/kubernetes"
+	DefaultVaultImage                    = "vault:1.4.2"
+	DefaultVaultAuthPath                 = "auth/kubernetes"
+	DefaultAgentRunAsUser                = 100
+	DefaultAgentRunAsGroup               = 1000
+	DefaultAgentRunAsSameUser            = false
+	DefaultAgentAllowPrivilegeEscalation = false
+	DefaultAgentDropCapabilities         = "ALL"
+	DefaultAgentSetSecurityContext       = true
+	DefaultAgentReadOnlyRoot             = true
+	DefaultAgentCacheEnable              = "false"
+	DefaultAgentCacheUseAutoAuthToken    = "true"
+	DefaultAgentCacheListenerPort        = "8200"
 )
 
 // Agent is the top level structure holding all the
@@ -32,6 +42,9 @@ type Agent struct {
 	// Inject is the flag used to determine if a container should be requested
 	// in a pod request.
 	Inject bool
+
+	// InitFirst controls whether an init container is first to run.
+	InitFirst bool
 
 	// LimitsCPU is the upper CPU limit the sidecar container is allowed to consume.
 	LimitsCPU string
@@ -93,6 +106,23 @@ type Agent struct {
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
+
+	// VaultAgentCache is the structure holding the Vault agent cache specific configurations
+	VaultAgentCache VaultAgentCache
+
+	// RunAsUser is the user ID to run the Vault agent container(s) as.
+	RunAsUser int64
+
+	// RunAsGroup is the group ID to run the Vault agent container(s) as.
+	RunAsGroup int64
+
+	// RunAsSameID sets the user ID of the Vault agent container(s) to be the
+	// same as the first application container
+	RunAsSameID bool
+
+	// SetSecurityContext controls whether the injected containers have a
+	// SecurityContext set.
+	SetSecurityContext bool
 }
 
 type Secret struct {
@@ -106,6 +136,9 @@ type Secret struct {
 
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
+
+	// Mount Path
+	MountPath string
 
 	// Command is the optional command to run after rendering the secret.
 	Command string
@@ -166,6 +199,17 @@ type Vault struct {
 	TLSServerName string
 }
 
+type VaultAgentCache struct {
+	// Enable configures whether the cache is enabled or not
+	Enable bool
+
+	// ListenerPort is the port the cache should listen to
+	ListenerPort string
+
+	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
+	UseAutoAuthToken string
+}
+
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
@@ -181,7 +225,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Pod:                pod,
 		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		Secrets:            secrets(pod.Annotations),
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
@@ -203,7 +246,13 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	var err error
+	agent.Secrets = agent.secrets()
 	agent.Inject, err = agent.inject()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.InitFirst, err = agent.initFirst()
 	if err != nil {
 		return agent, err
 	}
@@ -231,6 +280,37 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent.Vault.TLSSkipVerify, err = agent.tlsSkipVerify()
 	if err != nil {
 		return agent, err
+	}
+
+	agent.RunAsUser, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsUser], 10, 64)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.RunAsSameID, err = agent.runAsSameID(pod)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.SetSecurityContext, err = agent.setSecurityContext()
+	if err != nil {
+		return agent, err
+	}
+
+	agentCacheEnable, err := agent.agentCacheEnable()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.VaultAgentCache = VaultAgentCache{
+		Enable:           agentCacheEnable,
+		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
+		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 	}
 
 	return agent, nil
@@ -274,11 +354,17 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 func (a *Agent) Patch() ([]byte, error) {
 	var patches []byte
 
+	// Add a volume for the token sink
+	a.Patches = append(a.Patches, addVolumes(
+		a.Pod.Spec.Volumes,
+		[]corev1.Volume{a.ContainerTokenVolume()},
+		"/spec/volumes")...)
+
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
 	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
-		[]corev1.Volume{a.ContainerVolume()},
+		a.ContainerVolumes(),
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
@@ -301,7 +387,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	for i, container := range a.Pod.Spec.Containers {
 		a.Patches = append(a.Patches, addVolumeMounts(
 			container.VolumeMounts,
-			[]corev1.VolumeMount{a.ContainerVolumeMount()},
+			a.ContainerVolumeMounts(),
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 	}
 
@@ -311,10 +397,44 @@ func (a *Agent) Patch() ([]byte, error) {
 		if err != nil {
 			return patches, err
 		}
-		a.Patches = append(a.Patches, addContainers(
-			a.Pod.Spec.InitContainers,
-			[]corev1.Container{container},
-			"/spec/initContainers")...)
+
+		containers := a.Pod.Spec.InitContainers
+
+		// Init Containers run sequentially in Kubernetes and sometimes the order in
+		// which they run matters.  This reorders the init containers to put the agent first.
+		// For example, if an init container needed Vault secrets to work, the agent would need
+		// to run first.
+		if a.InitFirst {
+
+			// Remove all init containers from the document so we can re-add them after the agent.
+			if len(a.Pod.Spec.InitContainers) != 0 {
+				a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+			}
+
+			containers = []corev1.Container{container}
+			containers = append(containers, a.Pod.Spec.InitContainers...)
+
+			a.Patches = append(a.Patches, addContainers(
+				[]corev1.Container{},
+				containers,
+				"/spec/initContainers")...)
+		} else {
+			a.Patches = append(a.Patches, addContainers(
+				a.Pod.Spec.InitContainers,
+				[]corev1.Container{container},
+				"/spec/initContainers")...)
+		}
+
+		//Add Volume Mounts
+		for i, container := range containers {
+			if container.Name == "vault-agent-init" {
+				continue
+			}
+			a.Patches = append(a.Patches, addVolumeMounts(
+				container.VolumeMounts,
+				a.ContainerVolumeMounts(),
+				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
+		}
 	}
 
 	// Sidecar Container

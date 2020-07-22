@@ -2,10 +2,79 @@ package agent
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
+
+func TestContainerSidecarVolume(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationVaultRole: "foobar",
+		// this will have different mount path
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret1"):     "secrets/secret1",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret1"): "/etc/container_environment",
+
+		// this secret will have same mount path as default mount path
+		// adding this so we can make sure we don't have duplicate
+		// volume mounts
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret2"):     "secret/secret2",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret2"): "/etc/default_path",
+
+		// Default path for all secrets
+		AnnotationVaultSecretVolumePath: "/etc/default_path",
+
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret3"): "secret/secret3",
+	}
+
+	pod := testPod(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, patches)
+	if err := agent.Validate(); err != nil {
+		t.Errorf("agent validation failed, it shouldn't have: %s", err)
+	}
+
+	container, err := agent.ContainerSidecar()
+
+	// One token volume mount, one config volume mount and two secrets volume mounts
+	require.Equal(t, 4, len(container.VolumeMounts))
+
+	require.Equal(
+		t,
+		[]corev1.VolumeMount{
+			corev1.VolumeMount{
+				Name:      agent.ServiceAccountName,
+				MountPath: agent.ServiceAccountPath,
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
+				MountPath: "/etc/container_environment",
+				ReadOnly:  false,
+			},
+		},
+		container.VolumeMounts,
+	)
+}
 
 func TestContainerSidecar(t *testing.T) {
 	annotations := map[string]string{
@@ -15,7 +84,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", false)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -74,6 +143,12 @@ func TestContainerSidecar(t *testing.T) {
 	if container.Resources.Requests.Memory().String() != DefaultResourceRequestMem {
 		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Requests.Memory().String())
 	}
+
+	for _, volumeMount := range container.VolumeMounts {
+		if volumeMount.Name == secretVolumeName && volumeMount.MountPath != annotations[AnnotationVaultSecretVolumePath] {
+			t.Errorf("secrets volume path is wrong, should have been %s, got %s", volumeMount.MountPath, annotations[AnnotationVaultSecretVolumePath])
+		}
+	}
 }
 
 func TestContainerSidecarRevokeHook(t *testing.T) {
@@ -110,7 +185,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag)
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -150,6 +225,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		AnnotationVaultCAKey:                            "ca-key",
 		AnnotationVaultClientCert:                       "client-cert",
 		AnnotationVaultClientKey:                        "client-key",
+		AnnotationVaultSecretVolumePath:                 "/foo/bar",
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
@@ -158,7 +234,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, "foobar-image", "http://foobar:1234", "test", "test", true)
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -181,10 +257,6 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	arg := fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 	if container.Args[0] != arg {
 		t.Errorf("arg value wrong, should have been %s, got %s", arg, container.Args[0])
-	}
-
-	if len(container.VolumeMounts) != 3 {
-		t.Errorf("volume mounts wrong, should have been %d, got %d", 3, len(container.VolumeMounts))
 	}
 }
 
@@ -452,6 +524,309 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 					t.Errorf("%s expected mem request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitMem, resources.Requests.Memory().String())
 				}
 			}
+		})
+	}
+}
+
+func TestContainerSidecarSecurityContext(t *testing.T) {
+	type startupOptions struct {
+		runAsUser                int64
+		runAsGroup               int64
+		runAsSameUser            bool
+		readOnlyRoot             bool
+		setSecurityContext       bool
+		allowPrivilegeEscalation bool
+		capabilities             []string
+	}
+	tests := []struct {
+		name                    string
+		startup                 startupOptions
+		annotations             map[string]string
+		appSCC                  *corev1.SecurityContext
+		expectedSecurityContext *corev1.SecurityContext
+	}{
+		{
+			name: "Runtime defaults, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{},
+			appSCC:      nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, non-root user and group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "1001",
+				AnnotationAgentRunAsGroup: "1001",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(1001),
+				RunAsGroup:             pointerutil.Int64Ptr(1001),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, root user and group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, root user and non-root group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(100),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, non-root user and root group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "100",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime no security context, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations:             map[string]string{},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime no security context, but user annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, but user annotation with no security context",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:          "100",
+				AnnotationAgentSetSecurityContext: "false",
+			},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime sameAsUser, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            true,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, sameAsUser annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsSameUser: "true",
+			},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			agentConfig := AgentConfig{
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             strconv.FormatInt(tt.startup.runAsUser, 10),
+				GroupID:            strconv.FormatInt(tt.startup.runAsGroup, 10),
+				SetSecurityContext: tt.startup.setSecurityContext,
+				SameID:             tt.startup.runAsSameUser,
+			}
+
+			tt.annotations[AnnotationVaultRole] = "foobar"
+			pod := testPod(tt.annotations)
+			pod.Spec.Containers[0].SecurityContext = tt.appSCC
+			var patches []*jsonpatch.JsonPatchOperation
+
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			if err := agent.Validate(); err != nil {
+				t.Errorf("agent validation failed, it shouldn't have: %s", err)
+			}
+
+			container, err := agent.ContainerSidecar()
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			require.Equal(t, tt.expectedSecurityContext, container.SecurityContext)
 		})
 	}
 }

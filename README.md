@@ -32,3 +32,5 @@ without forcing Vault users to do a full Vault upgrade.
     an existing Kubernetes cluster.
 
   * A Docker image [`hashicorp/vault-k8s`](https://hub.docker.com/r/hashicorp/vault-k8s) is available. This can be used to manually run `vault-k8s` within a scheduled environment.
+
+  * Raw binaries are available in the [HashiCorp releases directory](https://releases.hashicorp.com/vault-k8s/). These can be used to run vault-k8s directly or build custom packages.
