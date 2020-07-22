@@ -112,3 +112,58 @@ func TestNewConfig(t *testing.T) {
 		}
 	}
 }
+
+func TestFilePathAndName(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		destination string
+	}{
+		{
+			"just secret",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+			},
+			DefaultFilePath + "/foo",
+		},
+		{
+			"with relative file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+			},
+			DefaultFilePath + "/nested/foofile",
+		},
+		{
+			"with absolute file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+			},
+			"/special/volume/foofile",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agent, err := New(pod, patches)
+			cfg, err := agent.newConfig(true)
+			if err != nil {
+				t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+			}
+
+			config := &Config{}
+			if err := json.Unmarshal(cfg, config); err != nil {
+				t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+			}
+
+			if config.Templates[0].Destination != tt.destination {
+				t.Errorf("wrong destination: %s != %s", config.Templates[0].Destination, tt.destination)
+			}
+		})
+	}
+}

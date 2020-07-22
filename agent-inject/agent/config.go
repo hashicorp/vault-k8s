@@ -3,8 +3,8 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
-	"strings"
 )
 
 const (
@@ -13,6 +13,7 @@ const (
 	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.vault-token"
+	DefaultFilePath = "/vault/secrets"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -82,16 +83,16 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
-		destination := fmt.Sprintf("/vault/secrets/%s", secret.Name)
-
-		if strings.HasPrefix(secret.Name, "/") {
-			// it is only possible to use an absolute directory location with AnnotationAgentInjectLocation
-			destination = secret.Name
+		filePathAndName := secret.FilePathAndName
+		if filePathAndName == "" {
+			filePathAndName = fmt.Sprintf("%s/%s", DefaultFilePath, secret.Name)
+		} else if !filepath.IsAbs(filePathAndName) {
+			filePathAndName = filepath.Join(DefaultFilePath, filePathAndName)
 		}
 
 		tmpl := &Template{
 			Contents:    template,
-			Destination: destination,
+			Destination: filePathAndName,
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,

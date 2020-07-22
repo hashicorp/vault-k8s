@@ -20,41 +20,28 @@ const (
 	// be set to a true or false value, as parseable by strconv.ParseBool
 	AnnotationAgentInject = "vault.hashicorp.com/agent-inject"
 
-	// (Deprecated) AnnotationAgentInjectSecret is the key annotation that configures Vault
+	// AnnotationAgentInjectSecret is the key annotation that configures Vault
 	// Agent to retrieve the secrets from Vault required by the app.  The name
 	// of the secret is any unique string after "vault.hashicorp.com/agent-inject-secret-",
 	// such as "vault.hashicorp.com/agent-inject-secret-foobar".  The value is the
 	// path in Vault where the secret is located.
-	// Deprecated because an annotation is max 63 chars in kubernetes and also does not
-	// support directory separators "/"
-	// Any attempt to create a longer name or "/" with this annotation will result in the
-	// secret not being pulled, effectively skipping this annotation
-	// This annotation will always store the file in /vaults/secrets/
-	// This annotation force lowercase the selected name eg vault.hashicorp.com/agent-inject-secret-FOOBAR
-	// will realize the secret file in /vaults/secrets/foobar
 	AnnotationAgentInjectSecret = "vault.hashicorp.com/agent-inject-secret"
 
-	// AnnotationAgentInjectLocation is the annotation that contains the valid vault path to query the
-	// secret from. Anything after the final "-" is used as a unique id to match annotation rules together
-	// use in combination with AnnotationAgentInjectFilename
-	// eg. vault.hashicorp.com/agent-inject-location-foobar: "vault/secret/place"
-	//     vault.hashicorp.com/agent-inject-filename-foobar: "directory/containing/the_secret_filename.txt"
-	AnnotationAgentInjectLocation = "vault.hashicorp.com/agent-inject-location"
-
-	// AnnotationAgentInjectFilename is the annotation that contains the filename to create on disk
-	// Anything after the final "-" is used as a unique id to match annotation rules together
-	// use in combination with AnnotationAgentInjectLocation
-	// If you specify a filename with an absolute location like "/tmp/oreo/my_secret.pem"
-	// it will get created there, if not it defaults to using a root directory of "/vault/secrets/""
-	// eg. vault.hashicorp.com/agent-inject-location-foobar: "vault/secret/place"
-	//     vault.hashicorp.com/agent-inject-filename-foobar: "directory/containing/the_secret_filename.txt"
-	AnnotationAgentInjectFilename = "vault.hashicorp.com/agent-inject-filename"
+	// AnnotationAgentInjectFile is the key of the annotation that contains the
+	// name (and optional path) of the file to create on disk. The name of the
+	// secret is the string after "vault.hashicorp.com/agent-inject-file-", and
+	// should map to the same unique value provided in
+	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
+	// path where the vault secret will be written. The path may either be an
+	// absolute location like "/tmp/oreo/my_secret.pem", or a relative path that
+	// will be created under the "/vault/secrets/" directory.
+	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-",
 	// such as "vault.hashicorp.com/agent-inject-template-foobar".  This should map
-	// to the same unique value provided in "vault.hashicorp.com/agent-inject-location-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
@@ -65,7 +52,7 @@ const (
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
 	// to run a command after the secret is rendered. The name of the template is any
 	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
-	// to the same unique value provided in "vault.hashicorp.com/agent-inject-location-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided (the default), no command is executed.
 	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
 
@@ -237,22 +224,14 @@ func Init(pod *corev1.Pod, image, address, authPath, namespace string, revokeOnS
 	return nil
 }
 
-// The recommended way of specifying the filename is to use the combination of
-// "vault.hashicorp.com/agent-inject-location-" with value being the path to the secret in vault
-// "vault.hashicorp.com/agent-inject-filename-" with value being the filename to create
-// with anything following the final dash as the 'id' of that secret,
-// which is useful to match corresponding annotations together
-//
-// this method also matches and returns the Template and Command found using the
-// respective id
-//
-// (Deprecated) secrets parses annotations with the pattern "vault.hashicorp.com/agent-inject-secret-".
-// Everything following the final dash becomes the filename of the secret,
-// and the value is the path in Vault. 
-// This is deprecated because an annotation can only have max 63 chars and we cannot use "/" in the filename
+// secrets parses annotations with the pattern
+// "vault.hashicorp.com/agent-inject-secret-". Everything following the final
+// dash becomes the name of the secret, and the value is the path in Vault. This
+// method also matches and returns the Template, Command, and FilePathAndName
+// settings from annotations associated with a secret name.
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
-// filename: foobar, Path: db/creds/foobar
+// Name: foobar, Path: db/creds/foobar
 func secrets(annotations map[string]string) []*Secret {
 	var secrets []*Secret
 	// First check for the token-only injection annotation
@@ -262,59 +241,40 @@ func secrets(annotations map[string]string) []*Secret {
 	}
 
 	for name, path := range annotations {
-		name = getNameFromAnnotation(name, annotations)
-		if name != "" {
+		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
+		if strings.Contains(name, secretName) {
+			raw := strings.ReplaceAll(name, secretName, "")
+			name := strings.ToLower(raw)
+
+			if name == "" {
+				continue
+			}
+
 			var template string
-			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, name)
+			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 
 			if val, ok := annotations[templateName]; ok {
 				template = val
 			}
 
 			var command string
-			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, name)
+			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
 
 			if val, ok := annotations[commandName]; ok {
 				command = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command})
+			var filePathAndName string
+			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
+
+			if val, ok := annotations[file]; ok {
+				filePathAndName = val
+			}
+
+			secrets = append(secrets, &Secret{Name: name, Path: path, FilePathAndName: filePathAndName, Template: template, Command: command})
 		}
 	}
 	return secrets
-}
-
-func getNameFromAnnotation(name string, annotations map[string]string) string {
-	secretNamePrefix := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
-	locationSecretPrefix := fmt.Sprintf("%s-", AnnotationAgentInjectLocation)
-	if strings.Contains(name, secretNamePrefix) {
-		raw := strings.ReplaceAll(name, secretNamePrefix, "")
-		name = strings.ToLower(raw) // why would we force-lowercase the filename here?
-		if len(name) >= 21 || strings.Contains(name, "/") {
-			//houston we have a problem, skip secret, can we log this somewhere?
-			return ""
-		}
-	} else if strings.Contains(name, locationSecretPrefix) {
-		uid := strings.ReplaceAll(name, locationSecretPrefix, "")
-
-		if uid == "" {
-			return ""
-		}
-
-		// get filename from AnnotationAgentInjectFilename
-		var filename string
-		filenameUid := fmt.Sprintf("%s-%s", AnnotationAgentInjectFilename, uid)
-		if val, ok := annotations[filenameUid]; ok {
-			filename = val
-		} else {
-			// if there is not the corresponding annotation, skip
-			return ""
-		}
-		name = filename
-	} else {
-		return ""
-	}
-	return name
 }
 
 func (a *Agent) inject() (bool, error) {
