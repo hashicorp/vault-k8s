@@ -163,7 +163,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 		agent, err := New(pod, patches)
 		if err != nil {
-
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
@@ -177,9 +176,10 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 			if agent.Secrets[0].Path != tt.expectedPath {
 				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
+
 			}
 		} else if len(agent.Secrets) > 0 {
-			t.Errorf("Secrets length was greater than zero, it shouldn't have been %s", tt.key)
+			t.Errorf("Secrets length was greater than zero, it shouldn't have been: %s", tt.key)
 		}
 	}
 }

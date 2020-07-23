@@ -13,7 +13,6 @@ const (
 	TokenSecret     = "auth/token/lookup-self"
 	PidFile         = "/home/vault/.pid"
 	TokenFile       = "/home/vault/.vault-token"
-	// DefaultFilePath = "/vault/secrets"
 )
 
 // Config is the top level struct that composes a Vault Agent

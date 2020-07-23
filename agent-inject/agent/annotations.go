@@ -33,10 +33,9 @@ const (
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
 	// path where the vault secret will be written. If the path is an absolute
-	// location like "/oreo/my_secret.pem", the resulting file will be
-	// created under the secret's mount path:
-	// /vault/secrets/oreo/my_secret.pem. The mount path may be modified
-	// with the secret-volume-path annotation.
+	// location like "/oreo/my_secret.pem", the resulting file will be created
+	// under the secret's mount path (i.e. /vault/secrets/oreo/my_secret.pem).
+	// The mount path may be modified with the secret-volume-path annotation.
 	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
@@ -329,11 +328,11 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	return nil
 }
 
-// secrets parses annotations with the pattern
-// "vault.hashicorp.com/agent-inject-secret-". Everything following the final
-// dash becomes the name of the secret, and the value is the path in Vault. This
-// method also matches and returns the Template, Command, and FilePathAndName
-// settings from annotations associated with a secret name.
+// secrets parses annotations with the pattern "vault.hashicorp.com/agent-inject-secret-".
+// Everything following the final dash becomes the name of the secret, and the
+// value is the path in Vault. This method also matches and returns the
+// Template, Command, and FilePathAndName settings from annotations associated
+// with a secret name.
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
 // Name: foobar, Path: db/creds/foobar

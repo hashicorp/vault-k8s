@@ -195,7 +195,7 @@ func TestFilePathAndName(t *testing.T) {
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
 				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
-				AnnotationVaultSecretVolumePath:               "/new/mount/path",
+				AnnotationVaultSecretVolumePath + "-foo":      "/new/mount/path",
 			},
 			"/new/mount/path/nested/foofile",
 		},
