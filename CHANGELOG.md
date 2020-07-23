@@ -2,7 +2,7 @@
 
 Features:
 * Added annotations to configure agent caching/listener: [GH-132](https://github.com/hashicorp/vault-k8s/pull/132)
-* Add annotation for specifying filenames and paths within the secrets volume: [GH-158](https://github.com/hashicorp/vault-k8s/pull/158)
+* Added annotation for specifying filenames and paths within the secrets volume: [GH-158](https://github.com/hashicorp/vault-k8s/pull/158)
 
 Improvements:
 * Injected agents are now configured with `readOnlyRootFilesystem: true`: [GH-142](https://github.com/hashicorp/vault-k8s/pull/142)
