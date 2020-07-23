@@ -142,6 +142,96 @@ func TestNewConfig(t *testing.T) {
 	}
 }
 
+func TestFilePathAndName(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		destination string
+	}{
+		{
+			"just secret",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+			},
+			secretVolumePath + "/foo",
+		},
+		{
+			"with relative file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+			},
+			secretVolumePath + "/nested/foofile",
+		},
+		{
+			"with absolute file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+			},
+			secretVolumePath + "/special/volume/foofile",
+		},
+		{
+			"with global volume mount set, long file name",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "foofile_name_is_very_very_very_long",
+				"vault.hashicorp.com/secret-volume-path":      "/new/mount/path",
+			},
+			"/new/mount/path/foofile_name_is_very_very_very_long",
+		},
+		{
+			"with global volume mount set, absolute file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/foofile",
+				"vault.hashicorp.com/secret-volume-path":      "/new/mount/path",
+			},
+			"/new/mount/path/special/foofile",
+		},
+		{
+			"with secret volume mount set, relative file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+				"vault.hashicorp.com/secret-volume-path-foo":  "/new/mount/path",
+			},
+			"/new/mount/path/nested/foofile",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := AgentConfig{
+				"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			}
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error initialising pod, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			cfg, err := agent.newConfig(true)
+			if err != nil {
+				t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+			}
+
+			config := &Config{}
+			if err := json.Unmarshal(cfg, config); err != nil {
+				t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+			}
+			if config.Templates[0].Destination != tt.destination {
+				t.Errorf("wrong destination: %s != %s", config.Templates[0].Destination, tt.destination)
+			}
+		})
+	}
+}
+
 func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	annotations := map[string]string{}
 

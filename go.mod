@@ -15,6 +15,7 @@ require (
 	github.com/hashicorp/serf v0.8.3 // indirect
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191205220236-47cffd09f972
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/kr/text v0.2.0 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/miekg/dns v1.1.15 // indirect

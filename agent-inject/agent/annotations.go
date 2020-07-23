@@ -27,11 +27,21 @@ const (
 	// path in Vault where the secret is located.
 	AnnotationAgentInjectSecret = "vault.hashicorp.com/agent-inject-secret"
 
+	// AnnotationAgentInjectFile is the key of the annotation that contains the
+	// name (and optional path) of the file to create on disk. The name of the
+	// secret is the string after "vault.hashicorp.com/agent-inject-file-", and
+	// should map to the same unique value provided in
+	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
+	// path in the secrets volume where the vault secret will be written. The
+	// container mount path of the secrets volume may be modified with the
+	// secret-volume-path annotation.
+	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
+
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-",
 	// such as "vault.hashicorp.com/agent-inject-template-foobar".  This should map
-	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
@@ -42,7 +52,7 @@ const (
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
 	// to run a command after the secret is rendered. The name of the template is any
 	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
-	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided (the default), no command is executed.
 	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
 
@@ -318,11 +328,13 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 }
 
 // secrets parses annotations with the pattern "vault.hashicorp.com/agent-inject-secret-".
-// Everything following the final dash becomes the name of the secret,
-// and the value is the path in Vault.
+// Everything following the final dash becomes the name of the secret, and the
+// value is the path in Vault. This method also matches and returns the
+// Template, Command, and FilePathAndName settings from annotations associated
+// with a secret name.
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
-// name: foobar, value: db/creds/foobar
+// Name: foobar, Path: db/creds/foobar
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
@@ -345,28 +357,30 @@ func (a *Agent) secrets() []*Secret {
 				continue
 			}
 
-			var template string
+			s := &Secret{Name: name, Path: path}
+
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
-
 			if val, ok := a.Annotations[templateName]; ok {
-				template = val
+				s.Template = val
 			}
 
-			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
+			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
 			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
-
 			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
-				mountPath = val
+				s.MountPath = val
 			}
 
-			var command string
 			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
-
 			if val, ok := a.Annotations[commandName]; ok {
-				command = val
+				s.Command = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command, MountPath: mountPath})
+			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
+			if val, ok := a.Annotations[file]; ok {
+				s.FilePathAndName = val
+			}
+
+			secrets = append(secrets, s)
 		}
 	}
 	return secrets

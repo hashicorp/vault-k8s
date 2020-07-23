@@ -126,7 +126,9 @@ type Agent struct {
 }
 
 type Secret struct {
-	// Name of the secret used as the filename for the rendered secret file.
+	// Name of the secret used to identify other annotation directives, and used
+	// as the filename for the rendered secret file (unless FilePathAndName is
+	// specified).
 	Name string
 
 	// Path in Vault where the secret desired can be found.
@@ -135,11 +137,14 @@ type Secret struct {
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
 
-	// Mount Path
+	// Mount Path for the volume holding the rendered secret file
 	MountPath string
 
 	// Command is the optional command to run after rendering the secret.
 	Command string
+
+	// FilePathAndName is the optional file path and name for the rendered secret file.
+	FilePathAndName string
 }
 
 type Vault struct {

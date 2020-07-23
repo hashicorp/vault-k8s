@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
 )
 
@@ -95,9 +96,14 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
+		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
+		if secret.FilePathAndName != "" {
+			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
+		}
+
 		tmpl := &Template{
 			Contents:    template,
-			Destination: fmt.Sprintf("%s/%s", secret.MountPath, secret.Name),
+			Destination: filePathAndName,
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,
