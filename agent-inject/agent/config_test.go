@@ -170,16 +170,25 @@ func TestFilePathAndName(t *testing.T) {
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
 				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
 			},
-			"/special/volume/foofile",
+			secretVolumePath + "/special/volume/foofile",
+		},
+		{
+			"with volume mount set, file name",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "foofile_name_is_very_very_very_long",
+				AnnotationVaultSecretVolumePath:               "/new/mount/path",
+			},
+			"/new/mount/path/foofile_name_is_very_very_very_long",
 		},
 		{
 			"with volume mount set, absolute file path",
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
-				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/foofile",
 				AnnotationVaultSecretVolumePath:               "/new/mount/path",
 			},
-			"/special/volume/foofile",
+			"/new/mount/path/special/foofile",
 		},
 		{
 			"with volume mount set, relative file path",

@@ -100,7 +100,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		filePathAndName := secret.FilePathAndName
 		if filePathAndName == "" {
 			filePathAndName = fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
-		} else if !filepath.IsAbs(filePathAndName) {
+		} else {
 			filePathAndName = filepath.Join(secret.MountPath, filePathAndName)
 		}
 

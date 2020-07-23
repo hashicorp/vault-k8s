@@ -140,10 +140,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 		{"vault.hashicorp.com/agent-inject-secret-server.crt", "creds/tls/somecert", "server.crt", "creds/tls/somecert"},
 		{"vault.hashicorp.com/agent-inject-secret", "test4", "", ""},
 		{"vault.hashicorp.com/agent-inject-secret-", "test5", "", ""},
-		// While this long secret name is valid within the injector, it would
-		// fail admission in k8s because of limitations there on the length of
-		// annotation keys
-		{"vault.hashicorp.com/agent-inject-secret-this_is_very_long_and_would_fail_in_kubernetes", "test6", "this_is_very_long_and_would_fail_in_kubernetes", "test6"},
 		// explicitly turn on preserve case sensitivity flag
 		{"vault.hashicorp.com/agent-inject-secret-FOOBAR_EXPLICIT", "test2", "FOOBAR_EXPLICIT", "test2"},
 	}

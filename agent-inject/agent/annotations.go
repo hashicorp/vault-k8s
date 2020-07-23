@@ -32,9 +32,11 @@ const (
 	// secret is the string after "vault.hashicorp.com/agent-inject-file-", and
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
-	// path where the vault secret will be written. The path may either be an
-	// absolute location like "/tmp/oreo/my_secret.pem", or a relative path that
-	// will be created under the "/vault/secrets/" directory.
+	// path where the vault secret will be written. If the path is an absolute
+	// location like "/oreo/my_secret.pem", the resulting file will be
+	// created under the secret's mount path:
+	// /vault/secrets/oreo/my_secret.pem. The mount path may be modified
+	// with the secret-volume-path annotation.
 	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
