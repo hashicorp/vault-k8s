@@ -32,10 +32,9 @@ const (
 	// secret is the string after "vault.hashicorp.com/agent-inject-file-", and
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
-	// path where the vault secret will be written. If the path is an absolute
-	// location like "/oreo/my_secret.pem", the resulting file will be created
-	// under the secret's mount path (i.e. /vault/secrets/oreo/my_secret.pem).
-	// The mount path may be modified with the secret-volume-path annotation.
+	// path in the secrets volume where the vault secret will be written. The
+	// container mount path of the secrets volume may be modified with the
+	// secret-volume-path annotation.
 	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
@@ -358,35 +357,30 @@ func (a *Agent) secrets() []*Secret {
 				continue
 			}
 
-			var template string
+			s := &Secret{Name: name, Path: path}
+
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
-
 			if val, ok := a.Annotations[templateName]; ok {
-				template = val
+				s.Template = val
 			}
 
-			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
+			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
 			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
-
 			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
-				mountPath = val
+				s.MountPath = val
 			}
 
-			var command string
 			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
-
 			if val, ok := a.Annotations[commandName]; ok {
-				command = val
+				s.Command = val
 			}
 
-			var filePathAndName string
 			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
-
 			if val, ok := a.Annotations[file]; ok {
-				filePathAndName = val
+				s.FilePathAndName = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, FilePathAndName: filePathAndName, Template: template, Command: command, MountPath: mountPath})
+			secrets = append(secrets, s)
 		}
 	}
 	return secrets

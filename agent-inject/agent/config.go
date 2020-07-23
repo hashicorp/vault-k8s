@@ -96,11 +96,9 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
-		filePathAndName := secret.FilePathAndName
-		if filePathAndName == "" {
-			filePathAndName = fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
-		} else {
-			filePathAndName = filepath.Join(secret.MountPath, filePathAndName)
+		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
+		if secret.FilePathAndName != "" {
+			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
 		}
 
 		tmpl := &Template{

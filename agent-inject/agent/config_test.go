@@ -173,29 +173,29 @@ func TestFilePathAndName(t *testing.T) {
 			secretVolumePath + "/special/volume/foofile",
 		},
 		{
-			"with volume mount set, file name",
+			"with global volume mount set, long file name",
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
 				"vault.hashicorp.com/agent-inject-file-foo":   "foofile_name_is_very_very_very_long",
-				AnnotationVaultSecretVolumePath:               "/new/mount/path",
+				"vault.hashicorp.com/secret-volume-path":      "/new/mount/path",
 			},
 			"/new/mount/path/foofile_name_is_very_very_very_long",
 		},
 		{
-			"with volume mount set, absolute file path",
+			"with global volume mount set, absolute file path",
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
 				"vault.hashicorp.com/agent-inject-file-foo":   "/special/foofile",
-				AnnotationVaultSecretVolumePath:               "/new/mount/path",
+				"vault.hashicorp.com/secret-volume-path":      "/new/mount/path",
 			},
 			"/new/mount/path/special/foofile",
 		},
 		{
-			"with volume mount set, relative file path",
+			"with secret volume mount set, relative file path",
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
 				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
-				AnnotationVaultSecretVolumePath + "-foo":      "/new/mount/path",
+				"vault.hashicorp.com/secret-volume-path-foo":  "/new/mount/path",
 			},
 			"/new/mount/path/nested/foofile",
 		},
