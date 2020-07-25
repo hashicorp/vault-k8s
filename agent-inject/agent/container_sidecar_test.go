@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"path"
 	"strconv"
 	"testing"
 
@@ -67,8 +66,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
 				Name:      agent.ServiceAccountTokenVolume.Name,
-				MountPath: path.Join(agent.ServiceAccountTokenVolume.MountPath, agent.ServiceAccountTokenVolume.TokenPath),
-				SubPath:   agent.ServiceAccountTokenVolume.TokenPath,
+				MountPath: agent.ServiceAccountTokenVolume.MountPath,
 				ReadOnly:  true,
 			},
 			corev1.VolumeMount{
