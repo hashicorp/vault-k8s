@@ -591,8 +591,8 @@ func (a *Agent) Validate() error {
 
 func serviceaccount(pod *corev1.Pod) (string, string) {
 
-	// Attempt to find existing mount point of named volume and copy mount path
 	if volumeName := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; volumeName != "" {
+		// Attempt to find existing mount point of named volume and copy mount path
 		for _, container := range pod.Spec.Containers {
 			for _, volumeMount := range container.VolumeMounts {
 				if volumeMount.Name == volumeName {
@@ -600,10 +600,7 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 				}
 			}
 		}
-	}
-
-	// Otherwise, check the volume exists and fallback to `DefaultServiceAccountPath`
-	if volumeName := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; volumeName != "" {
+		// Otherwise, check the volume exists and fallback to `DefaultServiceAccountPath`
 		for _, volume := range pod.Spec.Volumes {
 			if volume.Name == volumeName {
 				return volume.Name, DefaultServiceAccountPath
