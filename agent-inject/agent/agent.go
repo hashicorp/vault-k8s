@@ -383,8 +383,22 @@ func (a *Agent) Patch() ([]byte, error) {
 			"/spec/volumes")...)
 	}
 
-	//Add Volume Mounts
+	//Add Volume Mounts to desired containers
+	raw, ok := a.Pod.Annotations[AnnotationAgentInjectContainers];
+	if !ok {
+		return patches, fmt.Errorf("")
+	}
+
+	names := make(map[string]struct{})
+	for _, name := range strings.Split(raw, ",") {
+		names[name] = struct{}{}
+	}
+
 	for i, container := range a.Pod.Spec.Containers {
+		if _, ok := names[container.Name]; !ok {
+			continue
+		}
+
 		a.Patches = append(a.Patches, addVolumeMounts(
 			container.VolumeMounts,
 			a.ContainerVolumeMounts(),

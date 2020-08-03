@@ -56,6 +56,12 @@ const (
 	// If not provided (the default), no command is executed.
 	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
 
+	// AnnotationAgentInjectContainers is the key of the annotation that controls
+	// in which containers the secrets volume should be mounted. Multiple containers can
+	// be specificied in a comma-separated list. If not provided, the secrets volume will
+	// be mounted in all containers in the pod.
+	AnnotationAgentInjectContainers = "vault.hashicorp.com/agent-inject-containers"
+
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
@@ -322,6 +328,16 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
+	}
+
+	// If the AnnotationAgentInjectContainers annotation is not set, default to all containers
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectContainers]; !ok {
+		containerNames := make([]string, len(pod.Spec.Containers))
+		for i, v := range pod.Spec.Containers {
+			containerNames[i] = v.Name
+		}
+
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectContainers] = strings.Join(containerNames, ",")
 	}
 
 	return nil

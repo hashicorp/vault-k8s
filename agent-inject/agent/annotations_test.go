@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -790,6 +791,78 @@ func Test_runAsSameID(t *testing.T) {
 			require.Equal(t, tt.expectedResult, result)
 			require.Equal(t, tt.expectedErr, err != nil)
 			require.Equal(t, tt.expectedUserID, agent.RunAsUser)
+		})
+	}
+}
+
+func TestInjectContainers(t *testing.T) {
+	expectedPatch := "{\"op\":\"add\",\"path\":\"/spec/containers/0/volumeMounts/-\",\"value\":{\"mountPath\":\"/vault/secrets\",\"name\":\"vault-secrets\"}}"
+
+	tests := []struct {
+		name 		string
+		annotations map[string]string
+		expected    string
+		hasPatch    bool
+	}{
+		{
+			name: 		 "No InjectContainers annotation",
+			annotations: map[string]string{},
+			expected: 	 "foobar",
+			hasPatch:    true,
+		},
+		{
+			name: 		 "InjectContainers annotation with container name",
+			annotations: map[string]string{AnnotationAgentInjectContainers: "baz"},
+			expected: 	 "baz",
+			hasPatch:    false,
+		},
+		{
+			name: 		 "Empty InjectContainers annotation",
+			annotations: map[string]string{AnnotationAgentInjectContainers: ""},
+			expected: 	 "",
+			hasPatch:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := AgentConfig{
+				"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			}
+
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			patch, err := agent.Patch()
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+
+			require.Equal(t, pod.Annotations[AnnotationAgentInjectContainers], tt.expected)
+
+			var actual []jsonpatch.JsonPatchOperation
+			json.Unmarshal(patch, &actual)
+
+			// Ensure the container patch is present if it is expected
+			hasPatch := false
+			for _, p := range actual {
+				if p.Json() == expectedPatch {
+					hasPatch = true
+				}
+			}
+
+			require.Equal(t, hasPatch, tt.hasPatch)
 		})
 	}
 }
