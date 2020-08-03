@@ -386,7 +386,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	//Add Volume Mounts to desired containers
 	raw, ok := a.Pod.Annotations[AnnotationAgentInjectContainers];
 	if !ok {
-		return patches, fmt.Errorf("")
+		return patches, fmt.Errorf("vault.hashicorp.com/agent-inject-containers annotation not found")
 	}
 
 	names := make(map[string]struct{})
