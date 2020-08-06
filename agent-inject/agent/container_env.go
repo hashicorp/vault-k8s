@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -30,6 +31,16 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 			Value: a.Vault.LogLevel,
 		})
 	}
+
+	// add namespace from downward API
+	envs = append(envs, corev1.EnvVar{
+		Name: "NAMESPACE",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	})
 
 	if a.ConfigMapName == "" {
 		config, err := a.newConfig(init)
