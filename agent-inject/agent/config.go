@@ -22,7 +22,7 @@ type Config struct {
 	ExitAfterAuth bool         `json:"exit_after_auth"`
 	PidFile       string       `json:"pid_file"`
 	Vault         *VaultConfig `json:"vault"`
-	Templates     []*Template  `json:"template"`
+	Templates     []*Template  `json:"template,omitempty"`
 	Listener      []*Listener  `json:"listener,omitempty"`
 	Cache         *Cache       `json:"cache,omitempty"`
 }
