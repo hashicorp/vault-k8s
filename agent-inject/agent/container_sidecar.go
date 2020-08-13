@@ -23,17 +23,39 @@ const (
 // ContainerSidecar creates a new container to be added
 // to the pod being mutated.
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
-	volumeMounts := []corev1.VolumeMount{
-		{
-			Name:      a.ServiceAccountName,
-			MountPath: a.ServiceAccountPath,
-			ReadOnly:  true,
-		},
-		{
-			Name:      tokenVolumeName,
-			MountPath: tokenVolumePath,
-			ReadOnly:  false,
-		},
+	volumeMounts := []corev1.VolumeMount{}
+	if a.AwsIamTokenAccountName == "" || a.AwsIamTokenAccountPath == "" {
+		volumeMounts = []corev1.VolumeMount{
+			{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
+			},
+			{
+				Name:      a.ServiceAccountName,
+				MountPath: a.ServiceAccountPath,
+				ReadOnly:  true,
+			},
+		}
+	} else {
+		volumeMounts = []corev1.VolumeMount{
+			{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
+			},
+			{
+				Name:      a.ServiceAccountName,
+				MountPath: a.ServiceAccountPath,
+				ReadOnly:  true,
+			},
+			// add aws volume mounts to be available for sidecar
+			{
+				Name:      a.AwsIamTokenAccountName,
+				MountPath: a.AwsIamTokenAccountPath,
+				ReadOnly:  true,
+			},
+		}
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 

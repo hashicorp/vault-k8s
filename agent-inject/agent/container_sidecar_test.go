@@ -52,14 +52,84 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
+				Name:      tokenVolumeName,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
 			},
 			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
+				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
+				MountPath: "/etc/container_environment",
+				ReadOnly:  false,
+			},
+		},
+		container.VolumeMounts,
+	)
+}
+
+func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationVaultRole: "foobar",
+		// this will have different mount path
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret1"):     "secrets/secret1",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret1"): "/etc/container_environment",
+
+		// this secret will have same mount path as default mount path
+		// adding this so we can make sure we don't have duplicate
+		// volume mounts
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret2"):     "secret/secret2",
+		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "secret2"): "/etc/default_path",
+
+		// Default path for all secrets
+		AnnotationVaultSecretVolumePath: "/etc/default_path",
+
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret3"): "secret/secret3",
+	}
+
+	pod := testPodIRSA(annotations)
+	var patches []*jsonpatch.JsonPatchOperation
+
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, patches)
+	if err := agent.Validate(); err != nil {
+		t.Errorf("agent validation failed, it shouldn't have: %s", err)
+	}
+
+	container, err := agent.ContainerSidecar()
+
+	// One token volume mount, one config volume mount and two secrets volume mounts
+	require.Equal(t, 5, len(container.VolumeMounts))
+
+	require.Equal(
+		t,
+		[]corev1.VolumeMount{
+			corev1.VolumeMount{
 				Name:      tokenVolumeName,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      agent.ServiceAccountName,
+				MountPath: agent.ServiceAccountPath,
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      agent.AwsIamTokenAccountName,
+				MountPath: agent.AwsIamTokenAccountPath,
+				ReadOnly:  true,
 			},
 			corev1.VolumeMount{
 				Name:      secretVolumeName,

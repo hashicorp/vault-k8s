@@ -2,6 +2,8 @@ package agent
 
 import (
 	"encoding/base64"
+	"log"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -42,6 +44,21 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 			Name:  "VAULT_CONFIG",
 			Value: b64Config,
 		})
+
+		// Add IRSA AWS Env variables for vault containers
+		if a.Pod != nil {
+			envMap := a.getEnvsFromContainer(a.Pod)
+			if len(envMap) == 0 || len(envMap) >= 2 {
+				for k, v := range envMap {
+					envs = append(envs, corev1.EnvVar{
+						Name:  k,
+						Value: v,
+					})
+				}
+			} else {
+				log.Println("WARN: Could not find 'AWS ROLE/ AWS_WEB_IDENTITY_TOKEN_FILE' env variables")
+			}
+		}
 	}
 
 	return envs, nil

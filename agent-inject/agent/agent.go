@@ -123,6 +123,15 @@ type Agent struct {
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
 	SetSecurityContext bool
+
+	// AwsIamTokenAccountName is the aws iam volume mount name for the pod.
+	// Need this for IRSA aka pod identity
+	AwsIamTokenAccountName string
+
+	// AwsIamTokenAccountPath is the aws iam volume mount path for the pod
+	// where the JWT would be present
+	// Need this for IRSA aka pod identity
+	AwsIamTokenAccountPath string
 }
 
 type Secret struct {
@@ -213,21 +222,24 @@ type VaultAgentCache struct {
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
+	iamName, iamPath := getAwsIamTokenAccount(pod)
 
 	agent := &Agent{
-		Annotations:        pod.Annotations,
-		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
-		ImageName:          pod.Annotations[AnnotationAgentImage],
-		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
-		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
-		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:            patches,
-		Pod:                pod,
-		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
-		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		ServiceAccountName: saName,
-		ServiceAccountPath: saPath,
-		Status:             pod.Annotations[AnnotationAgentStatus],
+		Annotations:            pod.Annotations,
+		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:              pod.Annotations[AnnotationAgentImage],
+		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
+		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
+		Patches:                patches,
+		Pod:                    pod,
+		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
+		RequestsMem:            pod.Annotations[AnnotationAgentRequestsMem],
+		ServiceAccountName:     saName,
+		ServiceAccountPath:     saPath,
+		AwsIamTokenAccountName: iamName,
+		AwsIamTokenAccountPath: iamPath,
+		Status:                 pod.Annotations[AnnotationAgentStatus],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
@@ -506,6 +518,34 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 		}
 	}
 	return serviceAccountName, serviceAccountPath
+}
+
+// IRSA support - get aws_iam_token volume mount details to inject to vault containers
+func getAwsIamTokenAccount(pod *corev1.Pod) (string, string) {
+	var awsIamTokenAccountName, awsIamTokenAccountPath string
+	for _, container := range pod.Spec.Containers {
+		for _, volumes := range container.VolumeMounts {
+			if strings.Contains(volumes.MountPath, "eks.amazonaws.com") {
+				return volumes.Name, volumes.MountPath
+			}
+		}
+	}
+	return awsIamTokenAccountName, awsIamTokenAccountPath
+}
+
+// IRSA support - get aws envs to inject to vault containers
+func (a *Agent) getEnvsFromContainer(pod *corev1.Pod) map[string]string {
+	envMap := make(map[string]string)
+	for _, container := range pod.Spec.Containers {
+		for _, env := range container.Env {
+			if strings.Contains(env.Name, "AWS_ROLE_ARN") || strings.Contains(env.Name, "AWS_WEB_IDENTITY_TOKEN_FILE") {
+				if _, ok := envMap[env.Name]; !ok {
+					envMap[env.Name] = env.Value
+				}
+			}
+		}
+	}
+	return envMap
 }
 
 func (a *Agent) vaultCliFlags() []string {
