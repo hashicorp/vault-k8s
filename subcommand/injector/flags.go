@@ -65,6 +65,9 @@ type Specification struct {
 
 	// SetSecurityContext is the AGENT_INJECT_SET_SECURITY_CONTEXT environment variable.
 	SetSecurityContext string `envconfig:"AGENT_INJECT_SET_SECURITY_CONTEXT"`
+
+	// TelemetryPath is the AGENT_INJECT_TELEMETRY_PATH environment variable.
+	TelemetryPath string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -99,8 +102,9 @@ func (c *Command) init() {
 			"Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the pod spec. "+
 			"Defaults to false.")
 	c.flagSet.BoolVar(&c.flagSetSecurityContext, "set-security-context", agent.DefaultAgentSetSecurityContext,
-		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext),
-	)
+		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext))
+	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
+		"Path under which to expose metrics")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -201,6 +205,10 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.TelemetryPath != "" {
+		c.flagTelemetryPath = envs.TelemetryPath
 	}
 
 	return nil
