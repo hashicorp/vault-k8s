@@ -60,12 +60,22 @@ func (a *Agent) ContainerVolumes() []corev1.Volume {
 
 // ContainerTokenVolume returns a volume to mount the
 // home directory where the token sink will write to.
-func (a *Agent) ContainerTokenVolume() corev1.Volume {
-	return corev1.Volume{
-		Name: tokenVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			EmptyDir: &corev1.EmptyDirVolumeSource{
-				Medium: "Memory",
+func (a *Agent) ContainerTokenVolume() []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: tokenVolumeName,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: "Memory",
+				},
+			},
+		},
+		{
+			Name: tokenVolumeName + "-init",
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{
+					Medium: "Memory",
+				},
 			},
 		},
 	}
