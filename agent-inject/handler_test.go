@@ -429,10 +429,6 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
 					Path:      "/spec/volumes",
 				},
 				{
@@ -476,10 +472,6 @@ func TestHandlerHandle(t *testing.T) {
 				{
 					Operation: "add",
 					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
 				},
 				{
 					Operation: "add",
