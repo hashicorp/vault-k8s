@@ -57,7 +57,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 				ReadOnly:  true,
 			},
 			corev1.VolumeMount{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},

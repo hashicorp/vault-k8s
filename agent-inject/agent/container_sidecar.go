@@ -30,7 +30,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			ReadOnly:  true,
 		},
 		{
-			Name:      tokenVolumeName,
+			Name:      tokenVolumeNameSidecar,
 			MountPath: tokenVolumePath,
 			ReadOnly:  false,
 		},
