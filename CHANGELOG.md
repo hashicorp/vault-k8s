@@ -1,3 +1,8 @@
+## Unreleased
+
+Improvements:
+* Resource limits and requests can be disabled via annotation: [GH-174](https://github.com/hashicorp/vault-k8s/pull/174)
+
 ## 0.5.0 (August 24, 2020)
 
 Features:
