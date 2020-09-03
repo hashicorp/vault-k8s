@@ -92,31 +92,42 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 	requests := corev1.ResourceList{}
 
 	// Limits
-	cpu, err := parseQuantity(a.LimitsCPU)
-	if err != nil {
-		return resources, err
-	}
-	limits[corev1.ResourceCPU] = cpu
+	if a.LimitsCPU != "" {
+		cpu, err := parseQuantity(a.LimitsCPU)
+		if err != nil {
+			return resources, err
+		}
 
-	mem, err := parseQuantity(a.LimitsMem)
-	if err != nil {
-		return resources, err
+		limits[corev1.ResourceCPU] = cpu
 	}
-	limits[corev1.ResourceMemory] = mem
+
+	if a.LimitsMem != "" {
+		mem, err := parseQuantity(a.LimitsMem)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceMemory] = mem
+	}
+
 	resources.Limits = limits
 
 	// Requests
-	cpu, err = parseQuantity(a.RequestsCPU)
-	if err != nil {
-		return resources, err
+	if a.RequestsCPU != "" {
+		cpu, err := parseQuantity(a.RequestsCPU)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceCPU] = cpu
 	}
-	requests[corev1.ResourceCPU] = cpu
 
-	mem, err = parseQuantity(a.RequestsMem)
-	if err != nil {
-		return resources, err
+	if a.RequestsMem != "" {
+		mem, err := parseQuantity(a.RequestsMem)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceMemory] = mem
 	}
-	requests[corev1.ResourceMemory] = mem
+
 	resources.Requests = requests
 
 	return resources, nil
