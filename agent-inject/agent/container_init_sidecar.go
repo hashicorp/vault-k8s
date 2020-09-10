@@ -26,6 +26,14 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
+	if a.ExtraSecret != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      extraSecretVolumeName,
+			MountPath: extraSecretVolumePath,
+			ReadOnly:  true,
+		})
+	}
+
 	arg := DefaultContainerArg
 
 	if a.ConfigMapName != "" {

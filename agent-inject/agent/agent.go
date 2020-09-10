@@ -123,6 +123,10 @@ type Agent struct {
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
 	SetSecurityContext bool
+  
+ 	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
+	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
+	ExtraSecret string
 }
 
 type Secret struct {
@@ -228,6 +232,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountName: saName,
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
+		ExtraSecret:        pod.Annotations[AnnotationAgentExtraSecret],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
@@ -372,6 +377,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
+			"/spec/volumes")...)
+	}
+
+	// Add ExtraSecret if one was provided
+	if a.ExtraSecret != "" {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.ContainerExtraSecretVolume()},
 			"/spec/volumes")...)
 	}
 
