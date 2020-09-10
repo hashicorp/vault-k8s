@@ -19,6 +19,7 @@ import (
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/mitchellh/cli"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,19 +28,22 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen           string // Address of Vault Server
-	flagLogLevel         string // Log verbosity
-	flagLogFormat        string // Log format
-	flagCertFile         string // TLS Certificate to serve
-	flagKeyFile          string // TLS private key to serve
-	flagAutoName         string // MutatingWebhookConfiguration for updating
-	flagAutoHosts        string // SANs for the auto-generated TLS cert.
-	flagVaultService     string // Name of the Vault service
-	flagVaultImage       string // Name of the Vault Image to use
-	flagVaultAuthPath    string // Mount Path of the Vault Kubernetes Auth Method
-	flagRevokeOnShutdown bool   // Revoke Vault Token on pod shutdown
-	flagRunAsUser        string // User (uid) to run Vault agent as
-	flagRunAsGroup       string // Group (gid) to run Vault agent as
+	flagListen             string // Address of Vault Server
+	flagLogLevel           string // Log verbosity
+	flagLogFormat          string // Log format
+	flagCertFile           string // TLS Certificate to serve
+	flagKeyFile            string // TLS private key to serve
+	flagAutoName           string // MutatingWebhookConfiguration for updating
+	flagAutoHosts          string // SANs for the auto-generated TLS cert.
+	flagVaultService       string // Name of the Vault service
+	flagVaultImage         string // Name of the Vault Image to use
+	flagVaultAuthPath      string // Mount Path of the Vault Kubernetes Auth Method
+	flagRevokeOnShutdown   bool   // Revoke Vault Token on pod shutdown
+	flagRunAsUser          string // User (uid) to run Vault agent as
+	flagRunAsGroup         string // Group (gid) to run Vault agent as
+	flagRunAsSameUser      bool   // Run Vault agent as the User (uid) of the first application container
+	flagSetSecurityContext bool   // Set SecurityContext in injected containers
+	flagTelemetryPath      string // Path under which to expose metrics
 
 	flagSet *flag.FlagSet
 
@@ -113,20 +117,29 @@ func (c *Command) Run(args []string) int {
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
-		VaultAddress:      c.flagVaultService,
-		VaultAuthPath:     c.flagVaultAuthPath,
-		ImageVault:        c.flagVaultImage,
-		Clientset:         clientset,
-		RequireAnnotation: true,
-		Log:               logger,
-		RevokeOnShutdown:  c.flagRevokeOnShutdown,
-		UserID:            c.flagRunAsUser,
-		GroupID:           c.flagRunAsGroup,
+		VaultAddress:       c.flagVaultService,
+		VaultAuthPath:      c.flagVaultAuthPath,
+		ImageVault:         c.flagVaultImage,
+		Clientset:          clientset,
+		RequireAnnotation:  true,
+		Log:                logger,
+		RevokeOnShutdown:   c.flagRevokeOnShutdown,
+		UserID:             c.flagRunAsUser,
+		GroupID:            c.flagRunAsGroup,
+		SameID:             c.flagRunAsSameUser,
+		SetSecurityContext: c.flagSetSecurityContext,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
+
+	// Registering path to expose metrics
+	if c.flagTelemetryPath != "" {
+		c.UI.Info(fmt.Sprintf("Registering telemetry path on %q", c.flagTelemetryPath))
+		mux.Handle(c.flagTelemetryPath, promhttp.Handler())
+	}
+
 	var handler http.Handler = mux
 	server := &http.Server{
 		Addr:      c.flagListen,

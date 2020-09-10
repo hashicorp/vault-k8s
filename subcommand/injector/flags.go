@@ -59,6 +59,15 @@ type Specification struct {
 
 	// RunAsGroup is the AGENT_INJECT_RUN_AS_GROUP environment variable. (gid)
 	RunAsGroup string `envconfig:"AGENT_INJECT_RUN_AS_GROUP"`
+
+	// RunAsSameUser is the AGENT_INJECT_RUN_AS_SAME_USER environment variable.
+	RunAsSameUser string `envconfig:"AGENT_INJECT_RUN_AS_SAME_USER"`
+
+	// SetSecurityContext is the AGENT_INJECT_SET_SECURITY_CONTEXT environment variable.
+	SetSecurityContext string `envconfig:"AGENT_INJECT_SET_SECURITY_CONTEXT"`
+
+	// TelemetryPath is the AGENT_INJECT_TELEMETRY_PATH environment variable.
+	TelemetryPath string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -88,6 +97,14 @@ func (c *Command) init() {
 		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
 	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
 		fmt.Sprintf("Group (gid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsGroup))
+	c.flagSet.BoolVar(&c.flagRunAsSameUser, "run-as-same-user", agent.DefaultAgentRunAsSameUser,
+		"Run the injected Vault agent containers as the User (uid) of the first application container in the pod. "+
+			"Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the pod spec. "+
+			"Defaults to false.")
+	c.flagSet.BoolVar(&c.flagSetSecurityContext, "set-security-context", agent.DefaultAgentSetSecurityContext,
+		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext))
+	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
+		"Path under which to expose metrics")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -174,6 +191,24 @@ func (c *Command) parseEnvs() error {
 
 	if envs.RunAsGroup != "" {
 		c.flagRunAsGroup = envs.RunAsGroup
+	}
+
+	if envs.RunAsSameUser != "" {
+		c.flagRunAsSameUser, err = strconv.ParseBool(envs.RunAsSameUser)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.SetSecurityContext != "" {
+		c.flagSetSecurityContext, err = strconv.ParseBool(envs.SetSecurityContext)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.TelemetryPath != "" {
+		c.flagTelemetryPath = envs.TelemetryPath
 	}
 
 	return nil

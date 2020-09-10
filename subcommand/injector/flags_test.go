@@ -114,7 +114,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_LISTEN", value: ":8080", cmdPtr: &cmd.flagListen},
 		{env: "AGENT_INJECT_VAULT_ADDR", value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
-		{env: "AGENT_INJECT_VAULT_IMAGE", value: "vault:1.3.2", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "vault:1.5.2", cmdPtr: &cmd.flagVaultImage},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
 		{env: "AGENT_INJECT_TLS_AUTO_HOSTS", value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},
@@ -123,6 +123,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_LOG_FORMAT", value: "standard", cmdPtr: &cmd.flagLogFormat},
 		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
 		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
+		{env: "AGENT_INJECT_TELEMETRY_PATH", value: "/metrics", cmdPtr: &cmd.flagTelemetryPath},
 	}
 
 	for _, tt := range tests {
@@ -152,6 +153,10 @@ func TestCommandEnvBools(t *testing.T) {
 	}{
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: true, cmdPtr: &cmd.flagRevokeOnShutdown},
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: false, cmdPtr: &cmd.flagRevokeOnShutdown},
+		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: true, cmdPtr: &cmd.flagRunAsSameUser},
+		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: false, cmdPtr: &cmd.flagRunAsSameUser},
+		{env: "AGENT_INJECT_SET_SECURITY_CONTEXT", value: true, cmdPtr: &cmd.flagSetSecurityContext},
+		{env: "AGENT_INJECT_SET_SECURITY_CONTEXT", value: false, cmdPtr: &cmd.flagSetSecurityContext},
 	}
 
 	for _, tt := range tests {

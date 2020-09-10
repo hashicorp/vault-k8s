@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /tmp/config.json && vault agent -config=/tmp/config.json"
+	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 )
@@ -31,7 +30,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			ReadOnly:  true,
 		},
 		{
-			Name:      tokenVolumeName,
+			Name:      tokenVolumeNameSidecar,
 			MountPath: tokenVolumePath,
 			ReadOnly:  false,
 		},
@@ -77,17 +76,21 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 
 	lifecycle := a.createLifecycle()
 
-	return corev1.Container{
-		Name:            "vault-agent",
-		Image:           a.ImageName,
-		Env:             envs,
-		Resources:       resources,
-		SecurityContext: a.securityContext(),
-		VolumeMounts:    volumeMounts,
-		Lifecycle:       &lifecycle,
-		Command:         []string{"/bin/sh", "-ec"},
-		Args:            []string{arg},
-	}, nil
+	newContainer := corev1.Container{
+		Name:         "vault-agent",
+		Image:        a.ImageName,
+		Env:          envs,
+		Resources:    resources,
+		VolumeMounts: volumeMounts,
+		Lifecycle:    &lifecycle,
+		Command:      []string{"/bin/sh", "-ec"},
+		Args:         []string{arg},
+	}
+	if a.SetSecurityContext {
+		newContainer.SecurityContext = a.securityContext()
+	}
+
+	return newContainer, nil
 }
 
 // Valid resource notations: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
@@ -97,31 +100,42 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 	requests := corev1.ResourceList{}
 
 	// Limits
-	cpu, err := parseQuantity(a.LimitsCPU)
-	if err != nil {
-		return resources, err
-	}
-	limits[corev1.ResourceCPU] = cpu
+	if a.LimitsCPU != "" {
+		cpu, err := parseQuantity(a.LimitsCPU)
+		if err != nil {
+			return resources, err
+		}
 
-	mem, err := parseQuantity(a.LimitsMem)
-	if err != nil {
-		return resources, err
+		limits[corev1.ResourceCPU] = cpu
 	}
-	limits[corev1.ResourceMemory] = mem
+
+	if a.LimitsMem != "" {
+		mem, err := parseQuantity(a.LimitsMem)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceMemory] = mem
+	}
+
 	resources.Limits = limits
 
 	// Requests
-	cpu, err = parseQuantity(a.RequestsCPU)
-	if err != nil {
-		return resources, err
+	if a.RequestsCPU != "" {
+		cpu, err := parseQuantity(a.RequestsCPU)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceCPU] = cpu
 	}
-	requests[corev1.ResourceCPU] = cpu
 
-	mem, err = parseQuantity(a.RequestsMem)
-	if err != nil {
-		return resources, err
+	if a.RequestsMem != "" {
+		mem, err := parseQuantity(a.RequestsMem)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceMemory] = mem
 	}
-	requests[corev1.ResourceMemory] = mem
+
 	resources.Requests = requests
 
 	return resources, nil
@@ -156,12 +170,18 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 
 func (a *Agent) securityContext() *corev1.SecurityContext {
 	runAsNonRoot := true
+
 	if a.RunAsUser == 0 || a.RunAsGroup == 0 {
 		runAsNonRoot = false
 	}
 	return &corev1.SecurityContext{
-		RunAsUser:    pointerutil.Int64Ptr(a.RunAsUser),
-		RunAsGroup:   pointerutil.Int64Ptr(a.RunAsGroup),
-		RunAsNonRoot: pointerutil.BoolPtr(runAsNonRoot),
+		RunAsUser:              pointerutil.Int64Ptr(a.RunAsUser),
+		RunAsGroup:             pointerutil.Int64Ptr(a.RunAsGroup),
+		RunAsNonRoot:           pointerutil.BoolPtr(runAsNonRoot),
+		ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+		Capabilities: &corev1.Capabilities{
+			Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+		},
+		AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 	}
 }

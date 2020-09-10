@@ -14,10 +14,18 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage      = "vault:1.3.2"
-	DefaultVaultAuthPath   = "auth/kubernetes"
-	DefaultAgentRunAsUser  = 100
-	DefaultAgentRunAsGroup = 1000
+	DefaultVaultImage                    = "vault:1.5.2"
+	DefaultVaultAuthPath                 = "auth/kubernetes"
+	DefaultAgentRunAsUser                = 100
+	DefaultAgentRunAsGroup               = 1000
+	DefaultAgentRunAsSameUser            = false
+	DefaultAgentAllowPrivilegeEscalation = false
+	DefaultAgentDropCapabilities         = "ALL"
+	DefaultAgentSetSecurityContext       = true
+	DefaultAgentReadOnlyRoot             = true
+	DefaultAgentCacheEnable              = "false"
+	DefaultAgentCacheUseAutoAuthToken    = "true"
+	DefaultAgentCacheListenerPort        = "8200"
 )
 
 // Agent is the top level structure holding all the
@@ -99,19 +107,32 @@ type Agent struct {
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
 
+	// VaultAgentCache is the structure holding the Vault agent cache specific configurations
+	VaultAgentCache VaultAgentCache
+
 	// RunAsUser is the user ID to run the Vault agent container(s) as.
 	RunAsUser int64
 
 	// RunAsGroup is the group ID to run the Vault agent container(s) as.
 	RunAsGroup int64
 
-	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
+	// RunAsSameID sets the user ID of the Vault agent container(s) to be the
+	// same as the first application container
+	RunAsSameID bool
+
+	// SetSecurityContext controls whether the injected containers have a
+	// SecurityContext set.
+	SetSecurityContext bool
+  
+ 	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
 	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
 	ExtraSecret string
 }
 
 type Secret struct {
-	// Name of the secret used as the filename for the rendered secret file.
+	// Name of the secret used to identify other annotation directives, and used
+	// as the filename for the rendered secret file (unless FilePathAndName is
+	// specified).
 	Name string
 
 	// Path in Vault where the secret desired can be found.
@@ -120,11 +141,14 @@ type Secret struct {
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
 
-	// Mount Path
+	// Mount Path for the volume holding the rendered secret file
 	MountPath string
 
 	// Command is the optional command to run after rendering the secret.
 	Command string
+
+	// FilePathAndName is the optional file path and name for the rendered secret file.
+	FilePathAndName string
 }
 
 type Vault struct {
@@ -177,6 +201,17 @@ type Vault struct {
 	// TLSServerName is the name of the Vault server to use when validating Vault's
 	// TLS certificates.
 	TLSServerName string
+}
+
+type VaultAgentCache struct {
+	// Enable configures whether the cache is enabled or not
+	Enable bool
+
+	// ListenerPort is the port the cache should listen to
+	ListenerPort string
+
+	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
+	UseAutoAuthToken string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -262,6 +297,27 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
+	agent.RunAsSameID, err = agent.runAsSameID(pod)
+	if err != nil {
+		return agent, err
+	}
+
+	agent.SetSecurityContext, err = agent.setSecurityContext()
+	if err != nil {
+		return agent, err
+	}
+
+	agentCacheEnable, err := agent.agentCacheEnable()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.VaultAgentCache = VaultAgentCache{
+		Enable:           agentCacheEnable,
+		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
+		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
+	}
+
 	return agent, nil
 }
 
@@ -306,7 +362,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// Add a volume for the token sink
 	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
-		[]corev1.Volume{a.ContainerTokenVolume()},
+		a.ContainerTokenVolume(),
 		"/spec/volumes")...)
 
 	// Add our volume that will be shared by the containers

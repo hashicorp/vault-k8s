@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -35,7 +36,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -59,7 +60,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 				ReadOnly:  true,
 			},
 			corev1.VolumeMount{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
@@ -91,7 +92,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100"})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -192,7 +193,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100"})
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -241,7 +242,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -268,6 +269,8 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 }
 
 func TestContainerSidecarCustomResources(t *testing.T) {
+	absent := "absent"
+
 	tests := []struct {
 		name               string
 		agent              Agent
@@ -341,6 +344,20 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "",
 			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid 0",
+			agent: Agent{
+				LimitsCPU:   "0",
+				LimitsMem:   "0",
+				RequestsCPU: "0",
+				RequestsMem: "0",
+			},
 			expectedLimitCPU:   "0",
 			expectedLimitMem:   "0",
 			expectedRequestCPU: "0",
@@ -357,8 +374,8 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128m",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -369,8 +386,8 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "250Mi",
 				RequestsMem: "64m",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64m",
 			expectedErr:        false,
@@ -384,9 +401,9 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsMem: "",
 			},
 			expectedLimitCPU:   "500Mi",
-			expectedLimitMem:   "0",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -397,10 +414,10 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "",
 			},
-			expectedLimitCPU:   "0",
+			expectedLimitCPU:   absent,
 			expectedLimitMem:   "128m",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -411,10 +428,10 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "500Mi",
 				RequestsMem: "",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
 			expectedRequestCPU: "500Mi",
-			expectedRequestMem: "0",
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -425,9 +442,9 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "128m",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
-			expectedRequestCPU: "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
 			expectedRequestMem: "128m",
 			expectedErr:        false,
 		},
@@ -515,20 +532,32 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 			}
 
 			if !tt.expectedErr {
-				if resources.Limits.Cpu().String() != tt.expectedLimitCPU {
-					t.Errorf("expected cpu limit mismatch: wanted %s, got %s", tt.expectedLimitCPU, resources.Limits.Cpu().String())
+				cpu, exists := resources.Limits["cpu"]
+				if tt.expectedLimitCPU == absent && exists {
+					t.Errorf("expected cpu limit to not exist")
+				} else if tt.expectedLimitCPU != absent && cpu.String() != tt.expectedLimitCPU {
+					t.Errorf("expected cpu limit mismatch: wanted %s, got %s", tt.expectedLimitCPU, cpu.String())
 				}
 
-				if resources.Limits.Memory().String() != tt.expectedLimitMem {
-					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, resources.Limits.Memory().String())
+				mem, exists := resources.Limits["memory"]
+				if tt.expectedLimitMem == absent && exists {
+					t.Errorf("expected mem limit to not exist")
+				} else if tt.expectedLimitMem != absent && mem.String() != tt.expectedLimitMem {
+					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, mem.String())
 				}
 
-				if resources.Requests.Cpu().String() != tt.expectedRequestCPU {
-					t.Errorf("%s expected cpu request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitCPU, resources.Requests.Cpu().String())
+				cpu, exists = resources.Requests["cpu"]
+				if tt.expectedRequestCPU == absent && exists {
+					t.Errorf("expected cpu request to not exist")
+				} else if tt.expectedRequestCPU != absent && cpu.String() != tt.expectedRequestCPU {
+					t.Errorf("expected cpu request mismatch: wanted %s, got %s", tt.expectedRequestCPU, cpu.String())
 				}
 
-				if resources.Requests.Memory().String() != tt.expectedRequestMem {
-					t.Errorf("%s expected mem request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitMem, resources.Requests.Memory().String())
+				mem, exists = resources.Requests["memory"]
+				if tt.expectedRequestMem == absent && exists {
+					t.Errorf("expected mem limit to not exist")
+				} else if tt.expectedRequestMem != absent && mem.String() != tt.expectedRequestMem {
+					t.Errorf("expected mem request mismatch: wanted %s, got %s", tt.expectedRequestMem, mem.String())
 				}
 			}
 		})
@@ -536,67 +565,289 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 }
 
 func TestContainerSidecarSecurityContext(t *testing.T) {
+	type startupOptions struct {
+		runAsUser                int64
+		runAsGroup               int64
+		runAsSameUser            bool
+		readOnlyRoot             bool
+		setSecurityContext       bool
+		allowPrivilegeEscalation bool
+		capabilities             []string
+	}
 	tests := []struct {
-		name                 string
-		runAsUser            int
-		runAsGroup           int
-		expectedRunAsUser    int64
-		expectedRunAsGroup   int64
-		expectedRunAsNonRoot bool
+		name                    string
+		startup                 startupOptions
+		annotations             map[string]string
+		appSCC                  *corev1.SecurityContext
+		expectedSecurityContext *corev1.SecurityContext
 	}{
 		{
-			name:                 "Defaults",
-			runAsUser:            DefaultAgentRunAsUser,
-			runAsGroup:           DefaultAgentRunAsGroup,
-			expectedRunAsUser:    DefaultAgentRunAsUser,
-			expectedRunAsGroup:   DefaultAgentRunAsGroup,
-			expectedRunAsNonRoot: true,
+			name: "Runtime defaults, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{},
+			appSCC:      nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(DefaultAgentRunAsUser),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
 		},
 		{
-			name:                 "non-root user and non-root group",
-			runAsUser:            1001,
-			runAsGroup:           1001,
-			expectedRunAsUser:    1001,
-			expectedRunAsGroup:   1001,
-			expectedRunAsNonRoot: true,
+			name: "Runtime defaults, non-root user and group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "1001",
+				AnnotationAgentRunAsGroup: "1001",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(1001),
+				RunAsGroup:             pointerutil.Int64Ptr(1001),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
 		},
 		{
-			name:                 "root user and group",
-			runAsUser:            0,
-			runAsGroup:           0,
-			expectedRunAsUser:    0,
-			expectedRunAsGroup:   0,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, root user and group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
 		},
 		{
-			name:                 "root user and non-root group",
-			runAsUser:            0,
-			runAsGroup:           100,
-			expectedRunAsUser:    0,
-			expectedRunAsGroup:   100,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, root user and non-root group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "0",
+				AnnotationAgentRunAsGroup: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(0),
+				RunAsGroup:             pointerutil.Int64Ptr(100),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
 		},
 		{
-			name:                 "non-root user and root group",
-			runAsUser:            100,
-			runAsGroup:           0,
-			expectedRunAsUser:    100,
-			expectedRunAsGroup:   0,
-			expectedRunAsNonRoot: false,
+			name: "Runtime defaults, non-root user and root group annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:  "100",
+				AnnotationAgentRunAsGroup: "0",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(0),
+				RunAsNonRoot:           pointerutil.BoolPtr(false),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime no security context, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations:             map[string]string{},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime no security context, but user annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       false,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser: "100",
+			},
+			appSCC: nil,
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(100),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, but user annotation with no security context",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsUser:          "100",
+				AnnotationAgentSetSecurityContext: "false",
+			},
+			appSCC:                  nil,
+			expectedSecurityContext: nil,
+		},
+		{
+			name: "Runtime sameAsUser, no annotations",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            true,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
+		},
+		{
+			name: "Runtime defaults, sameAsUser annotation",
+			startup: startupOptions{
+				runAsUser:                DefaultAgentRunAsUser,
+				runAsGroup:               DefaultAgentRunAsGroup,
+				runAsSameUser:            DefaultAgentRunAsSameUser,
+				setSecurityContext:       DefaultAgentSetSecurityContext,
+				readOnlyRoot:             DefaultAgentReadOnlyRoot,
+				allowPrivilegeEscalation: DefaultAgentAllowPrivilegeEscalation,
+				capabilities:             []string{DefaultAgentDropCapabilities},
+			},
+			annotations: map[string]string{
+				AnnotationAgentRunAsSameUser: "true",
+			},
+			appSCC: &corev1.SecurityContext{
+				RunAsUser: pointerutil.Int64Ptr(123456),
+			},
+			expectedSecurityContext: &corev1.SecurityContext{
+				RunAsUser:              pointerutil.Int64Ptr(123456),
+				RunAsGroup:             pointerutil.Int64Ptr(DefaultAgentRunAsGroup),
+				RunAsNonRoot:           pointerutil.BoolPtr(true),
+				ReadOnlyRootFilesystem: pointerutil.BoolPtr(DefaultAgentReadOnlyRoot),
+				Capabilities: &corev1.Capabilities{
+					Drop: []corev1.Capability{DefaultAgentDropCapabilities},
+				},
+				AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			annotations := map[string]string{
-				AnnotationVaultRole:       "foobar",
-				AnnotationAgentRunAsUser:  strconv.Itoa(tt.runAsUser),
-				AnnotationAgentRunAsGroup: strconv.Itoa(tt.runAsGroup),
+			agentConfig := AgentConfig{
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             strconv.FormatInt(tt.startup.runAsUser, 10),
+				GroupID:            strconv.FormatInt(tt.startup.runAsGroup, 10),
+				SetSecurityContext: tt.startup.setSecurityContext,
+				SameID:             tt.startup.runAsSameUser,
 			}
-			pod := testPod(annotations)
+
+			tt.annotations[AnnotationVaultRole] = "foobar"
+			pod := testPod(tt.annotations)
+			pod.Spec.Containers[0].SecurityContext = tt.appSCC
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100"})
+			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -611,15 +862,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			if *container.SecurityContext.RunAsUser != tt.expectedRunAsUser {
-				t.Errorf("expected RunAsUser mismatch: wanted %d, got %d", tt.expectedRunAsUser, *container.SecurityContext.RunAsUser)
-			}
-			if *container.SecurityContext.RunAsGroup != tt.expectedRunAsGroup {
-				t.Errorf("expected RunAsGroup mismatch: wanted %d, got %d", tt.expectedRunAsGroup, *container.SecurityContext.RunAsGroup)
-			}
-			if *container.SecurityContext.RunAsNonRoot != tt.expectedRunAsNonRoot {
-				t.Errorf("expected RunAsNonRoot mismatch: wanted %t, got %t", tt.expectedRunAsNonRoot, *container.SecurityContext.RunAsNonRoot)
-			}
+			require.Equal(t, tt.expectedSecurityContext, container.SecurityContext)
 		})
 	}
 }
