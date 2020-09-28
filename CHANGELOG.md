@@ -2,6 +2,7 @@
 
 Features:
 * Added `extra-secret` annotation for mounting kube-secrets: [GH-119](https://github.com/hashicorp/vault-k8s/pull/119)
+* Added UBI container image: [GH-183](https://github.com/hashicorp/vault-k8s/pull/183)
 
 Improvements:
 * Resource limits and requests can be disabled via annotation: [GH-174](https://github.com/hashicorp/vault-k8s/pull/174)
