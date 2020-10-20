@@ -12,6 +12,8 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
 ARG VERSION
 ARG LOCATION
 
+# Additional metadata labels used by container registries, platforms
+# and certification scanners.
 LABEL name="Vault K8s" \
       maintainer="Vault Team <vault@hashicorp.com>" \
       vendor="HashiCorp" \

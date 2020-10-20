@@ -12,6 +12,8 @@ FROM alpine:latest
 ARG VERSION
 ARG LOCATION
 
+# Additional metadata labels used by container registries, platforms
+# and certification scanners.
 LABEL name="Vault K8s" \
       maintainer="Vault Team <vault@hashicorp.com>" \
       vendor="HashiCorp" \
