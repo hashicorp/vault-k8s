@@ -22,6 +22,8 @@ LABEL name="Vault K8s" \
 
 # Set ARGs as ENV so that they can be used in ENTRYPOINT/CMD
 ENV VERSION=$VERSION
+
+# This is the location of the releases.
 ENV LOCATION=$LOCATION
 
 # Copy license for Red Hat certification.
