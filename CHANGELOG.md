@@ -1,4 +1,4 @@
-## Unreleased
+## 0.6.0 (October 20, 2020)
 
 Features:
 * Added `extra-secret` annotation for mounting kube-secrets: [GH-119](https://github.com/hashicorp/vault-k8s/pull/119)
