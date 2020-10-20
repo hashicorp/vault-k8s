@@ -12,14 +12,23 @@ FROM alpine:latest
 ARG VERSION
 ARG LOCATION
 
-LABEL maintainer="Vault Team <vault@hashicorp.com>"
-LABEL version=$VERSION
+# Additional metadata labels used by container registries, platforms
+# and certification scanners.
+LABEL name="Vault K8s" \
+      maintainer="Vault Team <vault@hashicorp.com>" \
+      vendor="HashiCorp" \
+      version=$VERSION \
+      release=$VERSION \
+      summary="The Vault-K8s binary includes first-class integrations between Vault and Kubernetes." \
+      description="Vault-K8s includes first-class integrations between Vault and Kuberentes. Integrations include the Vault Agent Injector mutating admission webhook."
 
 # Set ARGs as ENV so that they can be used in ENTRYPOINT/CMD
 ENV VERSION=$VERSION
 
 # This is the location of the releases.
 ENV LOCATION=$LOCATION
+
+COPY LICENSE /licenses/mozilla.txt
 
 # Create a non-root user to run the software.
 RUN addgroup vault && \
