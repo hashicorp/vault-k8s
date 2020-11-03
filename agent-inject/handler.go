@@ -35,15 +35,17 @@ var (
 type Handler struct {
 	// RequireAnnotation means that the annotation must be given to inject.
 	// If this is false, injection is default.
-	RequireAnnotation bool
-	VaultAddress      string
-	VaultAuthPath     string
-	ImageVault        string
-	Clientset         *kubernetes.Clientset
-	Log               hclog.Logger
-	RevokeOnShutdown  bool
-	UserID            string
-	GroupID           string
+	RequireAnnotation  bool
+	VaultAddress       string
+	VaultAuthPath      string
+	ImageVault         string
+	Clientset          *kubernetes.Clientset
+	Log                hclog.Logger
+	RevokeOnShutdown   bool
+	UserID             string
+	GroupID            string
+	SameID             bool
+	SetSecurityContext bool
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -139,13 +141,15 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
 	cfg := agent.AgentConfig{
-		Image:            h.ImageVault,
-		Address:          h.VaultAddress,
-		AuthPath:         h.VaultAuthPath,
-		Namespace:        req.Namespace,
-		RevokeOnShutdown: h.RevokeOnShutdown,
-		UserID:           h.UserID,
-		GroupID:          h.GroupID,
+		Image:              h.ImageVault,
+		Address:            h.VaultAddress,
+		AuthPath:           h.VaultAuthPath,
+		Namespace:          req.Namespace,
+		RevokeOnShutdown:   h.RevokeOnShutdown,
+		UserID:             h.UserID,
+		GroupID:            h.GroupID,
+		SameID:             h.SameID,
+		SetSecurityContext: h.SetSecurityContext,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

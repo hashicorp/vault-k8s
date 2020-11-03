@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"time"
 )
 
@@ -21,7 +22,9 @@ type Config struct {
 	ExitAfterAuth bool         `json:"exit_after_auth"`
 	PidFile       string       `json:"pid_file"`
 	Vault         *VaultConfig `json:"vault"`
-	Templates     []*Template  `json:"template"`
+	Templates     []*Template  `json:"template,omitempty"`
+	Listener      []*Listener  `json:"listener,omitempty"`
+	Cache         *Cache       `json:"cache,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -73,6 +76,18 @@ type Template struct {
 	Command        string `json:"command,omitempty"`
 }
 
+// Listener defines the configuration for Vault Agent Cache Listener
+type Listener struct {
+	Type       string `json:"type"`
+	Address    string `json:"address"`
+	TLSDisable bool   `json:"tls_disable"`
+}
+
+// Cache defines the configuration for the Vault Agent Cache
+type Cache struct {
+	UseAuthAuthToken string `json:"use_auto_auth_token"`
+}
+
 func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
@@ -81,9 +96,14 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			template = fmt.Sprintf(DefaultTemplate, secret.Path)
 		}
 
+		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
+		if secret.FilePathAndName != "" {
+			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
+		}
+
 		tmpl := &Template{
 			Contents:    template,
-			Destination: fmt.Sprintf("%s/%s", secret.MountPath, secret.Name),
+			Destination: filePathAndName,
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,
@@ -125,6 +145,19 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+	}
+
+	if a.VaultAgentCache.Enable && !init {
+		config.Listener = []*Listener{
+			{
+				Type:       "tcp",
+				Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
+				TLSDisable: true,
+			},
+		}
+		config.Cache = &Cache{
+			UseAuthAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+		}
 	}
 
 	return config.render()

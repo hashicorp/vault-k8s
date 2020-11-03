@@ -5,10 +5,10 @@
 # We don't rebuild the software because we want the exact checksums and
 # binary signatures to match the software and our builds aren't fully
 # reproducible currently.
-FROM alpine:latest
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
 
 # NAME and VERSION are the name of the software in releases.hashicorp.com
-# and the version to download. Example: NAME=consul VERSION=1.2.3.
+# and the version to download.
 ARG VERSION
 ARG LOCATION
 
@@ -28,15 +28,12 @@ ENV VERSION=$VERSION
 # This is the location of the releases.
 ENV LOCATION=$LOCATION
 
+# Copy license for Red Hat certification.
 COPY LICENSE /licenses/mozilla.txt
-
-# Create a non-root user to run the software.
-RUN addgroup vault && \
-    adduser -S -G vault vault
 
 # Set up certificates, base tools, and software.
 RUN set -eux && \
-    apk add --no-cache ca-certificates curl gnupg libcap openssl su-exec iputils && \
+    microdnf install -y ca-certificates gnupg openssl tzdata wget unzip procps shadow-utils && \
     BUILD_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
     found=''; \
     for server in \
@@ -50,24 +47,22 @@ RUN set -eux && \
     test -z "$found" && echo >&2 "error: failed to fetch GPG key $BUILD_GPGKEY" && exit 1; \
     mkdir -p /tmp/build && \
     cd /tmp/build && \
-    apkArch="$(apk --print-arch)" && \
-    case "${apkArch}" in \
-        aarch64) ARCH='arm64' ;; \
-        armhf) ARCH='arm' ;; \
-        x86) ARCH='386' ;; \
-        x86_64) ARCH='amd64' ;; \
-        *) echo >&2 "error: unsupported architecture: ${apkArch} (see ${LOCATION}/${NAME}/${VERSION}/)" && exit 1 ;; \
-    esac && \
-    wget ${LOCATION}/vault-k8s/${VERSION}/vault-k8s_${VERSION}_linux_${ARCH}.zip && \
+    wget ${LOCATION}/vault-k8s/${VERSION}/vault-k8s_${VERSION}_linux_amd64.zip && \
     wget ${LOCATION}/vault-k8s/${VERSION}/vault-k8s_${VERSION}_SHA256SUMS && \
     wget ${LOCATION}/vault-k8s/${VERSION}/vault-k8s_${VERSION}_SHA256SUMS.sig && \
     gpg --batch --verify vault-k8s_${VERSION}_SHA256SUMS.sig vault-k8s_${VERSION}_SHA256SUMS && \
-    grep vault-k8s_${VERSION}_linux_${ARCH}.zip vault-k8s_${VERSION}_SHA256SUMS | sha256sum -c && \
-    unzip -d /bin vault-k8s_${VERSION}_linux_${ARCH}.zip && \
+    grep vault-k8s_${VERSION}_linux_amd64.zip vault-k8s_${VERSION}_SHA256SUMS | sha256sum -c && \
+    unzip -d /bin vault-k8s_${VERSION}_linux_amd64.zip && \
     cd /tmp && \
     rm -rf /tmp/build && \
-    apk del gnupg openssl && \
+    gpgconf --kill dirmngr && \
+    gpgconf --kill gpg-agent && \
     rm -rf /root/.gnupg
 
-USER vault
+# Create a non-root user to run the software.
+RUN groupadd --gid 1000 vault && \
+    adduser --uid 100 --system -g vault vault && \
+    usermod -a -G root vault
+
+USER 100
 ENTRYPOINT ["/bin/vault-k8s"]

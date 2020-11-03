@@ -1,7 +1,33 @@
 ## Unreleased
 
 Features:
+* Added UBI container image: [GH-183](https://github.com/hashicorp/vault-k8s/pull/183)
+
+## 0.6.0 (October 20, 2020)
+
+Features:
+* Added `extra-secret` annotation for mounting kube-secrets: [GH-119](https://github.com/hashicorp/vault-k8s/pull/119)
+
+Improvements:
+* Resource limits and requests can be disabled via annotation: [GH-174](https://github.com/hashicorp/vault-k8s/pull/174)
+
+## 0.5.0 (August 24, 2020)
+
+Features:
+* Added annotations to configure agent caching/listener: [GH-132](https://github.com/hashicorp/vault-k8s/pull/132)
+* Added annotation for specifying filenames and paths within the secrets volume: [GH-158](https://github.com/hashicorp/vault-k8s/pull/158)
+* Added prometheus telemetry support: [GH-145](https://github.com/hashicorp/vault-k8s/pull/145)
+
+Improvements:
+* Injected agents are now configured with `readOnlyRootFilesystem: true`: [GH-142](https://github.com/hashicorp/vault-k8s/pull/142)
+* Added additional security contexts for better integration with restrictive PSPs: [GH-153](https://github.com/hashicorp/vault-k8s/pull/153)
+* Added unique token volumes for init/sidecar: [GH-170](https://github.com/hashicorp/vault-k8s/pull/170)
+
+## 0.4.0 (June 2, 2020)
+
+Features:
 * Added annotations/envs to change the UID and GID of the Vault Agent process: [GH-60](https://github.com/hashicorp/vault-k8s/pull/60)
+* Added command-line options, annotations, and envs for `run-as-same-user` and `set-security-context`: [GH-131](https://github.com/hashicorp/vault-k8s/pull/131)
 
 Improvements:
 

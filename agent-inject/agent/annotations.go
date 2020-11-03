@@ -27,11 +27,21 @@ const (
 	// path in Vault where the secret is located.
 	AnnotationAgentInjectSecret = "vault.hashicorp.com/agent-inject-secret"
 
+	// AnnotationAgentInjectFile is the key of the annotation that contains the
+	// name (and optional path) of the file to create on disk. The name of the
+	// secret is the string after "vault.hashicorp.com/agent-inject-file-", and
+	// should map to the same unique value provided in
+	// "vault.hashicorp.com/agent-inject-secret-". The value is the filename and
+	// path in the secrets volume where the vault secret will be written. The
+	// container mount path of the secrets volume may be modified with the
+	// secret-volume-path annotation.
+	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
+
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-",
 	// such as "vault.hashicorp.com/agent-inject-template-foobar".  This should map
-	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
@@ -42,7 +52,7 @@ const (
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
 	// to run a command after the secret is rendered. The name of the template is any
 	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
-	// to the same unique value provided in ""vault.hashicorp.com/agent-inject-secret-".
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided (the default), no command is executed.
 	AnnotationAgentInjectCommand = "vault.hashicorp.com/agent-inject-command"
 
@@ -70,6 +80,10 @@ const (
 	// AnnotationAgentConfigMap is the name of the configuration map where Vault Agent
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
+
+	// AnnotationAgentExtraSecret is the name of a Kubernetes secret that will be mounted
+	// into the Vault agent container so that the agent config can reference secrets.
+	AnnotationAgentExtraSecret = "vault.hashicorp.com/agent-extra-secret"
 
 	// AnnotationAgentLimitsCPU sets the CPU limit on the Vault Agent containers.
 	AnnotationAgentLimitsCPU = "vault.hashicorp.com/agent-limits-cpu"
@@ -100,6 +114,16 @@ const (
 
 	// AnnotationAgentRunAsGroup sets the Group ID to run the Vault Agent containers as.
 	AnnotationAgentRunAsGroup = "vault.hashicorp.com/agent-run-as-group"
+
+	// AnnotationAgentRunAsSameUser sets the User ID of the injected Vault Agent
+	// containers to the User ID of the first application container in the Pod.
+	// Requires Spec.Containers[0].SecurityContext.RunAsUser to be set in the
+	// Pod Spec.
+	AnnotationAgentRunAsSameUser = "vault.hashicorp.com/agent-run-as-same-user"
+
+	// AnnotationAgentSetSecurityContext controls whether a SecurityContext (uid
+	// and gid) is set on the injected Vault Agent containers
+	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
 
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
@@ -156,22 +180,40 @@ const (
 	// AnnotationPreserveSecretCase if enabled will preserve the case of secret name
 	// by default the name is converted to lower case.
 	AnnotationPreserveSecretCase = "vault.hashicorp.com/preserve-secret-case"
+
+	// AnnotationAgentCacheEnable if enabled will configure the sidecar container
+	// to enable agent caching
+	AnnotationAgentCacheEnable = "vault.hashicorp.com/agent-cache-enable"
+
+	// AnnotationAgentCacheUseAutoAuthToken configures the agent cache to use the
+	// auto auth token or not. Can be set to "force" to force usage of the auto-auth token
+	AnnotationAgentCacheUseAutoAuthToken = "vault.hashicorp.com/agent-cache-use-auto-auth-token"
+
+	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
+	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
 )
 
 type AgentConfig struct {
-	Image            string
-	Address          string
-	AuthPath         string
-	Namespace        string
-	RevokeOnShutdown bool
-	UserID           string
-	GroupID          string
+	Image              string
+	Address            string
+	AuthPath           string
+	Namespace          string
+	RevokeOnShutdown   bool
+	UserID             string
+	GroupID            string
+	SameID             bool
+	SetSecurityContext bool
 }
 
 // Init configures the expected annotations required to create a new instance
 // of Agent.  This should be run before running new to ensure all annotations are
 // present.
 func Init(pod *corev1.Pod, cfg AgentConfig) error {
+	var securityContextIsSet bool
+	var runAsUserIsSet bool
+	var runAsSameUserIsSet bool
+	var runAsGroupIsSet bool
+
 	if pod == nil {
 		return errors.New("pod is empty")
 	}
@@ -243,29 +285,60 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !ok {
+	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(cfg.SetSecurityContext)
+	}
+
+	if _, runAsUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser]; !runAsUserIsSet {
+
 		if cfg.UserID == "" {
 			cfg.UserID = strconv.Itoa(DefaultAgentRunAsUser)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsUser] = cfg.UserID
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !ok {
+	if _, runAsSameUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser]; !runAsSameUserIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser] = strconv.FormatBool(cfg.SameID)
+	}
+
+	if _, runAsGroupIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !runAsGroupIsSet {
 		if cfg.GroupID == "" {
 			cfg.GroupID = strconv.Itoa(DefaultAgentRunAsGroup)
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup] = cfg.GroupID
 	}
 
+	// If the SetSecurityContext startup option is false, and the analogous
+	// annotation isn't set, but one of the user or group annotations is set,
+	// flip SetSecurityContext to true so that the user and group options are
+	// set in the containers.
+	if !cfg.SetSecurityContext && !securityContextIsSet && (runAsUserIsSet || runAsSameUserIsSet || runAsGroupIsSet) {
+		pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext] = strconv.FormatBool(true)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheEnable] = DefaultAgentCacheEnable
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheListenerPort] = DefaultAgentCacheListenerPort
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
+	}
+
 	return nil
 }
 
 // secrets parses annotations with the pattern "vault.hashicorp.com/agent-inject-secret-".
-// Everything following the final dash becomes the name of the secret,
-// and the value is the path in Vault.
+// Everything following the final dash becomes the name of the secret, and the
+// value is the path in Vault. This method also matches and returns the
+// Template, Command, and FilePathAndName settings from annotations associated
+// with a secret name.
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
-// name: foobar, value: db/creds/foobar
+// Name: foobar, Path: db/creds/foobar
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
@@ -288,28 +361,30 @@ func (a *Agent) secrets() []*Secret {
 				continue
 			}
 
-			var template string
+			s := &Secret{Name: name, Path: path}
+
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
-
 			if val, ok := a.Annotations[templateName]; ok {
-				template = val
+				s.Template = val
 			}
 
-			mountPath := a.Annotations[AnnotationVaultSecretVolumePath]
+			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
 			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
-
 			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
-				mountPath = val
+				s.MountPath = val
 			}
 
-			var command string
 			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
-
 			if val, ok := a.Annotations[commandName]; ok {
-				command = val
+				s.Command = val
 			}
 
-			secrets = append(secrets, &Secret{Name: name, Path: path, Template: template, Command: command, MountPath: mountPath})
+			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
+			if val, ok := a.Annotations[file]; ok {
+				s.FilePathAndName = val
+			}
+
+			secrets = append(secrets, s)
 		}
 	}
 	return secrets
@@ -392,5 +467,50 @@ func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 			return false, nil
 		}
 	}
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentRunAsSameUser]
+	if !ok {
+		return DefaultAgentRunAsSameUser, nil
+	}
+	runAsSameID, err := strconv.ParseBool(raw)
+	if err != nil {
+		return DefaultAgentRunAsSameUser, err
+	}
+	if runAsSameID {
+		if len(pod.Spec.Containers) == 0 {
+			return DefaultAgentRunAsSameUser, errors.New("No containers found in Pod Spec")
+		}
+		if pod.Spec.Containers[0].SecurityContext == nil {
+			return DefaultAgentRunAsSameUser, errors.New("No SecurityContext found for Container 0")
+		}
+		if pod.Spec.Containers[0].SecurityContext.RunAsUser == nil {
+			return DefaultAgentRunAsSameUser, errors.New("RunAsUser is nil for Container 0's SecurityContext")
+		}
+		if *pod.Spec.Containers[0].SecurityContext.RunAsUser == 0 {
+			return DefaultAgentRunAsSameUser, errors.New("container not allowed to run as root")
+		}
+		a.RunAsUser = *pod.Spec.Containers[0].SecurityContext.RunAsUser
+	}
+	return runAsSameID, nil
+}
+
+func (a *Agent) setSecurityContext() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentSetSecurityContext]
+	if !ok {
+		return DefaultAgentSetSecurityContext, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) agentCacheEnable() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
+	if !ok {
+		return false, nil
+	}
+
 	return strconv.ParseBool(raw)
 }
