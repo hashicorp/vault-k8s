@@ -11,10 +11,10 @@ import (
 
 const (
 	// https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
-	DefaultResourceLimitCPU   = "500m"
-	DefaultResourceLimitMem   = "128Mi"
-	DefaultResourceRequestCPU = "250m"
-	DefaultResourceRequestMem = "64Mi"
+	DefaultResourceLimitCPU   = "200m"
+	DefaultResourceLimitMem   = "64Mi"
+	DefaultResourceRequestCPU = "100m"
+	DefaultResourceRequestMem = "32Mi"
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
