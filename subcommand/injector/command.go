@@ -19,6 +19,7 @@ import (
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/mitchellh/cli"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -42,6 +43,7 @@ type Command struct {
 	flagRunAsGroup         string // Group (gid) to run Vault agent as
 	flagRunAsSameUser      bool   // Run Vault agent as the User (uid) of the first application container
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
+	flagTelemetryPath      string // Path under which to expose metrics
 
 	flagSet *flag.FlagSet
 
@@ -131,6 +133,13 @@ func (c *Command) Run(args []string) int {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
+
+	// Registering path to expose metrics
+	if c.flagTelemetryPath != "" {
+		c.UI.Info(fmt.Sprintf("Registering telemetry path on %q", c.flagTelemetryPath))
+		mux.Handle(c.flagTelemetryPath, promhttp.Handler())
+	}
+
 	var handler http.Handler = mux
 	server := &http.Server{
 		Addr:      c.flagListen,

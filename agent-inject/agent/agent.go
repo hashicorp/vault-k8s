@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.4.2"
+	DefaultVaultImage                    = "vault:1.5.4"
 	DefaultVaultAuthPath                 = "auth/kubernetes"
 	DefaultAgentRunAsUser                = 100
 	DefaultAgentRunAsGroup               = 1000
@@ -123,6 +123,10 @@ type Agent struct {
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
 	SetSecurityContext bool
+
+	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
+	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
+	ExtraSecret string
 
 	// AwsIamTokenAccountName is the aws iam volume mount name for the pod.
 	// Need this for IRSA aka pod identity
@@ -237,9 +241,10 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		RequestsMem:            pod.Annotations[AnnotationAgentRequestsMem],
 		ServiceAccountName:     saName,
 		ServiceAccountPath:     saPath,
+		Status:                 pod.Annotations[AnnotationAgentStatus],
+		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
 		AwsIamTokenAccountName: iamName,
 		AwsIamTokenAccountPath: iamPath,
-		Status:                 pod.Annotations[AnnotationAgentStatus],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
@@ -369,7 +374,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// Add a volume for the token sink
 	a.Patches = append(a.Patches, addVolumes(
 		a.Pod.Spec.Volumes,
-		[]corev1.Volume{a.ContainerTokenVolume()},
+		a.ContainerTokenVolume(),
 		"/spec/volumes")...)
 
 	// Add our volume that will be shared by the containers
@@ -384,6 +389,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
+			"/spec/volumes")...)
+	}
+
+	// Add ExtraSecret if one was provided
+	if a.ExtraSecret != "" {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.ContainerExtraSecretVolume()},
 			"/spec/volumes")...)
 	}
 

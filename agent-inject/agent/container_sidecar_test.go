@@ -28,6 +28,9 @@ func TestContainerSidecarVolume(t *testing.T) {
 		AnnotationVaultSecretVolumePath: "/etc/default_path",
 
 		fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "secret3"): "secret/secret3",
+
+		// Test adding an extra secret from Kube secrets for reference by Agent config
+		fmt.Sprintf("%s", AnnotationAgentExtraSecret): "extrasecret",
 	}
 
 	pod := testPod(annotations)
@@ -46,13 +49,13 @@ func TestContainerSidecarVolume(t *testing.T) {
 	container, err := agent.ContainerSidecar()
 
 	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 4, len(container.VolumeMounts))
+	require.Equal(t, 5, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
@@ -70,6 +73,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
+			},
+			corev1.VolumeMount{
+				Name:      extraSecretVolumeName,
+				MountPath: extraSecretVolumePath,
+				ReadOnly:  true,
 			},
 		},
 		container.VolumeMounts,
@@ -117,7 +125,7 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
@@ -331,6 +339,8 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 }
 
 func TestContainerSidecarCustomResources(t *testing.T) {
+	absent := "absent"
+
 	tests := []struct {
 		name               string
 		agent              Agent
@@ -404,6 +414,20 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "",
 			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid 0",
+			agent: Agent{
+				LimitsCPU:   "0",
+				LimitsMem:   "0",
+				RequestsCPU: "0",
+				RequestsMem: "0",
+			},
 			expectedLimitCPU:   "0",
 			expectedLimitMem:   "0",
 			expectedRequestCPU: "0",
@@ -420,8 +444,8 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128m",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -432,8 +456,8 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "250Mi",
 				RequestsMem: "64m",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64m",
 			expectedErr:        false,
@@ -447,9 +471,9 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsMem: "",
 			},
 			expectedLimitCPU:   "500Mi",
-			expectedLimitMem:   "0",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -460,10 +484,10 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "",
 			},
-			expectedLimitCPU:   "0",
+			expectedLimitCPU:   absent,
 			expectedLimitMem:   "128m",
-			expectedRequestCPU: "0",
-			expectedRequestMem: "0",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -474,10 +498,10 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "500Mi",
 				RequestsMem: "",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
 			expectedRequestCPU: "500Mi",
-			expectedRequestMem: "0",
+			expectedRequestMem: absent,
 			expectedErr:        false,
 		},
 		{
@@ -488,9 +512,9 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 				RequestsCPU: "",
 				RequestsMem: "128m",
 			},
-			expectedLimitCPU:   "0",
-			expectedLimitMem:   "0",
-			expectedRequestCPU: "0",
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedRequestCPU: absent,
 			expectedRequestMem: "128m",
 			expectedErr:        false,
 		},
@@ -578,20 +602,32 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 			}
 
 			if !tt.expectedErr {
-				if resources.Limits.Cpu().String() != tt.expectedLimitCPU {
-					t.Errorf("expected cpu limit mismatch: wanted %s, got %s", tt.expectedLimitCPU, resources.Limits.Cpu().String())
+				cpu, exists := resources.Limits["cpu"]
+				if tt.expectedLimitCPU == absent && exists {
+					t.Errorf("expected cpu limit to not exist")
+				} else if tt.expectedLimitCPU != absent && cpu.String() != tt.expectedLimitCPU {
+					t.Errorf("expected cpu limit mismatch: wanted %s, got %s", tt.expectedLimitCPU, cpu.String())
 				}
 
-				if resources.Limits.Memory().String() != tt.expectedLimitMem {
-					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, resources.Limits.Memory().String())
+				mem, exists := resources.Limits["memory"]
+				if tt.expectedLimitMem == absent && exists {
+					t.Errorf("expected mem limit to not exist")
+				} else if tt.expectedLimitMem != absent && mem.String() != tt.expectedLimitMem {
+					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, mem.String())
 				}
 
-				if resources.Requests.Cpu().String() != tt.expectedRequestCPU {
-					t.Errorf("%s expected cpu request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitCPU, resources.Requests.Cpu().String())
+				cpu, exists = resources.Requests["cpu"]
+				if tt.expectedRequestCPU == absent && exists {
+					t.Errorf("expected cpu request to not exist")
+				} else if tt.expectedRequestCPU != absent && cpu.String() != tt.expectedRequestCPU {
+					t.Errorf("expected cpu request mismatch: wanted %s, got %s", tt.expectedRequestCPU, cpu.String())
 				}
 
-				if resources.Requests.Memory().String() != tt.expectedRequestMem {
-					t.Errorf("%s expected mem request mismatch: wanted %s, got %s", tt.name, tt.expectedLimitMem, resources.Requests.Memory().String())
+				mem, exists = resources.Requests["memory"]
+				if tt.expectedRequestMem == absent && exists {
+					t.Errorf("expected mem limit to not exist")
+				} else if tt.expectedRequestMem != absent && mem.String() != tt.expectedRequestMem {
+					t.Errorf("expected mem request mismatch: wanted %s, got %s", tt.expectedRequestMem, mem.String())
 				}
 			}
 		})

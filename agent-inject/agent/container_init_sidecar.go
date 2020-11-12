@@ -17,7 +17,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	if a.AwsIamTokenAccountName == "" || a.AwsIamTokenAccountPath == "" {
 		volumeMounts = []corev1.VolumeMount{
 			{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameInit,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
@@ -30,7 +30,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	} else {
 		volumeMounts = []corev1.VolumeMount{
 			{
-				Name:      tokenVolumeName,
+				Name:      tokenVolumeNameInit,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
@@ -48,6 +48,14 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		}
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
+
+	if a.ExtraSecret != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      extraSecretVolumeName,
+			MountPath: extraSecretVolumePath,
+			ReadOnly:  true,
+		})
+	}
 
 	arg := DefaultContainerArg
 

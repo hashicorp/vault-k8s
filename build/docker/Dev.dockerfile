@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-ARG VERSION=0.3.0
+ARG VERSION=0.6.0
 
 RUN addgroup vault && \
     adduser -S -G vault vault
