@@ -17,6 +17,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/vault-k8s/leader"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // GenSource generates a self-signed CA and certificate pair.
@@ -43,6 +48,9 @@ type GenSource struct {
 	caCert         []byte
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
+
+	K8sClient *kubernetes.Clientset
+	// TODO(tvoran): add secret informer here
 }
 
 // Certificate implements source
@@ -50,6 +58,17 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var result Bundle
+
+	// For followers, run different function here that reads bundle from Secret,
+	// and returns that in the result. That will flow through the existing
+	// notify channel structure, testing if it's the same cert as last, etc.
+	leaderCheck, err := leader.IsLeader()
+	if err != nil {
+		return result, err
+	}
+	if !leaderCheck {
+		return s.getBundleFromSecret()
+	}
 
 	// If we have no CA, generate it for the first time.
 	if len(s.caCert) == 0 {
@@ -92,9 +111,37 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	if err == nil {
 		result.Cert = []byte(cert)
 		result.Key = []byte(key)
+
+		_, err = s.K8sClient.CoreV1().Secrets("vault").Update(&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "certs",
+			},
+			Data: map[string][]byte{
+				"ca":   result.CACert,
+				"cert": result.Cert,
+				"key":  result.Key,
+			},
+		})
+		if err != nil {
+			return result, fmt.Errorf("failed to create secret: %s", err)
+		}
 	}
 
 	return result, err
+}
+
+func (s *GenSource) getBundleFromSecret() (Bundle, error) {
+	var bundle Bundle
+	// will this work without knowing the namespace? ...nope.
+	secret, err := s.K8sClient.CoreV1().Secrets("vault").Get("certs", metav1.GetOptions{})
+	if err != nil {
+		return bundle, fmt.Errorf("failed to get secret: %s", err)
+	}
+	bundle.CACert = secret.Data["ca"]
+	bundle.Cert = secret.Data["cert"]
+	bundle.Key = secret.Data["key"]
+
+	return bundle, nil
 }
 
 func (s *GenSource) expiry() time.Duration {
@@ -102,7 +149,7 @@ func (s *GenSource) expiry() time.Duration {
 		return s.Expiry
 	}
 
-	return 24 * time.Hour
+	return 1 * time.Minute
 }
 
 func (s *GenSource) expiryWithin() time.Duration {

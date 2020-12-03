@@ -59,6 +59,7 @@ func (n *Notify) Run() {
 		if last.Equal(&next) {
 			continue
 		}
+		log.Println("[DEBUG] notify.run: sending new cert")
 		last = &next
 		// Send the certificate out, but in case it hangs, because
 		// the certificates aren't being pulled off the channel quickly

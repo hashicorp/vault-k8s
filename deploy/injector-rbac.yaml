@@ -38,3 +38,36 @@ subjects:
 - kind: ServiceAccount
   name: vault-injector
   namespace: vault
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-injector-role
+  labels:
+    app.kubernetes.io/name: vault-injector
+    app.kubernetes.io/instance: vault
+rules:
+- apiGroups: [""]
+  resources: ["endpoints", "secrets"]
+  verbs: 
+    - "create"
+    - "get"
+    - "watch"
+    - "list"
+    - "update"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-injector-rolebinding
+  labels:
+    app.kubernetes.io/name: vault-injector
+    app.kubernetes.io/instance: vault
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: vault-injector-role
+subjects:
+- kind: ServiceAccount
+  name: vault-injector
+  namespace: vault
