@@ -91,6 +91,7 @@ func (c *Command) Run(args []string) int {
 		Name:      "Agent Inject",
 		Hosts:     strings.Split(c.flagAutoHosts, ","),
 		K8sClient: clientset,
+		Namespace: getNamespace(),
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -175,6 +176,15 @@ func (c *Command) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func getNamespace() string {
+	namespace := os.Getenv("NAMESPACE")
+	if len(namespace) > 0 {
+		return namespace
+	}
+
+	return "default"
 }
 
 func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {

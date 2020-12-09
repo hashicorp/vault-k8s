@@ -50,6 +50,7 @@ type GenSource struct {
 	caSigner       crypto.Signer
 
 	K8sClient *kubernetes.Clientset
+	Namespace string
 	// TODO(tvoran): add secret informer here
 }
 
@@ -59,13 +60,13 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	defer s.mu.Unlock()
 	var result Bundle
 
-	// For followers, run different function here that reads bundle from Secret,
-	// and returns that in the result. That will flow through the existing
-	// notify channel structure, testing if it's the same cert as last, etc.
 	leaderCheck, err := leader.IsLeader()
 	if err != nil {
 		return result, err
 	}
+	// For followers, run different function here that reads bundle from Secret,
+	// and returns that in the result. That will flow through the existing
+	// notify channel structure, testing if it's the same cert as last, etc.
 	if !leaderCheck {
 		return s.getBundleFromSecret()
 	}
@@ -112,7 +113,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		result.Cert = []byte(cert)
 		result.Key = []byte(key)
 
-		_, err = s.K8sClient.CoreV1().Secrets("vault").Update(&v1.Secret{
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Update(&v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "certs",
 			},
@@ -132,8 +133,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 
 func (s *GenSource) getBundleFromSecret() (Bundle, error) {
 	var bundle Bundle
-	// will this work without knowing the namespace? ...nope.
-	secret, err := s.K8sClient.CoreV1().Secrets("vault").Get("certs", metav1.GetOptions{})
+	secret, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Get("certs", metav1.GetOptions{})
 	if err != nil {
 		return bundle, fmt.Errorf("failed to get secret: %s", err)
 	}
