@@ -20,9 +20,15 @@ import (
 
 	"github.com/hashicorp/vault-k8s/leader"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// Name of the k8s Secret used to share the caBundle between leader and
+// followers
+const certSecretName = "certs"
 
 // GenSource generates a self-signed CA and certificate pair.
 //
@@ -49,9 +55,10 @@ type GenSource struct {
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
 
-	K8sClient *kubernetes.Clientset
-	Namespace string
-	// TODO(tvoran): add secret informer here
+	K8sClient            *kubernetes.Clientset
+	Namespace            string
+	SecretsCache         informerv1.SecretInformer
+	LeaderElectorEnabled bool
 }
 
 // Certificate implements source
@@ -60,15 +67,17 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	defer s.mu.Unlock()
 	var result Bundle
 
-	leaderCheck, err := leader.IsLeader()
-	if err != nil {
-		return result, err
-	}
-	// For followers, run different function here that reads bundle from Secret,
-	// and returns that in the result. That will flow through the existing
-	// notify channel structure, testing if it's the same cert as last, etc.
-	if !leaderCheck {
-		return s.getBundleFromSecret()
+	if s.LeaderElectorEnabled {
+		leaderCheck, err := leader.IsLeader()
+		if err != nil {
+			return result, err
+		}
+		// For followers, run different function here that reads bundle from Secret,
+		// and returns that in the result. That will flow through the existing
+		// notify channel structure, testing if it's the same cert as last, etc.
+		if !leaderCheck {
+			return s.getBundleFromSecret()
+		}
 	}
 
 	// If we have no CA, generate it for the first time.
@@ -113,27 +122,43 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		result.Cert = []byte(cert)
 		result.Key = []byte(key)
 
-		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Update(&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "certs",
-			},
-			Data: map[string][]byte{
-				"ca":   result.CACert,
-				"cert": result.Cert,
-				"key":  result.Key,
-			},
-		})
-		if err != nil {
-			return result, fmt.Errorf("failed to create secret: %s", err)
+		if s.LeaderElectorEnabled {
+			if err := s.updateSecret(result); err != nil {
+				return result, fmt.Errorf("failed to update Secret: %s", err)
+			}
 		}
 	}
 
 	return result, err
 }
 
+func (s *GenSource) updateSecret(bundle Bundle) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: certSecretName,
+		},
+		Data: map[string][]byte{
+			"ca":   bundle.CACert,
+			"cert": bundle.Cert,
+			"key":  bundle.Key,
+		},
+	}
+	// Attempt updating the Secret first, and if it doesn't exist, fallback to
+	// create
+	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(secret)
+	if errors.IsNotFound(err) {
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(secret)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *GenSource) getBundleFromSecret() (Bundle, error) {
 	var bundle Bundle
-	secret, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Get("certs", metav1.GetOptions{})
+
+	secret, err := s.SecretsCache.Lister().Secrets(s.Namespace).Get(certSecretName)
 	if err != nil {
 		return bundle, fmt.Errorf("failed to get secret: %s", err)
 	}
@@ -149,7 +174,7 @@ func (s *GenSource) expiry() time.Duration {
 		return s.Expiry
 	}
 
-	return 1 * time.Minute
+	return 24 * time.Hour
 }
 
 func (s *GenSource) expiryWithin() time.Duration {

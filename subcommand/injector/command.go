@@ -22,8 +22,11 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
+	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 )
 
 type Command struct {
@@ -45,6 +48,7 @@ type Command struct {
 	flagRunAsSameUser      bool   // Run Vault agent as the User (uid) of the first application container
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
 	flagTelemetryPath      string // Path under which to expose metrics
+	flagUseLeaderElector   bool   // Use leader elector code
 
 	flagSet *flag.FlagSet
 
@@ -86,12 +90,26 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	namespace := getNamespace()
+	var secrets informerv1.SecretInformer
+	if c.flagUseLeaderElector {
+		c.UI.Info("using leader elector logic")
+		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
+		secrets = factory.Core().V1().Secrets()
+		go secrets.Informer().Run(ctx.Done())
+		if !cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced) {
+			c.UI.Error("timeout syncing Secrets informer")
+			return 1
+		}
+	}
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
-		Name:      "Agent Inject",
-		Hosts:     strings.Split(c.flagAutoHosts, ","),
-		K8sClient: clientset,
-		Namespace: getNamespace(),
+		Name:                 "Agent Inject",
+		Hosts:                strings.Split(c.flagAutoHosts, ","),
+		K8sClient:            clientset,
+		Namespace:            namespace,
+		SecretsCache:         secrets,
+		LeaderElectorEnabled: c.flagUseLeaderElector,
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
