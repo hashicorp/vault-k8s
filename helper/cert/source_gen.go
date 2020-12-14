@@ -28,7 +28,7 @@ import (
 
 // Name of the k8s Secret used to share the caBundle between leader and
 // followers
-const certSecretName = "certs"
+const certSecretName = "vault-injector-certs"
 
 // GenSource generates a self-signed CA and certificate pair.
 //
@@ -55,7 +55,7 @@ type GenSource struct {
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
 
-	K8sClient            *kubernetes.Clientset
+	K8sClient            kubernetes.Interface
 	Namespace            string
 	SecretsCache         informerv1.SecretInformer
 	LeaderElectorEnabled bool
