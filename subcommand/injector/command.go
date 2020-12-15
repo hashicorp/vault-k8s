@@ -201,7 +201,7 @@ func (c *Command) Run(args []string) int {
 
 func getNamespace() string {
 	namespace := os.Getenv("NAMESPACE")
-	if len(namespace) > 0 {
+	if namespace != "" {
 		return namespace
 	}
 
