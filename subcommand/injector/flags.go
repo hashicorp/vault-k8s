@@ -69,7 +69,7 @@ type Specification struct {
 	// TelemetryPath is the AGENT_INJECT_TELEMETRY_PATH environment variable.
 	TelemetryPath string `split_words:"true"`
 
-	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR
+	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
 	UseLeaderElector string `split_words:"true"`
 }
 
