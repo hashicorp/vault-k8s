@@ -55,10 +55,10 @@ type GenSource struct {
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
 
-	K8sClient            kubernetes.Interface
-	Namespace            string
-	SecretsCache         informerv1.SecretInformer
-	LeaderElectorEnabled bool
+	K8sClient     kubernetes.Interface
+	Namespace     string
+	SecretsCache  informerv1.SecretInformer
+	LeaderElector *leader.LeaderElector
 }
 
 // Certificate implements source
@@ -67,8 +67,8 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	defer s.mu.Unlock()
 	var result Bundle
 
-	if s.LeaderElectorEnabled {
-		leaderCheck, err := leader.IsLeader()
+	if s.LeaderElector != nil {
+		leaderCheck, err := s.LeaderElector.IsLeader()
 		if err != nil {
 			return result, err
 		}
@@ -122,7 +122,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		result.Cert = []byte(cert)
 		result.Key = []byte(key)
 
-		if s.LeaderElectorEnabled {
+		if s.LeaderElector != nil {
 			if err := s.updateSecret(result); err != nil {
 				return result, fmt.Errorf("failed to update Secret: %s", err)
 			}

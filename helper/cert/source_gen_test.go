@@ -2,14 +2,22 @@ package cert
 
 import (
 	"context"
+	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/stretchr/testify/require"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 // hasOpenSSL is used to determine if the openssl CLI exists for unit tests.
@@ -115,4 +123,110 @@ func testBundleVerify(t *testing.T, bundle *Bundle) {
 	output, err := cmd.Output()
 	t.Log(string(output))
 	require.NoError(err)
+}
+
+func TestGenSource_leader(t *testing.T) {
+
+	if !hasOpenSSL {
+		t.Skip("openssl not found")
+		return
+	}
+
+	// Generate the bundle
+	source := testGenSource()
+
+	// Setup test leader service returning this host as the leader
+	ts := testLeaderServer(t, testGetHostname(t))
+	defer ts.Close()
+	source.LeaderElector = leader.NewWithURL(ts.URL)
+
+	source.Namespace = "default"
+	source.K8sClient = fake.NewSimpleClientset()
+	bundle, err := source.Certificate(context.Background(), nil)
+	require.NoError(t, err)
+	testBundleVerify(t, &bundle)
+
+	// check that the Secret has been created
+	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(certSecretName, metav1.GetOptions{})
+	require.NoError(t, err)
+	secretBundle := Bundle{
+		CACert: checkSecret.Data["ca"],
+		Cert:   checkSecret.Data["cert"],
+		Key:    checkSecret.Data["key"],
+	}
+	require.True(t, bundle.Equal(&secretBundle))
+}
+
+func TestGenSource_follower(t *testing.T) {
+
+	if !hasOpenSSL {
+		t.Skip("openssl not found")
+		return
+	}
+
+	// Generate the bundle
+	source := testGenSource()
+
+	// Setup a leader elector service that returns a different hostname, so it
+	// thinks we're the follower
+	ts := testLeaderServer(t, testGetHostname(t)+"not it")
+	defer ts.Close()
+	source.LeaderElector = leader.NewWithURL(ts.URL)
+
+	// Setup the k8s client with a Secret for a follower to pick up
+	source.Namespace = "default"
+	secretBundle := testBundle(t)
+	source.K8sClient = fake.NewSimpleClientset(&v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      certSecretName,
+			Namespace: source.Namespace,
+		},
+		Data: map[string][]byte{
+			"ca":   secretBundle.CACert,
+			"cert": secretBundle.Cert,
+			"key":  secretBundle.Key,
+		},
+	})
+
+	// setup a Secret informer cache with the fake clientset for followers to use
+	factory := informers.NewSharedInformerFactoryWithOptions(source.K8sClient, 0, informers.WithNamespace(source.Namespace))
+	secrets := factory.Core().V1().Secrets()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go secrets.Informer().Run(ctx.Done())
+	source.SecretsCache = secrets
+
+	bundle, err := source.Certificate(ctx, nil)
+	require.NoError(t, err)
+	testBundleVerify(t, &bundle)
+	require.True(t, bundle.Equal(secretBundle),
+		"bundle returned from source.Certificate() should have matched what the Secret was created with",
+	)
+}
+
+func testLeaderServer(t *testing.T, hostname string) *httptest.Server {
+	t.Helper()
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		lResp := leader.LeaderResponse{
+			Name: hostname,
+		}
+		body, err := json.Marshal(lResp)
+		if err != nil {
+			t.Fatalf("failed to marshal leader response: %s", err)
+		}
+		w.WriteHeader(200)
+		w.Write(body)
+	}))
+	return ts
+}
+
+func testGetHostname(t *testing.T) string {
+	t.Helper()
+
+	host, err := os.Hostname()
+	if err != nil {
+		t.Fatalf("failed to get hostname for test leader service: %s", err)
+	}
+	return host
 }

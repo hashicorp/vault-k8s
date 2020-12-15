@@ -92,6 +92,7 @@ func (c *Command) Run(args []string) int {
 
 	namespace := getNamespace()
 	var secrets informerv1.SecretInformer
+	var leaderElector *leader.LeaderElector
 	if c.flagUseLeaderElector {
 		c.UI.Info("using leader elector logic")
 		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
@@ -101,15 +102,16 @@ func (c *Command) Run(args []string) int {
 			c.UI.Error("timeout syncing Secrets informer")
 			return 1
 		}
+		leaderElector = leader.New()
 	}
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
-		Name:                 "Agent Inject",
-		Hosts:                strings.Split(c.flagAutoHosts, ","),
-		K8sClient:            clientset,
-		Namespace:            namespace,
-		SecretsCache:         secrets,
-		LeaderElectorEnabled: c.flagUseLeaderElector,
+		Name:          "Agent Inject",
+		Hosts:         strings.Split(c.flagAutoHosts, ","),
+		K8sClient:     clientset,
+		Namespace:     namespace,
+		SecretsCache:  secrets,
+		LeaderElector: leaderElector,
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -250,11 +252,16 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			continue
 		}
 
-		// Only the leader should do the caBundle patching in k8s API
-		isLeader, err := leader.IsLeader()
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("error checking leader: %s", err))
-			continue
+		isLeader := true
+		if c.flagUseLeaderElector {
+			// Only the leader should do the caBundle patching in k8s API
+			var err error
+			le := leader.New()
+			isLeader, err = le.IsLeader()
+			if err != nil {
+				c.UI.Error(fmt.Sprintf("error checking leader: %s", err))
+				continue
+			}
 		}
 
 		// If there is a MWC name set, then update the CA bundle.
