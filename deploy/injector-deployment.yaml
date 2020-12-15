@@ -53,7 +53,7 @@ spec:
             successThreshold: 1
             timeoutSeconds: 5
         - name: sidecar-injector
-          image: "hashicorp/vault-k8s:dev"
+          image: "hashicorp/vault-k8s:0.6.0"
           imagePullPolicy: IfNotPresent
           env:
             - name: NAMESPACE

@@ -94,7 +94,7 @@ func (c *Command) Run(args []string) int {
 	var secrets informerv1.SecretInformer
 	var leaderElector *leader.LeaderElector
 	if c.flagUseLeaderElector {
-		c.UI.Info("using leader elector logic")
+		c.UI.Info("Using leader elector logic")
 		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
 		secrets = factory.Core().V1().Secrets()
 		go secrets.Informer().Run(ctx.Done())
@@ -104,6 +104,7 @@ func (c *Command) Run(args []string) int {
 		}
 		leaderElector = leader.New()
 	}
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
 		Name:          "Agent Inject",
@@ -283,7 +284,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 					err))
 				continue
 			}
-			c.UI.Output("[DEBUG] sent new caBundle to mutating webhook config")
+			c.UI.Output("Sent new caBundle to mutating webhook config")
 
 			updateReceived = false
 		}

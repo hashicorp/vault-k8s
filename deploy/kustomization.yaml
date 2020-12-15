@@ -5,4 +5,4 @@ resources:
 - injector-mutating-webhook.yaml
 - injector-rbac.yaml
 - injector-service.yaml
-- injector-extras.yaml
+- injector-leader-extras.yaml
