@@ -105,6 +105,17 @@ func (c *Command) Run(args []string) int {
 		leaderElector = leader.New()
 	}
 
+	level, err := c.logLevel()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
+		return 1
+	}
+
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:       "handler",
+		Level:      level,
+		JSONFormat: (c.flagLogFormat == "json")})
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
 		Name:          "Agent Inject",
@@ -113,6 +124,7 @@ func (c *Command) Run(args []string) int {
 		Namespace:     namespace,
 		SecretsCache:  secrets,
 		LeaderElector: leaderElector,
+		Log:           logger.Named("auto-tls"),
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -126,18 +138,7 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource)
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset)
-
-	level, err := c.logLevel()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
-		return 1
-	}
-
-	logger := hclog.New(&hclog.LoggerOptions{
-		Name:       "handler",
-		Level:      level,
-		JSONFormat: (c.flagLogFormat == "json")})
+	go c.certWatcher(ctx, certCh, clientset, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -224,12 +225,12 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
 	var bundle cert.Bundle
 	for {
 		select {
 		case bundle = <-ch:
-			c.UI.Output("Updated certificate bundle received. Updating certs...")
+			log.Info("Updated certificate bundle received. Updating certs...")
 			// Bundle is updated, set it up
 
 		case <-time.After(1 * time.Second):
@@ -245,7 +246,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
+			log.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
 			continue
 		}
 
@@ -256,7 +257,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			le := leader.New()
 			isLeader, err = le.IsLeader()
 			if err != nil {
-				c.UI.Error(fmt.Sprintf("error checking leader: %s", err))
+				log.Error(fmt.Sprintf("error checking leader: %s", err))
 				continue
 			}
 		}

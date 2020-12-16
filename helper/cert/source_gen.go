@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -59,6 +60,8 @@ type GenSource struct {
 	Namespace     string
 	SecretsCache  informerv1.SecretInformer
 	LeaderElector *leader.LeaderElector
+
+	Log hclog.Logger
 }
 
 // Certificate implements source
@@ -76,8 +79,10 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		// and returns that in the result. That will flow through the existing
 		// notify channel structure, testing if it's the same cert as last, etc.
 		if !leaderCheck {
+			s.Log.Debug("Currently a follower")
 			return s.getBundleFromSecret()
 		}
+		s.Log.Debug("Currently the leader")
 	}
 
 	// If we have no CA, generate it for the first time.
@@ -87,6 +92,8 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		}
 		// If we had no CA, also ensure the cert is regenerated
 		last = nil
+
+		s.Log.Info("Generated CA")
 	}
 
 	// Set the CA cert

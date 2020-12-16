@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -77,6 +78,7 @@ func testGenSource() *GenSource {
 	return &GenSource{
 		Name:  "Test",
 		Hosts: []string{"127.0.0.1", "localhost"},
+		Log:   hclog.Default(),
 	}
 }
 
