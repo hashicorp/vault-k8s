@@ -165,6 +165,9 @@ const (
 	// AnnotationVaultLogLevel sets the Vault Agent log level.
 	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
+	// AnnotationVaultLogFormat sets the Vault Agent log format.
+	AnnotationVaultLogFormat = "vault.hashicorp.com/log-format"
+
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultRole = "vault.hashicorp.com/role"
@@ -283,6 +286,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
 	}
 
 	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
