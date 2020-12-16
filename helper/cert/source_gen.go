@@ -69,6 +69,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var result Bundle
+	leaderCh := make(chan bool)
 
 	if s.LeaderElector != nil {
 		leaderCheck, err := s.LeaderElector.IsLeader()
@@ -82,7 +83,13 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 			s.Log.Debug("Currently a follower")
 			return s.getBundleFromSecret()
 		}
-		s.Log.Debug("Currently the leader")
+		s.Log.Info("Currently the leader")
+
+		// Start a goroutine that checks for a leadership change, otherwise this
+		// would wait until the current certificate expires before moving on.
+		changeContext, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go s.checkLeader(changeContext, leaderCh)
 	}
 
 	// If we have no CA, generate it for the first time.
@@ -117,6 +124,10 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		defer timer.Stop()
 
 		select {
+		case <-leaderCh:
+			s.Log.Debug("got a leadership change, returning")
+			return result, fmt.Errorf("lost leadership")
+
 		case <-timer.C:
 			// Fall through, generate cert
 
@@ -139,6 +150,36 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	}
 
 	return result, err
+}
+
+func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			// Check once a second for a leadership change
+			s.Log.Named("checkLeader").Trace("checking for leadership change")
+
+		case <-ctx.Done():
+			// Quit
+			return
+		}
+
+		check, err := s.LeaderElector.IsLeader()
+		if err != nil {
+			s.Log.Warn("failed to check for leadership change: %s", err)
+		}
+		if !check {
+			s.Log.Named("checkLeader").Debug("lost the leadership, sending notification")
+			select {
+			case changed <- true:
+				s.Log.Named("checkLeader").Trace("sent changed <- true")
+				return
+			case <-ctx.Done():
+				s.Log.Named("checkLeader").Trace("got done")
+				return
+			}
+		}
+	}
 }
 
 func (s *GenSource) updateSecret(bundle Bundle) error {
