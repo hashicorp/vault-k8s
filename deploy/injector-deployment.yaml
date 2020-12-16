@@ -21,9 +21,9 @@ spec:
       serviceAccountName: "vault-injector"
       containers:
         - name: leader-elector
-          image: gcr.io/google_containers/leader-elector:0.4
+          image: k8s.gcr.io/leader-elector:0.4
           args:
-            - --election=injector-leader
+            - --election=vault-agent-injector-leader
             - --election-namespace=$(NAMESPACE)
             - --http=0.0.0.0:4040
             - --ttl=60s

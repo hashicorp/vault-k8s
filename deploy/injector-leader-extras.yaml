@@ -10,4 +10,4 @@ metadata:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: vault-injector-leader
+  name: vault-injector-certs
