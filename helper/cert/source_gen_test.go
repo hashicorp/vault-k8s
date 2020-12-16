@@ -149,12 +149,12 @@ func TestGenSource_leader(t *testing.T) {
 	// check that the Secret has been created
 	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(certSecretName, metav1.GetOptions{})
 	require.NoError(t, err)
-	secretBundle := Bundle{
-		CACert: checkSecret.Data["ca"],
-		Cert:   checkSecret.Data["cert"],
-		Key:    checkSecret.Data["key"],
-	}
-	require.True(t, bundle.Equal(&secretBundle))
+	require.Equal(t, checkSecret.Data["cert"], bundle.Cert,
+		"cert in the Secret should've matched what was returned from source.Certificate()",
+	)
+	require.Equal(t, checkSecret.Data["key"], bundle.Key,
+		"key in the Secret should've matched what was returned from source.Certificate()",
+	)
 }
 
 func TestGenSource_follower(t *testing.T) {
@@ -182,7 +182,6 @@ func TestGenSource_follower(t *testing.T) {
 			Namespace: source.Namespace,
 		},
 		Data: map[string][]byte{
-			"ca":   secretBundle.CACert,
 			"cert": secretBundle.Cert,
 			"key":  secretBundle.Key,
 		},
@@ -198,9 +197,12 @@ func TestGenSource_follower(t *testing.T) {
 
 	bundle, err := source.Certificate(ctx, nil)
 	require.NoError(t, err)
-	testBundleVerify(t, &bundle)
-	require.True(t, bundle.Equal(secretBundle),
-		"bundle returned from source.Certificate() should have matched what the Secret was created with",
+
+	require.Equal(t, secretBundle.Cert, bundle.Cert,
+		"cert returned from source.Certificate() should have matched what the Secret was created with",
+	)
+	require.Equal(t, secretBundle.Key, bundle.Key,
+		"key returned from source.Certificate() should have matched what the Secret was created with",
 	)
 }
 

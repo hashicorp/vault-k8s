@@ -85,6 +85,8 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		if err := s.generateCA(); err != nil {
 			return result, err
 		}
+		// If we had no CA, also ensure the cert is regenerated
+		last = nil
 	}
 
 	// Set the CA cert
@@ -138,7 +140,6 @@ func (s *GenSource) updateSecret(bundle Bundle) error {
 			Name: certSecretName,
 		},
 		Data: map[string][]byte{
-			"ca":   bundle.CACert,
 			"cert": bundle.Cert,
 			"key":  bundle.Key,
 		},
@@ -162,7 +163,6 @@ func (s *GenSource) getBundleFromSecret() (Bundle, error) {
 	if err != nil {
 		return bundle, fmt.Errorf("failed to get secret: %s", err)
 	}
-	bundle.CACert = secret.Data["ca"]
 	bundle.Cert = secret.Data["cert"]
 	bundle.Key = secret.Data["key"]
 
