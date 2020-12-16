@@ -226,14 +226,10 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset) {
 	var bundle cert.Bundle
-	var updateReceived bool
 	for {
 		select {
 		case bundle = <-ch:
 			c.UI.Output("Updated certificate bundle received. Updating certs...")
-			// this keeps certWatcher from updating the k8s API every second,
-			// even when there's been no bundle update on the channel
-			updateReceived = true
 			// Bundle is updated, set it up
 
 		case <-time.After(1 * time.Second):
@@ -266,7 +262,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		}
 
 		// If there is a MWC name set, then update the CA bundle.
-		if isLeader && updateReceived && c.flagAutoName != "" && len(bundle.CACert) > 0 {
+		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
 
@@ -284,9 +280,6 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 					err))
 				continue
 			}
-			c.UI.Output("Sent new caBundle to mutating webhook config")
-
-			updateReceived = false
 		}
 
 		// Update the certificate
