@@ -68,6 +68,9 @@ type Specification struct {
 
 	// TelemetryPath is the AGENT_INJECT_TELEMETRY_PATH environment variable.
 	TelemetryPath string `split_words:"true"`
+
+	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
+	UseLeaderElector string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -105,6 +108,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext))
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
 		"Path under which to expose metrics")
+	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
+		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -209,6 +214,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TelemetryPath != "" {
 		c.flagTelemetryPath = envs.TelemetryPath
+	}
+
+	if envs.UseLeaderElector != "" {
+		c.flagUseLeaderElector, err = strconv.ParseBool(envs.UseLeaderElector)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

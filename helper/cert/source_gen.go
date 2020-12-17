@@ -17,7 +17,19 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/vault-k8s/leader"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	informerv1 "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
+
+// Name of the k8s Secret used to share the caBundle between leader and
+// followers
+const certSecretName = "vault-injector-certs"
 
 // GenSource generates a self-signed CA and certificate pair.
 //
@@ -43,6 +55,13 @@ type GenSource struct {
 	caCert         []byte
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
+
+	K8sClient     kubernetes.Interface
+	Namespace     string
+	SecretsCache  informerv1.SecretInformer
+	LeaderElector *leader.LeaderElector
+
+	Log hclog.Logger
 }
 
 // Certificate implements source
@@ -50,12 +69,38 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var result Bundle
+	leaderCh := make(chan bool)
+
+	if s.LeaderElector != nil {
+		leaderCheck, err := s.LeaderElector.IsLeader()
+		if err != nil {
+			return result, err
+		}
+		// For followers, run different function here that reads bundle from Secret,
+		// and returns that in the result. That will flow through the existing
+		// notify channel structure, testing if it's the same cert as last, etc.
+		if !leaderCheck {
+			s.Log.Debug("Currently a follower")
+			return s.getBundleFromSecret()
+		}
+		s.Log.Info("Currently the leader")
+
+		// Start a goroutine that checks for a leadership change, otherwise this
+		// would wait until the current certificate expires before moving on.
+		changeContext, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go s.checkLeader(changeContext, leaderCh)
+	}
 
 	// If we have no CA, generate it for the first time.
 	if len(s.caCert) == 0 {
 		if err := s.generateCA(); err != nil {
 			return result, err
 		}
+		// If we had no CA, also ensure the cert is regenerated
+		last = nil
+
+		s.Log.Info("Generated CA")
 	}
 
 	// Set the CA cert
@@ -79,6 +124,10 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		defer timer.Stop()
 
 		select {
+		case <-leaderCh:
+			s.Log.Debug("got a leadership change, returning")
+			return result, fmt.Errorf("lost leadership")
+
 		case <-timer.C:
 			// Fall through, generate cert
 
@@ -92,9 +141,80 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	if err == nil {
 		result.Cert = []byte(cert)
 		result.Key = []byte(key)
+
+		if s.LeaderElector != nil {
+			if err := s.updateSecret(result); err != nil {
+				return result, fmt.Errorf("failed to update Secret: %s", err)
+			}
+		}
 	}
 
 	return result, err
+}
+
+func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
+	for {
+		select {
+		case <-time.After(1 * time.Second):
+			// Check once a second for a leadership change
+			s.Log.Named("checkLeader").Trace("checking for leadership change")
+
+		case <-ctx.Done():
+			// Quit
+			return
+		}
+
+		check, err := s.LeaderElector.IsLeader()
+		if err != nil {
+			s.Log.Warn("failed to check for leadership change: %s", err)
+		}
+		if !check {
+			s.Log.Named("checkLeader").Debug("lost the leadership, sending notification")
+			select {
+			case changed <- true:
+				s.Log.Named("checkLeader").Trace("sent changed <- true")
+				return
+			case <-ctx.Done():
+				s.Log.Named("checkLeader").Trace("got done")
+				return
+			}
+		}
+	}
+}
+
+func (s *GenSource) updateSecret(bundle Bundle) error {
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: certSecretName,
+		},
+		Data: map[string][]byte{
+			"cert": bundle.Cert,
+			"key":  bundle.Key,
+		},
+	}
+	// Attempt updating the Secret first, and if it doesn't exist, fallback to
+	// create
+	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(secret)
+	if errors.IsNotFound(err) {
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(secret)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *GenSource) getBundleFromSecret() (Bundle, error) {
+	var bundle Bundle
+
+	secret, err := s.SecretsCache.Lister().Secrets(s.Namespace).Get(certSecretName)
+	if err != nil {
+		return bundle, fmt.Errorf("failed to get secret: %s", err)
+	}
+	bundle.Cert = secret.Data["cert"]
+	bundle.Key = secret.Data["key"]
+
+	return bundle, nil
 }
 
 func (s *GenSource) expiry() time.Duration {

@@ -26,6 +26,7 @@ const (
 	DefaultAgentCacheEnable              = "false"
 	DefaultAgentCacheUseAutoAuthToken    = "true"
 	DefaultAgentCacheListenerPort        = "8200"
+	DefaultAgentUseLeaderElector         = false
 )
 
 // Agent is the top level structure holding all the
@@ -123,8 +124,8 @@ type Agent struct {
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
 	SetSecurityContext bool
-  
- 	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
+
+	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
 	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
 	ExtraSecret string
 }
