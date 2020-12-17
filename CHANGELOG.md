@@ -2,6 +2,7 @@
 
 Features:
 * Added UBI container image: [GH-183](https://github.com/hashicorp/vault-k8s/pull/183)
+* Support for multiple replicas with auto-tls: [GH-198](https://github.com/hashicorp/vault-k8s/pull/198)
 
 ## 0.6.0 (October 20, 2020)
 
