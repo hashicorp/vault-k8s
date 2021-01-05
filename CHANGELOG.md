@@ -1,4 +1,4 @@
-## Unreleased
+## 0.7.0 (January 5, 2021)
 
 Features:
 * Added UBI container image: [GH-183](https://github.com/hashicorp/vault-k8s/pull/183)
