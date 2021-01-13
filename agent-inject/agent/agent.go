@@ -234,7 +234,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent := &Agent{
 		Annotations:            pod.Annotations,
 		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
-		GeneratedConfigMapName: pod.Annotations[AnnotationAgentGeneratedConfigMapName],
+		GeneratedConfigMapName: ConfigMapName(pod),
 		ImageName:              pod.Annotations[AnnotationAgentImage],
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
@@ -263,18 +263,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
 		},
 	}
-
-	// Pods created directly using Pod specs will a Name field,
-	// pods created by controllers will have generated names.
-	// We specifically use generated names first because this is the most common.
-	agent.GeneratedConfigMapName = pod.ObjectMeta.GenerateName
-	if agent.GeneratedConfigMapName == "" {
-		agent.GeneratedConfigMapName = pod.ObjectMeta.Name
-	}
-
-	// Generated names end with a dash which is rejected when creating
-	// configmap names.
-	agent.GeneratedConfigMapName = strings.TrimSuffix(agent.GeneratedConfigMapName, "-")
 
 	var err error
 	agent.Secrets = agent.secrets()
@@ -414,11 +402,31 @@ func ShouldDelete(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
+	// Only delete config maps if the name of the configmap and the pod are the same.
+	if ConfigMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
+		return false, nil
+	}
+
 	if raw == "" {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+// ConfigMapName determines what the name of the generated configmap should be.
+// When the injector gets a pod creation event, the pod isn't yet created and
+// may not have it's final name (if it's owned by a replicaset) . Here we consider
+// if the pod is owned by a controller or created explicitly by the user.
+func ConfigMapName(pod *corev1.Pod) string {
+	podName := pod.ObjectMeta.GenerateName
+	if podName == "" {
+		podName = pod.ObjectMeta.Name
+	}
+
+	// Generated names end with a dash which is rejected when creating
+	// configmap names.
+	return strings.TrimSuffix(podName, "-")
 }
 
 // Patch creates the necessary pod patches to inject the Vault Agent
