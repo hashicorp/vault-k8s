@@ -388,7 +388,7 @@ func ShouldDelete(pod *corev1.Pod) (bool, error) {
 	// This shouldn't happen so bail.
 	raw, ok = pod.Annotations[AnnotationAgentStatus]
 	if !ok {
-		return true, nil
+		return false, nil
 	}
 
 	// Previously injected agents
@@ -402,12 +402,12 @@ func ShouldDelete(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
-	// Only delete config maps if the name of the configmap and the pod are the same.
-	if ConfigMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
+	if raw == "" {
 		return false, nil
 	}
 
-	if raw == "" {
+	// Only delete config maps if the name of the configmap and the pod are the same.
+	if ConfigMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
 		return false, nil
 	}
 
