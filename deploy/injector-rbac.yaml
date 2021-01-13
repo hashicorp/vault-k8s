@@ -17,11 +17,18 @@ metadata:
 rules:
 - apiGroups: ["admissionregistration.k8s.io"]
   resources: ["mutatingwebhookconfigurations"]
-  verbs: 
+  verbs:
     - "get"
     - "list"
     - "watch"
     - "patch"
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs:
+    - "create"
+    - "get"
+    - "update"
+    - "delete"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -49,7 +56,7 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["endpoints", "secrets"]
-  verbs: 
+  verbs:
     - "create"
     - "get"
     - "watch"
