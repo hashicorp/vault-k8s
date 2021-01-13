@@ -15,7 +15,6 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 )
@@ -45,16 +44,12 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		})
 	}
 
-	arg := DefaultContainerArg
-
-	if a.ConfigMapName != "" {
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      configVolumeName,
-			MountPath: configVolumePath,
-			ReadOnly:  true,
-		})
-		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
-	}
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      configVolumeName,
+		MountPath: configVolumePath,
+		ReadOnly:  true,
+	})
+	arg := fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
 
 	if a.Vault.TLSSecret != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{

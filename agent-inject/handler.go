@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
@@ -39,7 +38,7 @@ type Handler struct {
 	VaultAddress       string
 	VaultAuthPath      string
 	ImageVault         string
-	Clientset          *kubernetes.Clientset
+	Clientset          kubernetes.Interface
 	Log                hclog.Logger
 	RevokeOnShutdown   bool
 	UserID             string
@@ -105,11 +104,18 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 // Mutate takes an admission request and performs mutation if necessary,
 // returning the final API response.
 func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+
+	// On CREATE/UPDATE events, req.Object.Raw has the pod spec. For
+	// DELETE events, req.OldObject.Raw has the pod spec.
+	reqRaw := req.Object.Raw
+	if reqRaw == nil {
+		reqRaw = req.OldObject.Raw
+	}
+
 	// Decode the pod from the request
 	var pod corev1.Pod
-	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
+	if err := json.Unmarshal(reqRaw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
-		h.Log.Debug("%s", req.Object.Raw)
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -124,11 +130,27 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	h.Log.Debug("checking if should inject agent..")
-	inject, err := agent.ShouldInject(&pod)
-	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
-		err := fmt.Errorf("error checking if should inject agent: %s", err)
-		return admissionError(err)
-	} else if !inject {
+	if req.Operation != "DELETE" {
+		inject, err := agent.ShouldInject(&pod)
+		if err != nil {
+			err := fmt.Errorf("error checking if should inject agent: %s", err)
+			return admissionError(err)
+		} else if !inject {
+			return resp
+		}
+	} else {
+		delete, err := agent.ShouldDelete(&pod)
+		if err != nil {
+			err := fmt.Errorf("error checking if should delete configmap for agent: %s", err)
+			return admissionError(err)
+		} else if !delete {
+			return resp
+		}
+
+		configMapName := pod.Annotations[agent.AnnotationAgentGeneratedConfigMapName]
+		h.Log.Debug(fmt.Sprintf("deleting configmap %s..", configMapName))
+
+		_ = h.Clientset.CoreV1().ConfigMaps(req.Namespace).Delete(configMapName, &metav1.DeleteOptions{})
 		return resp
 	}
 
@@ -151,7 +173,8 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		SameID:             h.SameID,
 		SetSecurityContext: h.SetSecurityContext,
 	}
-	err = agent.Init(&pod, cfg)
+
+	err := agent.Init(&pod, cfg)
 	if err != nil {
 		err := fmt.Errorf("error adding default annotations: %s", err)
 		return admissionError(err)
@@ -176,6 +199,44 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)
 		return admissionError(err)
+	}
+
+	if agentSidecar.ConfigMapName == "" {
+		data := make(map[string]string)
+		if agentSidecar.PrePopulate {
+			data["config-init.hcl"] = agentSidecar.InitConfig
+		}
+
+		if !agentSidecar.PrePopulateOnly {
+			data["config.hcl"] = agentSidecar.SidecarConfig
+		}
+
+		config := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      agentSidecar.GeneratedConfigMapName,
+				Namespace: req.Namespace,
+				Annotations: map[string]string{
+					"vault-agent-injector": "true",
+				},
+			},
+			Data: data,
+		}
+
+		if req.Operation == "UPDATE" {
+			_, err := h.Clientset.CoreV1().ConfigMaps(req.Namespace).Update(config)
+			if err != nil {
+				h.Log.Debug(fmt.Sprintf("error updating configMap: %s", err))
+				err := fmt.Errorf("error updating agent configuration configmap: %s", err)
+				return admissionError(err)
+			}
+		} else {
+			_, err := h.Clientset.CoreV1().ConfigMaps(req.Namespace).Create(config)
+			if err != nil {
+				h.Log.Debug(fmt.Sprintf("error creating configMap: %s", err))
+				err := fmt.Errorf("error creating agent configuration configmap: %s", err)
+				return admissionError(err)
+			}
+		}
 	}
 
 	resp.Patch = patch

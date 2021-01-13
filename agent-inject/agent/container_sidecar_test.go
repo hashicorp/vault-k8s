@@ -49,34 +49,39 @@ func TestContainerSidecarVolume(t *testing.T) {
 	container, err := agent.ContainerSidecar()
 
 	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 5, len(container.VolumeMounts))
+	require.Equal(t, 6, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
 		[]corev1.VolumeMount{
-			corev1.VolumeMount{
+			{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      secretVolumeName,
 				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      extraSecretVolumeName,
 				MountPath: extraSecretVolumePath,
+				ReadOnly:  true,
+			},
+			{
+				Name:      configVolumeName,
+				MountPath: configVolumePath,
 				ReadOnly:  true,
 			},
 		},
@@ -107,7 +112,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 2
+	expectedEnvs := 1
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -120,20 +125,8 @@ func TestContainerSidecar(t *testing.T) {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[1].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[1].Name)
-	}
-
-	if container.Env[1].Value == "" {
-		t.Error("env value empty, it shouldn't be")
-	}
-
 	if len(container.Args) != 1 {
 		t.Errorf("wrong number of args, got %d, should have been %d", len(container.Args), 1)
-	}
-
-	if container.Args[0] != DefaultContainerArg {
-		t.Errorf("arg value wrong, should have been %s, got %s", DefaultContainerArg, container.Args[0])
 	}
 
 	if container.Resources.Limits.Cpu().String() != DefaultResourceLimitCPU {

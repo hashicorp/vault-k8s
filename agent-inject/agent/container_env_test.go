@@ -12,11 +12,11 @@ func TestContainerEnvs(t *testing.T) {
 		agent        Agent
 		expectedEnvs []string
 	}{
-		{Agent{}, []string{"VAULT_CONFIG"}},
+		{Agent{}, []string{}},
 		{Agent{ConfigMapName: "foobar"}, []string{}},
-		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES"}},
-		{Agent{Vault: Vault{ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_CLIENT_TIMEOUT"}},
-		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
+		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, []string{"VAULT_MAX_RETRIES"}},
+		{Agent{Vault: Vault{ClientTimeout: "5s"}}, []string{"VAULT_CLIENT_TIMEOUT"}},
+		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
 		{Agent{ConfigMapName: "foobar", Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL"}},
 	}
 

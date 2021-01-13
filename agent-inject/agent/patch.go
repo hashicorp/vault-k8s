@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/mattbaird/jsonpatch"
@@ -100,11 +101,19 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 		return result
 	}
 
-	for key, value := range annotations {
+	// Sorting this map for the handler tests because when comparing the
+	// actual/expected patch order matters.
+	keys := make([]string, 0, len(annotations))
+	for k := range annotations {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		result = append(result, &jsonpatch.JsonPatchOperation{
 			Operation: "add",
-			Path:      "/metadata/annotations/" + EscapeJSONPointer(key),
-			Value:     value,
+			Path:      "/metadata/annotations/" + EscapeJSONPointer(k),
+			Value:     annotations[k],
 		})
 	}
 
