@@ -234,7 +234,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent := &Agent{
 		Annotations:            pod.Annotations,
 		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
-		GeneratedConfigMapName: ConfigMapName(pod),
+		GeneratedConfigMapName: configMapName(pod),
 		ImageName:              pod.Annotations[AnnotationAgentImage],
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
@@ -407,18 +407,18 @@ func ShouldDelete(pod *corev1.Pod) (bool, error) {
 	}
 
 	// Only delete config maps if the name of the configmap and the pod are the same.
-	if ConfigMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
+	if configMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
 		return false, nil
 	}
 
 	return true, nil
 }
 
-// ConfigMapName determines what the name of the generated configmap should be.
+// configMapName determines what the name of the generated configmap should be.
 // When the injector gets a pod creation event, the pod isn't yet created and
 // may not have it's final name (if it's owned by a replicaset) . Here we consider
 // if the pod is owned by a controller or created explicitly by the user.
-func ConfigMapName(pod *corev1.Pod) string {
+func configMapName(pod *corev1.Pod) string {
 	podName := pod.ObjectMeta.GenerateName
 	if podName == "" {
 		podName = pod.ObjectMeta.Name
