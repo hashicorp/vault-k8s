@@ -150,7 +150,11 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		configMapName := pod.Annotations[agent.AnnotationAgentGeneratedConfigMapName]
 		h.Log.Debug(fmt.Sprintf("deleting configmap %s..", configMapName))
 
-		_ = h.Clientset.CoreV1().ConfigMaps(req.Namespace).Delete(configMapName, &metav1.DeleteOptions{})
+		err = h.Clientset.CoreV1().ConfigMaps(req.Namespace).Delete(configMapName, &metav1.DeleteOptions{})
+		if err != nil {
+			err := fmt.Errorf("error deleting generated configmap for agent: %s", err)
+			return admissionError(err)
+		}
 		return resp
 	}
 
