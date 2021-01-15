@@ -39,6 +39,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	if a.Vault.ProxyAddress != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "HTTPS_PROXY",
+			Value: a.Vault.ProxyAddress,
+		})
+	}
+
 	if a.ConfigMapName == "" {
 		config, err := a.newConfig(init)
 		if err != nil {

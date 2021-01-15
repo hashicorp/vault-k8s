@@ -24,6 +24,7 @@ func TestNewConfig(t *testing.T) {
 		AnnotationVaultClientCert:                       "client-cert",
 		AnnotationVaultClientKey:                        "client-key",
 		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
+		AnnotationProxyAddress:                          "http://proxy:3128",
 		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
@@ -42,7 +43,7 @@ func TestNewConfig(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -102,6 +103,10 @@ func TestNewConfig(t *testing.T) {
 
 	if config.AutoAuth.Method.MountPath != annotations[AnnotationVaultAuthPath] {
 		t.Errorf("auto_auth mount path: expected path to be %s, got %s", annotations[AnnotationVaultAuthPath], config.AutoAuth.Method.MountPath)
+	}
+
+	if config.Vault.ProxyAddress != annotations[AnnotationProxyAddress] {
+		t.Errorf("proxy_address: expected %s, got %s", annotations[AnnotationProxyAddress], config.Vault.ProxyAddress)
 	}
 
 	if len(config.Listener) != 0 || config.Cache != nil {
@@ -208,7 +213,7 @@ func TestFilePathAndName(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -240,7 +245,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -279,7 +284,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {

@@ -30,6 +30,7 @@ type Config struct {
 // Vault contains configuration for connecting to Vault servers
 type VaultConfig struct {
 	Address       string `json:"address"`
+	ProxyAddress  string `json:"proxy_adress"`
 	CACert        string `json:"ca_cert,omitempty"`
 	CAPath        string `json:"ca_path,omitempty"`
 	TLSSkipVerify bool   `json:"tls_skip_verify,omitempty"`
@@ -119,6 +120,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		ExitAfterAuth: init,
 		Vault: &VaultConfig{
 			Address:       a.Vault.Address,
+			ProxyAddress:  a.Vault.ProxyAddress,
 			CACert:        a.Vault.CACert,
 			CAPath:        a.Vault.CAKey,
 			ClientCert:    a.Vault.ClientCert,
