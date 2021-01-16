@@ -31,6 +31,9 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 		// Test adding an extra secret from Kube secrets for reference by Agent config
 		fmt.Sprintf("%s", AnnotationAgentExtraSecret): "extrasecret",
+
+		// Test copying volume mounts from an existing container in the Pod to the agent container
+		fmt.Sprintf("%s", AnnotationAgentCopyVolumeMounts): "foobar",
 	}
 
 	pod := testPod(annotations)
@@ -48,8 +51,8 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 	container, err := agent.ContainerSidecar()
 
-	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 5, len(container.VolumeMounts))
+	// One token volume mount, one config volume mount, two secrets volume mounts, and one mount copied from main container
+	require.Equal(t, 6, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
@@ -78,6 +81,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				Name:      extraSecretVolumeName,
 				MountPath: extraSecretVolumePath,
 				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      "tobecopied",
+				MountPath: "/etc/somewhereelse",
+				ReadOnly:  false,
 			},
 		},
 		container.VolumeMounts,

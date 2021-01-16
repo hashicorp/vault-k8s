@@ -45,6 +45,10 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		})
 	}
 
+	if a.CopyVolumeMounts != "" {
+		volumeMounts = append(volumeMounts, a.copyVolumeMounts(a.CopyVolumeMounts)...)
+	}
+
 	arg := DefaultContainerArg
 
 	if a.ConfigMapName != "" {
