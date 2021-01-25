@@ -105,10 +105,6 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("auto_auth mount path: expected path to be %s, got %s", annotations[AnnotationVaultAuthPath], config.AutoAuth.Method.MountPath)
 	}
 
-	if config.Vault.ProxyAddress != annotations[AnnotationProxyAddress] {
-		t.Errorf("proxy_address: expected %s, got %s", annotations[AnnotationProxyAddress], config.Vault.ProxyAddress)
-	}
-
 	if len(config.Listener) != 0 || config.Cache != nil {
 		t.Error("agent Cache should be disabled for init containers")
 	}
