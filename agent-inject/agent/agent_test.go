@@ -22,6 +22,11 @@ func testPod(annotations map[string]string) *corev1.Pod {
 							Name:      "foobar",
 							MountPath: "serviceaccount/somewhere",
 						},
+						{
+							Name:      "tobecopied",
+							MountPath: "/etc/somewhereelse",
+							ReadOnly:  false,
+						},
 					},
 				},
 			},

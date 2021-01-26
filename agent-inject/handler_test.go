@@ -42,6 +42,12 @@ func TestHandlerHandle(t *testing.T) {
 		},
 	}
 
+	basicSpecWithMounts := *basicSpec.DeepCopy()
+	basicSpecWithMounts.InitContainers[0].VolumeMounts = append(basicSpecWithMounts.InitContainers[0].VolumeMounts, corev1.VolumeMount{
+		Name:      "tobecopied",
+		MountPath: "/etc/somewhereelse",
+	})
+
 	cases := []struct {
 		Name    string
 		Handler Handler
@@ -492,6 +498,59 @@ func TestHandlerHandle(t *testing.T) {
 				{
 					Operation: "add",
 					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
+				},
+			},
+		},
+
+		{
+			"copy volume mounts pod injection",
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			v1beta1.AdmissionRequest{
+				Namespace: "test",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject:           "true",
+							agent.AnnotationVaultRole:             "demo",
+							agent.AnnotationAgentCopyVolumeMounts: "web-init",
+						},
+					},
+					Spec: basicSpecWithMounts,
+				}),
+			},
+			"",
+			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/volumes/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/-",
 				},
 				{
 					Operation: "add",
