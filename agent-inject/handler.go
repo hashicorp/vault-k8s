@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
@@ -85,7 +86,11 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		return
 	} else {
-		admResp.Response = h.Mutate(admReq.Request)
+		if strings.Contains(r.URL.String(), "mutate") {
+			admResp.Response = h.Mutate(admReq.Request)
+		} else {
+			admResp.Response = h.Validate(admReq.Request)
+		}
 	}
 
 	resp, err := json.Marshal(&admResp)
@@ -105,16 +110,9 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 // returning the final API response.
 func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 
-	// On CREATE/UPDATE events, req.Object.Raw has the pod spec. For
-	// DELETE events, req.OldObject.Raw has the pod spec.
-	reqRaw := req.Object.Raw
-	if reqRaw == nil {
-		reqRaw = req.OldObject.Raw
-	}
-
 	// Decode the pod from the request
 	var pod corev1.Pod
-	if err := json.Unmarshal(reqRaw, &pod); err != nil {
+	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
@@ -130,31 +128,11 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	h.Log.Debug("checking if should inject agent..")
-	if req.Operation != "DELETE" {
-		inject, err := agent.ShouldInject(&pod)
-		if err != nil {
-			err := fmt.Errorf("error checking if should inject agent: %s", err)
-			return admissionError(err)
-		} else if !inject {
-			return resp
-		}
-	} else {
-		delete, err := agent.ShouldDelete(&pod)
-		if err != nil {
-			err := fmt.Errorf("error checking if should delete configmap for agent: %s", err)
-			return admissionError(err)
-		} else if !delete {
-			return resp
-		}
-
-		configMapName := pod.Annotations[agent.AnnotationAgentGeneratedConfigMapName]
-		h.Log.Debug(fmt.Sprintf("deleting configmap %s..", configMapName))
-
-		err = h.Clientset.CoreV1().ConfigMaps(req.Namespace).Delete(configMapName, &metav1.DeleteOptions{})
-		if err != nil {
-			err := fmt.Errorf("error deleting generated configmap for agent: %s", err)
-			return admissionError(err)
-		}
+	inject, err := agent.ShouldMutate(&pod)
+	if err != nil {
+		err := fmt.Errorf("error checking if should inject agent: %s", err)
+		return admissionError(err)
+	} else if !inject {
 		return resp
 	}
 
@@ -178,7 +156,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		SetSecurityContext: h.SetSecurityContext,
 	}
 
-	err := agent.Init(&pod, cfg)
+	err = agent.Init(&pod, cfg)
 	if err != nil {
 		err := fmt.Errorf("error adding default annotations: %s", err)
 		return admissionError(err)
@@ -205,7 +183,89 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		return admissionError(err)
 	}
 
+	resp.Patch = patch
+	patchType := v1beta1.PatchTypeJSONPatch
+	resp.PatchType = &patchType
+
+	return resp
+}
+
+// Validate takes an admission request and performs validations if necessary,
+// returning the final API response.
+func (h *Handler) Validate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+
+	// Decode the pod from the request
+	var pod corev1.Pod
+	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
+		h.Log.Error("could not unmarshal request to pod: %s", err)
+		return &v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
+		}
+	}
+
+	// Build the basic response
+	resp := &v1beta1.AdmissionResponse{
+		Allowed: true,
+		UID:     req.UID,
+	}
+
+	h.Log.Debug("checking if should validate injected agent..")
+	validate, err := agent.ShouldValidate(&pod)
+	if err != nil {
+		err := fmt.Errorf("error checking if should validate injected agents: %s", err)
+		return admissionError(err)
+	} else if !validate {
+		return resp
+	}
+
+	h.Log.Debug("checking namespaces..")
+	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
+		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
+		return admissionError(err)
+	}
+
+	h.Log.Debug("setting default annotations..")
+	var patches []*jsonpatch.JsonPatchOperation
+	cfg := agent.AgentConfig{
+		Image:              h.ImageVault,
+		Address:            h.VaultAddress,
+		AuthPath:           h.VaultAuthPath,
+		Namespace:          req.Namespace,
+		RevokeOnShutdown:   h.RevokeOnShutdown,
+		UserID:             h.UserID,
+		GroupID:            h.GroupID,
+		SameID:             h.SameID,
+		SetSecurityContext: h.SetSecurityContext,
+	}
+
+	err = agent.Init(&pod, cfg)
+	if err != nil {
+		err := fmt.Errorf("error adding default annotations: %s", err)
+		return admissionError(err)
+	}
+
+	agentSidecar, err := agent.New(&pod, patches)
+	if err != nil {
+		err := fmt.Errorf("error creating new agent sidecar: %s", err)
+		return admissionError(err)
+	}
+
+	err = agentSidecar.Validate()
+	if err != nil {
+		err := fmt.Errorf("error validating agent configuration: %s", err)
+		return admissionError(err)
+	}
+
+	_, err = agentSidecar.Patch()
+	if err != nil {
+		err := fmt.Errorf("error creating patch for agent: %s", err)
+		return admissionError(err)
+	}
+
 	if agentSidecar.ConfigMapName == "" {
+		h.Log.Debug("creating configmap for the pod..")
 		data := make(map[string]string)
 		if agentSidecar.PrePopulate {
 			data["config-init.hcl"] = agentSidecar.InitConfig
@@ -215,6 +275,9 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 			data["config.hcl"] = agentSidecar.SidecarConfig
 		}
 
+		h.Log.Debug(fmt.Sprintf("Configmap name: %s\nPod name: %s\nUID: %s", agentSidecar.GeneratedConfigMapName, pod.Name, pod.UID))
+		controller := false
+		// You were here ^
 		config := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      agentSidecar.GeneratedConfigMapName,
@@ -222,31 +285,29 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 				Annotations: map[string]string{
 					"vault-agent-injector": "true",
 				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "v1",
+						Kind:       "Pod",
+						Name:       pod.Name,
+						UID:        pod.UID,
+						Controller: &controller,
+					},
+				},
 			},
 			Data: data,
 		}
 
-		if req.Operation == "UPDATE" {
-			_, err := h.Clientset.CoreV1().ConfigMaps(req.Namespace).Update(config)
-			if err != nil {
-				h.Log.Debug(fmt.Sprintf("error updating configMap: %s", err))
-				err := fmt.Errorf("error updating agent configuration configmap: %s", err)
-				return admissionError(err)
-			}
-		} else {
-			_, err := h.Clientset.CoreV1().ConfigMaps(req.Namespace).Create(config)
-			if err != nil {
-				h.Log.Debug(fmt.Sprintf("error creating configMap: %s", err))
-				err := fmt.Errorf("error creating agent configuration configmap: %s", err)
-				return admissionError(err)
-			}
+		h.Log.Debug("creating new configmap for the pod..")
+		_, err := h.Clientset.CoreV1().ConfigMaps(req.Namespace).Create(config)
+		if err != nil {
+			h.Log.Debug(fmt.Sprintf("error creating configMap: %s", err))
+			err := fmt.Errorf("error creating agent configuration configmap: %s", err)
+			return admissionError(err)
 		}
 	}
 
-	resp.Patch = patch
-	patchType := v1beta1.PatchTypeJSONPatch
-	resp.PatchType = &patchType
-
+	h.Log.Debug("Exiting..")
 	return resp
 }
 

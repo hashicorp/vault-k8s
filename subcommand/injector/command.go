@@ -157,6 +157,7 @@ func (c *Command) Run(args []string) int {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/mutate", injector.Handle)
+	mux.HandleFunc("/validate", injector.Handle)
 	mux.HandleFunc("/health/ready", c.handleReady)
 
 	// Registering path to expose metrics
@@ -278,6 +279,21 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error updating MutatingWebhookConfiguration: %s",
+					err))
+				continue
+			}
+
+			_, err = clientset.AdmissionregistrationV1beta1().
+				ValidatingWebhookConfigurations().
+				Patch(c.flagAutoName, types.JSONPatchType, []byte(fmt.Sprintf(
+					`[{
+					"op": "add",
+					"path": "/webhooks/0/clientConfig/caBundle",
+					"value": %q
+				}]`, value)))
+			if err != nil {
+				c.UI.Error(fmt.Sprintf(
+					"Error updating ValidatingWebhookConfiguration: %s",
 					err))
 				continue
 			}

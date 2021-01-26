@@ -335,9 +335,9 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	return agent, nil
 }
 
-// ShouldInject checks whether the pod in question should be injected
+// ShouldMutate checks whether the pod in question should be injected
 // with Vault Agent containers.
-func ShouldInject(pod *corev1.Pod) (bool, error) {
+func ShouldMutate(pod *corev1.Pod) (bool, error) {
 	raw, ok := pod.Annotations[AnnotationAgentInject]
 	if !ok {
 		return false, nil
@@ -368,9 +368,8 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 	return true, nil
 }
 
-// ShouldDelete checks whether the pod in question has already been injected
-// and the generated config map needs to be deleted.
-func ShouldDelete(pod *corev1.Pod) (bool, error) {
+// ShouldValidate checks whether the pod in question should be validated.
+func ShouldValidate(pod *corev1.Pod) (bool, error) {
 	raw, ok := pod.Annotations[AnnotationAgentInject]
 	if !ok {
 		return false, nil
@@ -388,26 +387,12 @@ func ShouldDelete(pod *corev1.Pod) (bool, error) {
 	// This shouldn't happen so bail.
 	raw, ok = pod.Annotations[AnnotationAgentStatus]
 	if !ok {
-		return false, nil
+		return true, nil
 	}
 
-	// Previously injected agents
+	// "injected" is the only status we care about.  Only validate
+	// anything if its already injected.
 	if raw != "injected" {
-		return false, nil
-	}
-
-	// Only delete config maps if we made one (ignore custom user defined maps)
-	raw, ok = pod.Annotations[AnnotationAgentGeneratedConfigMapName]
-	if !ok {
-		return false, nil
-	}
-
-	if raw == "" {
-		return false, nil
-	}
-
-	// Only delete config maps if the name of the configmap and the pod are the same.
-	if configMapName(pod) != pod.Annotations[AnnotationAgentGeneratedConfigMapName] {
 		return false, nil
 	}
 

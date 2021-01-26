@@ -43,7 +43,7 @@ func TestShouldInject(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		inject, err := ShouldInject(pod)
+		inject, err := ShouldMutate(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
