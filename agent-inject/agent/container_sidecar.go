@@ -18,6 +18,7 @@ const (
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
+	DefaultAgentLogFormat     = "standard"
 )
 
 // ContainerSidecar creates a new container to be added

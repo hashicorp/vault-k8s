@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -28,6 +29,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_LOG_LEVEL",
 			Value: a.Vault.LogLevel,
+		})
+	}
+
+	if a.Vault.LogFormat != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_LOG_FORMAT",
+			Value: a.Vault.LogFormat,
 		})
 	}
 
