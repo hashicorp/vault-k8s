@@ -1,4 +1,4 @@
-## Unreleased
+## 0.8.0 (February 2, 2021)
 
 Features:
 * Added annotation to copy mounts from a specified container: [GH-212](https://github.com/hashicorp/vault-k8s/pull/212)
