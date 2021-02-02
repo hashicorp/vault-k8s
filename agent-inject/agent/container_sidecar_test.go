@@ -132,11 +132,11 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_FORMAT", container.Env[1].Name)
 	}
 
-    if container.Env[1].Value == "" {
+	if container.Env[1].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-    if container.Env[2].Name != "VAULT_CONFIG" {
+	if container.Env[2].Name != "VAULT_CONFIG" {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[2].Name)
 	}
 
