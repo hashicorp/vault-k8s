@@ -115,7 +115,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 2
+	expectedEnvs := 3
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -128,11 +128,19 @@ func TestContainerSidecar(t *testing.T) {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[1].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[1].Name)
+	if container.Env[1].Name != "VAULT_LOG_FORMAT" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_FORMAT", container.Env[1].Name)
 	}
 
 	if container.Env[1].Value == "" {
+		t.Error("env value empty, it shouldn't be")
+	}
+
+	if container.Env[2].Name != "VAULT_CONFIG" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[2].Name)
+	}
+
+	if container.Env[2].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
@@ -265,7 +273,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 1
+	expectedEnvs := 2
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
