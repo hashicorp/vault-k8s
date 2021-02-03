@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.6.1"
+	DefaultVaultImage                    = "vault:1.6.2"
 	DefaultVaultAuthType                 = "kubernetes"
 	DefaultVaultAuthPath                 = "auth/kubernetes"
 	DefaultAgentRunAsUser                = 100
@@ -129,6 +129,10 @@ type Agent struct {
 	// ExtraSecret is the Kubernetes secret to mount as a volume in the Vault agent container
 	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
 	ExtraSecret string
+
+	// CopyVolumeMounts is the name of the container in the Pod whose volume mounts
+	// should be copied into the Vault Agent init and/or sidecar containers.
+	CopyVolumeMounts string
 }
 
 type Secret struct {
@@ -193,6 +197,9 @@ type Vault struct {
 	// LogLevel sets the Vault Agent log level.  Defaults to info.
 	LogLevel string
 
+	// LogFormat sets the Vault Agent log format.  Defaults to standard.
+	LogFormat string
+
 	// Namespace is the Vault namespace to prepend to secret paths.
 	Namespace string
 
@@ -241,6 +248,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountPath: saPath,
 		Status:             pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:        pod.Annotations[AnnotationAgentExtraSecret],
+		CopyVolumeMounts:   pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			AuthType:         pod.Annotations[AnnotationVaultAuthType],
@@ -252,6 +260,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
 			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
+			LogFormat:        pod.Annotations[AnnotationVaultLogFormat],
 			Namespace:        pod.Annotations[AnnotationVaultNamespace],
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
@@ -549,4 +558,22 @@ func (a *Agent) vaultCliFlags() []string {
 	}
 
 	return flags
+}
+
+// copyVolumeMounts copies the specified container or init container's volume mounts.
+// Ignores any Kubernetes service account token mounts.
+func (a *Agent) copyVolumeMounts(targetContainerName string) []corev1.VolumeMount {
+	// Deep copy the pod spec so append doesn't mutate the original containers slice
+	podSpec := a.Pod.Spec.DeepCopy()
+	copiedVolumeMounts := make([]corev1.VolumeMount, 0)
+	for _, container := range append(podSpec.Containers, podSpec.InitContainers...) {
+		if container.Name == targetContainerName {
+			for _, volumeMount := range container.VolumeMounts {
+				if !strings.Contains(strings.ToLower(volumeMount.MountPath), "serviceaccount") {
+					copiedVolumeMounts = append(copiedVolumeMounts, volumeMount)
+				}
+			}
+		}
+	}
+	return copiedVolumeMounts
 }

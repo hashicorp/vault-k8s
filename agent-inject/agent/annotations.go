@@ -165,6 +165,9 @@ const (
 	// AnnotationVaultLogLevel sets the Vault Agent log level.
 	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
+	// AnnotationVaultLogFormat sets the Vault Agent log format.
+	AnnotationVaultLogFormat = "vault.hashicorp.com/log-format"
+
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultRole = "vault.hashicorp.com/role"
@@ -198,6 +201,11 @@ const (
 
 	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
 	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
+
+	// AnnotationAgentCopyVolumeMounts is the name of the container or init container
+	// in the Pod whose volume mounts should be copied onto the Vault Agent init and
+	// sidecar containers. Ignores any Kubernetes service account token mounts.
+	AnnotationAgentCopyVolumeMounts = "vault.hashicorp.com/agent-copy-volume-mounts"
 )
 
 type AgentConfig struct {
@@ -295,6 +303,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
 	}
 
 	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {

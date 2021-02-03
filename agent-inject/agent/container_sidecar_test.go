@@ -31,6 +31,9 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 		// Test adding an extra secret from Kube secrets for reference by Agent config
 		fmt.Sprintf("%s", AnnotationAgentExtraSecret): "extrasecret",
+
+		// Test copying volume mounts from an existing container in the Pod to the agent container
+		fmt.Sprintf("%s", AnnotationAgentCopyVolumeMounts): "foobar",
 	}
 
 	pod := testPod(annotations)
@@ -48,8 +51,8 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 	container, err := agent.ContainerSidecar()
 
-	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 5, len(container.VolumeMounts))
+	// One token volume mount, one config volume mount, two secrets volume mounts, and one mount copied from main container
+	require.Equal(t, 6, len(container.VolumeMounts))
 
 	require.Equal(
 		t,
@@ -79,6 +82,11 @@ func TestContainerSidecarVolume(t *testing.T) {
 				MountPath: extraSecretVolumePath,
 				ReadOnly:  true,
 			},
+			corev1.VolumeMount{
+				Name:      "tobecopied",
+				MountPath: "/etc/somewhereelse",
+				ReadOnly:  false,
+			},
 		},
 		container.VolumeMounts,
 	)
@@ -107,7 +115,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 2
+	expectedEnvs := 3
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -120,11 +128,19 @@ func TestContainerSidecar(t *testing.T) {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[1].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[1].Name)
+	if container.Env[1].Name != "VAULT_LOG_FORMAT" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_FORMAT", container.Env[1].Name)
 	}
 
 	if container.Env[1].Value == "" {
+		t.Error("env value empty, it shouldn't be")
+	}
+
+	if container.Env[2].Name != "VAULT_CONFIG" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[2].Name)
+	}
+
+	if container.Env[2].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
@@ -257,7 +273,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 1
+	expectedEnvs := 2
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}

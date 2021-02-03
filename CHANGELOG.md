@@ -1,3 +1,9 @@
+## 0.8.0 (February 2, 2021)
+
+Features:
+* Added annotation to copy mounts from a specified container: [GH-212](https://github.com/hashicorp/vault-k8s/pull/212)
+* Added annotation to change log format for the agent: [GH-200](https://github.com/hashicorp/vault-k8s/pull/200)
+
 ## 0.7.0 (January 5, 2021)
 
 Features:
