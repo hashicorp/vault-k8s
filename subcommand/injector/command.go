@@ -40,6 +40,7 @@ type Command struct {
 	flagAutoName           string // MutatingWebhookConfiguration for updating
 	flagAutoHosts          string // SANs for the auto-generated TLS cert.
 	flagVaultService       string // Name of the Vault service
+	flagProxyAddress       string // HTTP proxy address used to talk to the Vault service
 	flagVaultImage         string // Name of the Vault Image to use
 	flagVaultAuthPath      string // Mount Path of the Vault Kubernetes Auth Method
 	flagRevokeOnShutdown   bool   // Revoke Vault Token on pod shutdown
@@ -144,6 +145,7 @@ func (c *Command) Run(args []string) int {
 	injector := agentInject.Handler{
 		VaultAddress:       c.flagVaultService,
 		VaultAuthPath:      c.flagVaultAuthPath,
+		ProxyAddress:       c.flagProxyAddress,
 		ImageVault:         c.flagVaultImage,
 		Clientset:          clientset,
 		RequireAnnotation:  true,

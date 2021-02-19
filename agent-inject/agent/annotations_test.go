@@ -20,7 +20,7 @@ func TestInitCanSet(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -35,6 +35,7 @@ func TestInitCanSet(t *testing.T) {
 		{annotationKey: AnnotationAgentImage, annotationValue: "foobar-image"},
 		{annotationKey: AnnotationAgentRequestNamespace, annotationValue: "test"},
 		{annotationKey: AnnotationAgentRevokeOnShutdown, annotationValue: "true"},
+		{annotationKey: AnnotationProxyAddress, annotationValue: "http://proxy:3128"},
 	}
 
 	for _, tt := range tests {
@@ -56,7 +57,7 @@ func TestInitDefaults(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"", "http://foobar:8200", "test", "test", true, "", "",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -90,7 +91,7 @@ func TestInitError(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"image", "", "authPath", "namespace", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
 	if err == nil {
@@ -154,7 +155,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -205,7 +206,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -292,7 +293,7 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"", "http://foobar:8200", "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -377,7 +378,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -437,7 +438,7 @@ func TestTemplateShortcuts(t *testing.T) {
 			pod := testPod(tt.annotations)
 			agentConfig := AgentConfig{
 				"", "http://foobar:8200", "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -497,7 +498,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -630,7 +631,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -651,7 +652,7 @@ func TestInitEmptyPod(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
 	if err == nil {
@@ -680,7 +681,7 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
