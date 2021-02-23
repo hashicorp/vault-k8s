@@ -259,6 +259,9 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthType]; !ok {
+		if cfg.AuthType == "" {
+			cfg.AuthType = DefaultVaultAuthType
+		}
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthType] = cfg.AuthType
 	}
 
@@ -558,7 +561,7 @@ func (a *Agent) authConfig() map[string]interface{} {
 			authConfig[param] = value
 		}
 	}
-	if len(authConfig) == 0 && a.Vault.AuthType == DefaultVaultAuthType {
+	if a.Vault.Role != "" {
 		authConfig["role"] = a.Vault.Role
 	}
 

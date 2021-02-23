@@ -161,9 +161,9 @@ type Vault struct {
 	// Address is the Vault service address.
 	Address string
 
-  // ProxyAddress is the proxy service address to use when talking to the Vault service.
+	// ProxyAddress is the proxy service address to use when talking to the Vault service.
 	ProxyAddress string
-  
+
 	// AuthType is type of Vault Auth Method to use.
 	AuthType string
 
@@ -517,7 +517,12 @@ func (a *Agent) Validate() error {
 	}
 
 	if a.ConfigMapName == "" {
-		if a.Vault.Role == "" && a.Vault.AuthType == DefaultVaultAuthType {
+		if a.Vault.AuthType == "" {
+			return errors.New("no Vault Auth Type found")
+		}
+
+		if a.Vault.AuthType == DefaultVaultAuthType &&
+			a.Vault.Role == "" && a.Annotations[fmt.Sprintf("%s-role", AnnotationVaultAuthConfig)] == "" {
 			return errors.New("no Vault role found")
 		}
 
