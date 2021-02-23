@@ -841,7 +841,7 @@ func TestAuthConfigAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {

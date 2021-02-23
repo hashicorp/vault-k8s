@@ -189,13 +189,13 @@ func (c *Command) parseEnvs() error {
 		c.flagVaultService = envs.VaultAddr
 	}
 
-  if envs.ProxyAddr != "" {
+	if envs.ProxyAddr != "" {
 		c.flagProxyAddress = envs.ProxyAddr
 	}
-  
+
 	if envs.VaultAuthType != "" {
 		c.flagVaultAuthType = envs.VaultAuthType
-  }
+	}
 
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath
