@@ -811,10 +811,10 @@ func TestAuthConfigAnnotations(t *testing.T) {
 		{
 			map[string]string{
 				"vault.hashicorp.com/role":             "backwardscompat",
-				"vault.hashicorp.com/auth-config-role": "takesprecedence",
+				"vault.hashicorp.com/auth-config-role": "lowerprio",
 			},
 			map[string]interface{}{
-				"role": "takesprecedence",
+				"role": "backwardscompat",
 			},
 		},
 		{
