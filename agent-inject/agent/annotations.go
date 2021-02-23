@@ -129,6 +129,9 @@ const (
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
 
+	// AnnotationProxyAddress is the HTTP proxy to use when talking to the Vault server.
+	AnnotationProxyAddress = "vault.hashicorp.com/proxy-address"
+
 	// AnnotationVaultTLSSkipVerify allows users to configure verifying TLS
 	// when communicating with Vault.
 	AnnotationVaultTLSSkipVerify = "vault.hashicorp.com/tls-skip-verify"
@@ -219,6 +222,7 @@ type AgentConfig struct {
 	GroupID            string
 	SameID             bool
 	SetSecurityContext bool
+	ProxyAddress       string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -260,6 +264,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationProxyAddress]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationProxyAddress] = cfg.ProxyAddress
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentImage]; !ok {

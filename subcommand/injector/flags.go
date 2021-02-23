@@ -45,6 +45,9 @@ type Specification struct {
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
 
+	// ProxyAddr is the AGENT_INJECT_PROXY_ADDR environment variable.
+	ProxyAddr string `split_words:"true"`
+
 	// VaultImage is the AGENT_INJECT_VAULT_IMAGE environment variable.
 	VaultImage string `split_words:"true"`
 
@@ -95,6 +98,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
+	c.flagSet.StringVar(&c.flagProxyAddress, "proxy-address", "",
+		"HTTP proxy address used to talk to the Vault service.")
 	c.flagSet.StringVar(&c.flagVaultAuthType, "vault-auth-type", agent.DefaultVaultAuthType,
 		fmt.Sprintf("Type of Vault Auth Method to use. Defaults to %q.", agent.DefaultVaultAuthType))
 	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
@@ -184,9 +189,13 @@ func (c *Command) parseEnvs() error {
 		c.flagVaultService = envs.VaultAddr
 	}
 
+  if envs.ProxyAddr != "" {
+		c.flagProxyAddress = envs.ProxyAddr
+	}
+  
 	if envs.VaultAuthType != "" {
 		c.flagVaultAuthType = envs.VaultAuthType
-	}
+  }
 
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath

@@ -161,6 +161,9 @@ type Vault struct {
 	// Address is the Vault service address.
 	Address string
 
+  // ProxyAddress is the proxy service address to use when talking to the Vault service.
+	ProxyAddress string
+  
 	// AuthType is type of Vault Auth Method to use.
 	AuthType string
 
@@ -251,6 +254,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		CopyVolumeMounts:   pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
+			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
 			AuthType:         pod.Annotations[AnnotationVaultAuthType],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
 			CACert:           pod.Annotations[AnnotationVaultCACert],

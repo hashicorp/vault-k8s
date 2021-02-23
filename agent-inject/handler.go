@@ -39,6 +39,7 @@ type Handler struct {
 	VaultAddress       string
 	VaultAuthType      string
 	VaultAuthPath      string
+	ProxyAddress       string
 	ImageVault         string
 	Clientset          *kubernetes.Clientset
 	Log                hclog.Logger
@@ -146,6 +147,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		Address:            h.VaultAddress,
 		AuthType:           h.VaultAuthType,
 		AuthPath:           h.VaultAuthPath,
+		ProxyAddress:       h.ProxyAddress,
 		Namespace:          req.Namespace,
 		RevokeOnShutdown:   h.RevokeOnShutdown,
 		UserID:             h.UserID,

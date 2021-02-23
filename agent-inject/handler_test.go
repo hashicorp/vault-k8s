@@ -125,7 +125,7 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"basic pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
+			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler"), ProxyAddress: "http://proxy:3128"},
 			v1beta1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{

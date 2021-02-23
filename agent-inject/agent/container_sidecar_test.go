@@ -39,7 +39,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -100,7 +100,7 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128"})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -115,7 +115,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 3
+	expectedEnvs := 4
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -132,12 +132,16 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_FORMAT", container.Env[1].Name)
 	}
 
+	if container.Env[2].Name != "HTTPS_PROXY" {
+		t.Errorf("env name wrong, should have been %s, got %s", "HTTPS_PROXY", container.Env[2].Name)
+	}
+
 	if container.Env[1].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[2].Name != "VAULT_CONFIG" {
-		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[2].Name)
+	if container.Env[3].Name != "VAULT_CONFIG" {
+		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[3].Name)
 	}
 
 	if container.Env[2].Value == "" {
@@ -209,7 +213,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -258,7 +262,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -856,6 +860,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				GroupID:            strconv.FormatInt(tt.startup.runAsGroup, 10),
 				SetSecurityContext: tt.startup.setSecurityContext,
 				SameID:             tt.startup.runAsSameUser,
+				ProxyAddress:       "",
 			}
 
 			tt.annotations[AnnotationVaultRole] = "foobar"
