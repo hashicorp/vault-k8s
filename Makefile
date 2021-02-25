@@ -38,8 +38,8 @@ prod-ubi-image:
 # and publish (when XC_PUBLISH="--push") using docker buildx
 xc-prod-image:
 	docker buildx build --platform linux/amd64,linux/arm64,linux/386,linux/arm/v6 \
-	--build-arg VERSION="${RELEASE_VERSION}" \
-	--build-arg LOCATION="${PUBLISH_LOCATION}" \
+	--build-arg VERSION=$(VERSION) \
+	--build-arg LOCATION=$(PUBLISH_LOCATION) \
 	$(XC_PUBLISH) \
 	-t $(IMAGE_TAG) \
 	-f ${DOCKER_DIR}/Release.dockerfile .
