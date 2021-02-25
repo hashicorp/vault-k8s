@@ -42,7 +42,7 @@ func TestNewConfig(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
 		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
 	}
 	err := Init(pod, agentConfig)
@@ -93,12 +93,12 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("client_key: expected %s, got %s", annotations[AnnotationVaultClientKey], config.Vault.ClientKey)
 	}
 
-	if config.AutoAuth.Method.Type != "kubernetes" {
-		t.Error("expected auto_auth method to be kubernetes, it wasn't")
-	}
-
 	if config.AutoAuth.Method.Config["role"] != annotations[AnnotationVaultRole] {
 		t.Errorf("auto_auth role: expected role to be %s, got %s", annotations[AnnotationVaultRole], config.AutoAuth.Method.Config["role"])
+	}
+
+	if config.AutoAuth.Method.Type != annotations[AnnotationVaultAuthType] {
+		t.Errorf("auto_auth mount type: expected type to be %s, got %s", annotations[AnnotationVaultAuthType], config.AutoAuth.Method.Type)
 	}
 
 	if config.AutoAuth.Method.MountPath != annotations[AnnotationVaultAuthPath] {
@@ -208,7 +208,7 @@ func TestFilePathAndName(t *testing.T) {
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
 				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 			}
 			err := Init(pod, agentConfig)
@@ -240,7 +240,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
 		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)
@@ -279,7 +279,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", "test", "test", true, "100", "1000",
+		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
 		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
 	}
 	err := Init(pod, agentConfig)

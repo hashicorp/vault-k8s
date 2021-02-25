@@ -42,7 +42,8 @@ type Command struct {
 	flagVaultService       string // Name of the Vault service
 	flagProxyAddress       string // HTTP proxy address used to talk to the Vault service
 	flagVaultImage         string // Name of the Vault Image to use
-	flagVaultAuthPath      string // Mount Path of the Vault Kubernetes Auth Method
+	flagVaultAuthType      string // Type of Vault Auth Method to use
+	flagVaultAuthPath      string // Mount path of the Vault Auth Method
 	flagRevokeOnShutdown   bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser          string // User (uid) to run Vault agent as
 	flagRunAsGroup         string // Group (gid) to run Vault agent as
@@ -144,6 +145,7 @@ func (c *Command) Run(args []string) int {
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:       c.flagVaultService,
+		VaultAuthType:      c.flagVaultAuthType,
 		VaultAuthPath:      c.flagVaultAuthPath,
 		ProxyAddress:       c.flagProxyAddress,
 		ImageVault:         c.flagVaultImage,

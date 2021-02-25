@@ -128,12 +128,10 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type:      "kubernetes",
+				Type:      a.Vault.AuthType,
 				Namespace: a.Vault.Namespace,
 				MountPath: a.Vault.AuthPath,
-				Config: map[string]interface{}{
-					"role": a.Vault.Role,
-				},
+				Config:    a.Vault.AuthConfig,
 			},
 			Sinks: []*Sink{
 				{
