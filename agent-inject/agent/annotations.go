@@ -82,6 +82,24 @@ const (
 
 	// AnnotationAgentInjectToken is the annotation key for injecting the
 	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
+	// AnnotationAgentInjectTemplateLeftDelim is the key annotation that configures Vault
+	// Agent what left delimiter to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-left-delimiter-",
+	// such as "vault.hashicorp.com/agent-inject-left-delimiter-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// If not provided, a default left delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#left_delimiter
+	AnnotationAgentInjectTemplateLeftDelim = "vault.hashicorp.com/agent-inject-left-delimiter"
+
+	// AnnotationAgentInjectTemplateRightDelim is the key annotation that configures Vault
+	// Agent what right delimiter to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-right-delimiter-",
+	// such as "vault.hashicorp.com/agent-inject-right-delimiter-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// If not provided, a default right delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#right_delimiter
+	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-inject-right-delimiter"
+
+	// AnnotationAgentInjectToken is the annotation key for injecting the token
+	// from auth/token/lookup-self
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
@@ -646,6 +664,8 @@ func (a *Agent) secrets() ([]*Secret, error) {
 		}
 		secret.MountPath = a.annotationsSecretValue(AnnotationVaultSecretVolumePath, secret.RawName, a.Annotations[AnnotationVaultSecretVolumePath])
 		secret.Command = a.annotationsSecretValue(AnnotationAgentInjectCommand, secret.RawName, "")
+		secret.LeftDelimiter = a.annotationsSecretValue(AnnotationAgentInjectTemplateLeftDelim, secret.RawName, "")
+		secret.RightDelimiter = a.annotationsSecretValue(AnnotationAgentInjectTemplateRightDelim, secret.RawName, "")
 		secret.FilePathAndName = a.annotationsSecretValue(AnnotationAgentInjectFile, secret.RawName, "")
 		secret.FilePermission = a.annotationsSecretValue(AnnotationAgentInjectFilePermission, secret.RawName, "")
 
