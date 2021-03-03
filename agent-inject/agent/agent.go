@@ -234,6 +234,12 @@ type Secret struct {
 	// ErrMissingKey is used to control how the template behaves when attempting
 	// to index a struct or a map key that does not exist
 	ErrMissingKey bool
+
+	// LeftDelimiter is the optional left delimiter to use when rendering a templated secret
+	LeftDelimiter string
+
+	// RightDelimiter is the optional right delimiter to use when rendering a templated secret
+	RightDelimiter string
 }
 
 type Vault struct {
