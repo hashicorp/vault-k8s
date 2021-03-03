@@ -45,6 +45,22 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectTemplateLeftDelim is the key annotation that configures Vault
+	// Agent what left delimiter to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-left-delimiter-",
+	// such as "vault.hashicorp.com/agent-inject-template-left-delimiter-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// If not provided, a default left delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#left_delimiter
+	AnnotationAgentInjectTemplateLeftDelim = "vault.hashicorp.com/agent-inject-template-left-delimiter"
+
+	// AnnotationAgentInjectTemplateRightDelim is the key annotation that configures Vault
+	// Agent what right delimiter to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-right-delimiter-",
+	// such as "vault.hashicorp.com/agent-inject-template-right-delimiter-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// If not provided, a default right delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#right_delimiter
+	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-inject-template-right-delimiter"
+
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
@@ -417,6 +433,16 @@ func (a *Agent) secrets() []*Secret {
 			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
 			if val, ok := a.Annotations[file]; ok {
 				s.FilePathAndName = val
+			}
+
+			leftDelim := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateLeftDelim, raw)
+			if val, ok := a.Annotations[leftDelim]; ok {
+				s.LeftDelimiter = val
+			}
+
+			rightDelim := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateRightDelim, raw)
+			if val, ok := a.Annotations[rightDelim]; ok {
+				s.RightDelimiter = val
 			}
 
 			secrets = append(secrets, s)

@@ -155,6 +155,12 @@ type Secret struct {
 
 	// FilePathAndName is the optional file path and name for the rendered secret file.
 	FilePathAndName string
+
+	// LeftDelimiter is the optional left delimiter to use when rendering a templated secret
+	LeftDelimiter string
+
+	// RightDelimiter is the optional right delimiter to use when rendering a templated secret
+	RightDelimiter string
 }
 
 type Vault struct {
