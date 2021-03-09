@@ -69,6 +69,11 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		})
 	}
 
+	// TODO(tvoran): replace this with one bool on Agent{}?
+	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+		volumeMounts = append(volumeMounts, a.cacheVolumeMount())
+	}
+
 	envs, err := a.ContainerEnvVars(false)
 	if err != nil {
 		return corev1.Container{}, err

@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -306,8 +308,8 @@ func TestConfigVaultAgentCache(t *testing.T) {
 		t.Error("agent Cache should be enabled")
 	}
 
-	if config.Cache.UseAuthAuthToken != "force" {
-		t.Errorf("agent Cache use_auto_auth_token should be 'force', got %s instead", config.Cache.UseAuthAuthToken)
+	if config.Cache.UseAutoAuthToken != "force" {
+		t.Errorf("agent Cache use_auto_auth_token should be 'force', got %s instead", config.Cache.UseAutoAuthToken)
 	}
 
 	if config.Listener[0].Type != "tcp" {
@@ -321,4 +323,124 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	if !config.Listener[0].TLSDisable {
 		t.Error("agent Cache listener TLS should be disabled")
 	}
+}
+
+func TestConfigVaultAgentCache_persistent(t *testing.T) {
+	tests := []struct {
+		name              string
+		annotations       map[string]string
+		expectedCache     *Cache
+		expectedListeners []*Listener
+	}{
+		{
+			"cache defaults",
+			map[string]string{
+				AnnotationAgentCacheEnable: "true",
+			},
+			&Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type: "kubernetes",
+					Path: "/vault/agent-cache",
+				},
+			},
+			[]*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			"exit on err",
+			map[string]string{
+				AnnotationAgentCacheEnable:    "true",
+				AnnotationAgentCacheExitOnErr: "true",
+			},
+			&Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type:      "kubernetes",
+					Path:      "/vault/agent-cache",
+					ExitOnErr: true,
+				},
+			},
+			[]*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			"no persistence with only init container",
+			map[string]string{
+				AnnotationAgentCacheEnable:     "true",
+				AnnotationAgentPrePopulateOnly: "true",
+			},
+			nil,
+			nil,
+		},
+		{
+			"custom secrets volume mount path",
+			map[string]string{
+				AnnotationAgentCacheEnable:      "true",
+				AnnotationVaultSecretVolumePath: "/new/mount/path",
+			},
+			&Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type: "kubernetes",
+					Path: "/vault/agent-cache",
+				},
+			},
+			[]*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := AgentConfig{
+				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			}
+			err := Init(pod, agentConfig)
+			require.NoError(t, err, "got error initialising pod: %s", err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err, "got error creating agent: %s", err)
+
+			initCfg, err := agent.newConfig(true)
+			require.NoError(t, err, "got error creating Vault config: %s", err)
+
+			initConfig := &Config{}
+			err = json.Unmarshal(initCfg, initConfig)
+			require.NoError(t, err, "got error unmarshalling Vault init config: %s", err)
+
+			assert.Equal(t, tt.expectedCache, initConfig.Cache)
+			assert.Equal(t, tt.expectedListeners, initConfig.Listener)
+
+			sidecarCfg, err := agent.newConfig(false)
+			require.NoError(t, err, "got error creating Vault sidecar config: %s", err)
+
+			sidecarConfig := &Config{}
+			err = json.Unmarshal(sidecarCfg, sidecarConfig)
+			require.NoError(t, err, "got error unmarshalling Vault sidecar config: %s", err)
+
+			assert.Equal(t, tt.expectedCache, sidecarConfig.Cache)
+			assert.Equal(t, tt.expectedListeners, sidecarConfig.Listener)
+		})
+	}
+
 }

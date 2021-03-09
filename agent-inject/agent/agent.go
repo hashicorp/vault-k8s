@@ -27,6 +27,7 @@ const (
 	DefaultAgentCacheEnable              = "false"
 	DefaultAgentCacheUseAutoAuthToken    = "true"
 	DefaultAgentCacheListenerPort        = "8200"
+	DefaultAgentCacheExitOnErr           = false
 	DefaultAgentUseLeaderElector         = false
 )
 
@@ -230,6 +231,10 @@ type VaultAgentCache struct {
 
 	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
 	UseAutoAuthToken string
+
+	// ExitOnErr configures whether the agent will exit on an error while
+	// restoring the persistent cache
+	ExitOnErr bool
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -335,10 +340,16 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
+	agentCacheExitOnErr, err := agent.agentCacheExitOnErr()
+	if err != nil {
+		return agent, err
+	}
+
 	agent.VaultAgentCache = VaultAgentCache{
 		Enable:           agentCacheEnable,
 		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
+		ExitOnErr:        agentCacheExitOnErr,
 	}
 
 	return agent, nil
@@ -416,6 +427,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
+			"/spec/volumes")...)
+	}
+
+	// Add persistent cache volume if configured
+	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.cacheVolume()},
 			"/spec/volumes")...)
 	}
 
