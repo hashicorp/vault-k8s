@@ -232,6 +232,9 @@ type VaultAgentCache struct {
 	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
 	UseAutoAuthToken string
 
+	// Persist marks whether persistent caching is enabled or not
+	Persist bool
+
 	// ExitOnErr configures whether the agent will exit on an error while
 	// restoring the persistent cache
 	ExitOnErr bool
@@ -351,6 +354,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 		ExitOnErr:        agentCacheExitOnErr,
 	}
+	agent.VaultAgentCache.Persist = agent.agentCachePersist()
 
 	return agent, nil
 }
@@ -431,7 +435,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	}
 
 	// Add persistent cache volume if configured
-	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+	if a.VaultAgentCache.Persist {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.cacheVolume()},

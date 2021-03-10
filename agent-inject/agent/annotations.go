@@ -558,6 +558,13 @@ func (a *Agent) agentCacheEnable() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
+func (a *Agent) agentCachePersist() bool {
+	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+		return true
+	}
+	return false
+}
+
 func (a *Agent) agentCacheExitOnErr() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheExitOnErr]
 	if !ok {

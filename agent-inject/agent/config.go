@@ -155,7 +155,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		Templates: a.newTemplateConfigs(),
 	}
 
-	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+	if a.VaultAgentCache.Persist {
 		config.Listener = []*Listener{
 			{
 				Type:       "tcp",

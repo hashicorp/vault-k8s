@@ -57,7 +57,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		})
 	}
 
-	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+	if a.VaultAgentCache.Persist {
 		volumeMounts = append(volumeMounts, a.cacheVolumeMount())
 	}
 
