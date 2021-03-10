@@ -155,14 +155,15 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		Templates: a.newTemplateConfigs(),
 	}
 
+	cacheListener := []*Listener{
+		{
+			Type:       "tcp",
+			Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
+			TLSDisable: true,
+		},
+	}
 	if a.VaultAgentCache.Persist {
-		config.Listener = []*Listener{
-			{
-				Type:       "tcp",
-				Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
-				TLSDisable: true,
-			},
-		}
+		config.Listener = cacheListener
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 			Persist: &CachePersist{
@@ -170,6 +171,11 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 				Path:      cacheVolumePath,
 				ExitOnErr: a.VaultAgentCache.ExitOnErr,
 			},
+		}
+	} else if a.VaultAgentCache.Enable && !a.PrePopulateOnly && !init {
+		config.Listener = cacheListener
+		config.Cache = &Cache{
+			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 		}
 	}
 

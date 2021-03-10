@@ -559,7 +559,7 @@ func (a *Agent) agentCacheEnable() (bool, error) {
 }
 
 func (a *Agent) agentCachePersist() bool {
-	if a.VaultAgentCache.Enable && !a.PrePopulateOnly {
+	if a.VaultAgentCache.Enable && a.PrePopulate && !a.PrePopulateOnly {
 		return true
 	}
 	return false

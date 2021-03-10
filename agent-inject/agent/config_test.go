@@ -329,22 +329,24 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 	tests := []struct {
 		name              string
 		annotations       map[string]string
+		expectedInitCache bool
 		expectedCache     *Cache
 		expectedListeners []*Listener
 	}{
 		{
-			"cache defaults",
-			map[string]string{
+			name: "cache defaults",
+			annotations: map[string]string{
 				AnnotationAgentCacheEnable: "true",
 			},
-			&Cache{
+			expectedInitCache: true,
+			expectedCache: &Cache{
 				UseAutoAuthToken: "true",
 				Persist: &CachePersist{
 					Type: "kubernetes",
 					Path: "/vault/agent-cache",
 				},
 			},
-			[]*Listener{
+			expectedListeners: []*Listener{
 				{
 					Type:       "tcp",
 					Address:    "127.0.0.1:8200",
@@ -353,12 +355,13 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			},
 		},
 		{
-			"exit on err",
-			map[string]string{
+			name: "exit on err",
+			annotations: map[string]string{
 				AnnotationAgentCacheEnable:    "true",
 				AnnotationAgentCacheExitOnErr: "true",
 			},
-			&Cache{
+			expectedInitCache: true,
+			expectedCache: &Cache{
 				UseAutoAuthToken: "true",
 				Persist: &CachePersist{
 					Type:      "kubernetes",
@@ -366,7 +369,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 					ExitOnErr: true,
 				},
 			},
-			[]*Listener{
+			expectedListeners: []*Listener{
 				{
 					Type:       "tcp",
 					Address:    "127.0.0.1:8200",
@@ -375,34 +378,32 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			},
 		},
 		{
-			"no persistence with only init container",
-			map[string]string{
+			name: "just memory cache when only sidecar",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable: "true",
+				AnnotationAgentPrePopulate: "false",
+			},
+			expectedInitCache: false,
+			expectedCache: &Cache{
+				UseAutoAuthToken: "true",
+			},
+			expectedListeners: []*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			name: "no cache at all with only init container",
+			annotations: map[string]string{
 				AnnotationAgentCacheEnable:     "true",
 				AnnotationAgentPrePopulateOnly: "true",
 			},
-			nil,
-			nil,
-		},
-		{
-			"custom secrets volume mount path",
-			map[string]string{
-				AnnotationAgentCacheEnable:      "true",
-				AnnotationVaultSecretVolumePath: "/new/mount/path",
-			},
-			&Cache{
-				UseAutoAuthToken: "true",
-				Persist: &CachePersist{
-					Type: "kubernetes",
-					Path: "/vault/agent-cache",
-				},
-			},
-			[]*Listener{
-				{
-					Type:       "tcp",
-					Address:    "127.0.0.1:8200",
-					TLSDisable: true,
-				},
-			},
+			expectedInitCache: false,
+			expectedCache:     nil,
+			expectedListeners: nil,
 		},
 	}
 
@@ -428,8 +429,13 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			err = json.Unmarshal(initCfg, initConfig)
 			require.NoError(t, err, "got error unmarshalling Vault init config: %s", err)
 
-			assert.Equal(t, tt.expectedCache, initConfig.Cache)
-			assert.Equal(t, tt.expectedListeners, initConfig.Listener)
+			if tt.expectedInitCache {
+				assert.Equal(t, tt.expectedCache, initConfig.Cache)
+				assert.Equal(t, tt.expectedListeners, initConfig.Listener)
+			} else {
+				assert.Nil(t, initConfig.Cache)
+				assert.Nil(t, initConfig.Listener)
+			}
 
 			sidecarCfg, err := agent.newConfig(false)
 			require.NoError(t, err, "got error creating Vault sidecar config: %s", err)
