@@ -58,14 +58,14 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
-				Name:      tokenVolumeNameSidecar,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			corev1.VolumeMount{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      tokenVolumeNameSidecar,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
 			},
 			corev1.VolumeMount{
 				Name:      secretVolumeName,
@@ -93,6 +93,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 }
 
 func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
+	
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
 		// this will have different mount path
@@ -114,12 +115,15 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	pod := testPodIRSA(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext})
+	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "aws", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
 	agent, err := New(pod, patches)
+	agent.AwsIamTokenAccountName = "aws-iam-token"
+	agent.AwsIamTokenAccountPath = "/var/run/secrets/eks.amazonaws.com/serviceaccount"
+
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -133,14 +137,14 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			corev1.VolumeMount{
-				Name:      tokenVolumeNameSidecar,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			corev1.VolumeMount{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      tokenVolumeNameSidecar,
+				MountPath: tokenVolumePath,
+				ReadOnly:  false,
 			},
 			corev1.VolumeMount{
 				Name:      agent.AwsIamTokenAccountName,
