@@ -1,7 +1,24 @@
 ## Unreleased
 
 Features:
+* Added annotation to specify HTTPS proxy on Vault Agent containers: [GH-211](https://github.com/hashicorp/vault-k8s/pull/211)
+* Added support for all auto-auth methods: [GH-213](https://github.com/hashicorp/vault-k8s/pull/213)
+
+Improvements:
+
+Bugs:
+
+## 0.8.0 (February 2, 2021)
+
+Features:
+* Added annotation to copy mounts from a specified container: [GH-212](https://github.com/hashicorp/vault-k8s/pull/212)
+* Added annotation to change log format for the agent: [GH-200](https://github.com/hashicorp/vault-k8s/pull/200)
+
+## 0.7.0 (January 5, 2021)
+
+Features:
 * Added UBI container image: [GH-183](https://github.com/hashicorp/vault-k8s/pull/183)
+* Support for multiple replicas with auto-tls: [GH-198](https://github.com/hashicorp/vault-k8s/pull/198)
 
 ## 0.6.0 (October 20, 2020)
 

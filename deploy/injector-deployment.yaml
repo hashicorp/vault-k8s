@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: vault-injector
     app.kubernetes.io/instance: vault
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: vault-injector
@@ -20,8 +20,40 @@ spec:
     spec:
       serviceAccountName: "vault-injector"
       containers:
+        - name: leader-elector
+          image: k8s.gcr.io/leader-elector:0.4
+          args:
+            - --election=vault-agent-injector-leader
+            - --election-namespace=$(NAMESPACE)
+            - --http=0.0.0.0:4040
+            - --ttl=60s
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4040
+              scheme: HTTP
+            failureThreshold: 2
+            initialDelaySeconds: 1
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4040
+              scheme: HTTP
+            failureThreshold: 2
+            initialDelaySeconds: 2
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 5
         - name: sidecar-injector
-          image: "hashicorp/vault-k8s:0.6.0"
+          image: "hashicorp/vault-k8s:0.8.0"
           imagePullPolicy: IfNotPresent
           env:
             - name: NAMESPACE
@@ -37,11 +69,13 @@ spec:
             - name: AGENT_INJECT_VAULT_ADDR
               value: "https://vault.$(NAMESPACE).svc:8200"
             - name: AGENT_INJECT_VAULT_IMAGE
-              value: "vault:1.5.4"
+              value: "vault:1.6.2"
             - name: AGENT_INJECT_TLS_AUTO
               value: vault-agent-injector-cfg
             - name: AGENT_INJECT_TLS_AUTO_HOSTS
               value: "vault-agent-injector-svc,vault-agent-injector-svc.$(NAMESPACE),vault-agent-injector-svc.$(NAMESPACE).svc"
+            - name: AGENT_INJECT_USE_LEADER_ELECTOR
+              value: "true"
           args:
             - agent-inject
             - 2>&1

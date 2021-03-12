@@ -14,7 +14,8 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.5.4"
+	DefaultVaultImage                    = "vault:1.6.2"
+	DefaultVaultAuthType                 = "kubernetes"
 	DefaultVaultAuthPath                 = "auth/kubernetes"
 	DefaultAgentRunAsUser                = 100
 	DefaultAgentRunAsGroup               = 1000
@@ -26,6 +27,7 @@ const (
 	DefaultAgentCacheEnable              = "false"
 	DefaultAgentCacheUseAutoAuthToken    = "true"
 	DefaultAgentCacheListenerPort        = "8200"
+	DefaultAgentUseLeaderElector         = false
 )
 
 // Agent is the top level structure holding all the
@@ -136,6 +138,9 @@ type Agent struct {
 	// where the JWT would be present
 	// Need this for IRSA aka pod identity
 	AwsIamTokenAccountPath string
+	// CopyVolumeMounts is the name of the container in the Pod whose volume mounts
+	// should be copied into the Vault Agent init and/or sidecar containers.
+	CopyVolumeMounts string
 }
 
 type Secret struct {
@@ -164,8 +169,17 @@ type Vault struct {
 	// Address is the Vault service address.
 	Address string
 
-	// AuthPath is the Mount Path of Vault Kubernetes Auth Method.
+	// ProxyAddress is the proxy service address to use when talking to the Vault service.
+	ProxyAddress string
+
+	// AuthType is type of Vault Auth Method to use.
+	AuthType string
+
+	// AuthPath is the Mount Path of Vault Auth Method.
 	AuthPath string
+
+	// AuthConfig is the Auto Auth Method configuration.
+	AuthConfig map[string]interface{}
 
 	// CACert is the name of the Certificate Authority certificate
 	// to use when validating Vault's server certificates.
@@ -193,6 +207,9 @@ type Vault struct {
 
 	// LogLevel sets the Vault Agent log level.  Defaults to info.
 	LogLevel string
+
+	// LogFormat sets the Vault Agent log format.  Defaults to standard.
+	LogFormat string
 
 	// Namespace is the Vault namespace to prepend to secret paths.
 	Namespace string
@@ -226,8 +243,11 @@ type VaultAgentCache struct {
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
-	iamName, iamPath := getAwsIamTokenAccount(pod)
-
+	var iamName, iamPath string
+	if pod.Annotations[AnnotationVaultAuthPath] == "aws" {
+		iamName, iamPath = getAwsIamTokenVolume(pod)
+	}
+	
 	agent := &Agent{
 		Annotations:            pod.Annotations,
 		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
@@ -243,10 +263,13 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountPath:     saPath,
 		Status:                 pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
+		CopyVolumeMounts:   pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName: iamName,
 		AwsIamTokenAccountPath: iamPath,
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
+			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
+			AuthType:         pod.Annotations[AnnotationVaultAuthType],
 			AuthPath:         pod.Annotations[AnnotationVaultAuthPath],
 			CACert:           pod.Annotations[AnnotationVaultCACert],
 			CAKey:            pod.Annotations[AnnotationVaultCAKey],
@@ -255,6 +278,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
 			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
+			LogFormat:        pod.Annotations[AnnotationVaultLogFormat],
 			Namespace:        pod.Annotations[AnnotationVaultNamespace],
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
@@ -264,6 +288,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 
 	var err error
 	agent.Secrets = agent.secrets()
+	agent.Vault.AuthConfig = agent.authConfig()
 	agent.Inject, err = agent.inject()
 	if err != nil {
 		return agent, err
@@ -506,7 +531,12 @@ func (a *Agent) Validate() error {
 	}
 
 	if a.ConfigMapName == "" {
-		if a.Vault.Role == "" {
+		if a.Vault.AuthType == "" {
+			return errors.New("no Vault Auth Type found")
+		}
+
+		if a.Vault.AuthType == DefaultVaultAuthType &&
+			a.Vault.Role == "" && a.Annotations[fmt.Sprintf("%s-role", AnnotationVaultAuthConfig)] == "" {
 			return errors.New("no Vault role found")
 		}
 
@@ -534,7 +564,7 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 }
 
 // IRSA support - get aws_iam_token volume mount details to inject to vault containers
-func getAwsIamTokenAccount(pod *corev1.Pod) (string, string) {
+func getAwsIamTokenVolume(pod *corev1.Pod) (string, string) {
 	var awsIamTokenAccountName, awsIamTokenAccountPath string
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
@@ -547,7 +577,7 @@ func getAwsIamTokenAccount(pod *corev1.Pod) (string, string) {
 }
 
 // IRSA support - get aws envs to inject to vault containers
-func (a *Agent) getEnvsFromContainer(pod *corev1.Pod) map[string]string {
+func (a *Agent) getAwsEnvsFromContainer(pod *corev1.Pod) map[string]string {
 	envMap := make(map[string]string)
 	for _, container := range pod.Spec.Containers {
 		for _, env := range container.Env {
@@ -579,4 +609,22 @@ func (a *Agent) vaultCliFlags() []string {
 	}
 
 	return flags
+}
+
+// copyVolumeMounts copies the specified container or init container's volume mounts.
+// Ignores any Kubernetes service account token mounts.
+func (a *Agent) copyVolumeMounts(targetContainerName string) []corev1.VolumeMount {
+	// Deep copy the pod spec so append doesn't mutate the original containers slice
+	podSpec := a.Pod.Spec.DeepCopy()
+	copiedVolumeMounts := make([]corev1.VolumeMount, 0)
+	for _, container := range append(podSpec.Containers, podSpec.InitContainers...) {
+		if container.Name == targetContainerName {
+			for _, volumeMount := range container.VolumeMounts {
+				if !strings.Contains(strings.ToLower(volumeMount.MountPath), "serviceaccount") {
+					copiedVolumeMounts = append(copiedVolumeMounts, volumeMount)
+				}
+			}
+		}
+	}
+	return copiedVolumeMounts
 }

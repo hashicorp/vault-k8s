@@ -12,40 +12,24 @@ import (
 // available for the agent.  This means we won't need to generate
 // two config files.
 func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
-	volumeMounts := []corev1.VolumeMount{}
-	// Add aws token volume to init sidecar
-	if a.AwsIamTokenAccountName == "" || a.AwsIamTokenAccountPath == "" {
-		volumeMounts = []corev1.VolumeMount{
-			{
-				Name:      tokenVolumeNameInit,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			{
-				Name:      a.ServiceAccountName,
-				MountPath: a.ServiceAccountPath,
-				ReadOnly:  true,
-			},
-		}
-	} else {
-		volumeMounts = []corev1.VolumeMount{
-			{
-				Name:      tokenVolumeNameInit,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			{
-				Name:      a.ServiceAccountName,
-				MountPath: a.ServiceAccountPath,
-				ReadOnly:  true,
-			},
-			// add aws volume mounts to be available for init sidecar
-			{
-				Name:      a.AwsIamTokenAccountName,
-				MountPath: a.AwsIamTokenAccountPath,
-				ReadOnly:  true,
-			},
-		}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      tokenVolumeNameInit,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
+		{
+			Name:      a.ServiceAccountName,
+			MountPath: a.ServiceAccountPath,
+			ReadOnly:  true,
+		},
+	}
+	if a.AwsIamTokenAccountName != "" && a.AwsIamTokenAccountPath != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      a.AwsIamTokenAccountName,
+			MountPath: a.AwsIamTokenAccountPath,
+			ReadOnly:  true,
+		})
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
@@ -55,6 +39,10 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			MountPath: extraSecretVolumePath,
 			ReadOnly:  true,
 		})
+	}
+
+	if a.CopyVolumeMounts != "" {
+		volumeMounts = append(volumeMounts, a.copyVolumeMounts(a.CopyVolumeMounts)...)
 	}
 
 	arg := DefaultContainerArg

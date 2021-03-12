@@ -129,6 +129,9 @@ const (
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
 
+	// AnnotationProxyAddress is the HTTP proxy to use when talking to the Vault server.
+	AnnotationProxyAddress = "vault.hashicorp.com/proxy-address"
+
 	// AnnotationVaultTLSSkipVerify allows users to configure verifying TLS
 	// when communicating with Vault.
 	AnnotationVaultTLSSkipVerify = "vault.hashicorp.com/tls-skip-verify"
@@ -165,13 +168,23 @@ const (
 	// AnnotationVaultLogLevel sets the Vault Agent log level.
 	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
+	// AnnotationVaultLogFormat sets the Vault Agent log format.
+	AnnotationVaultLogFormat = "vault.hashicorp.com/log-format"
+
 	// AnnotationVaultRole specifies the role to be used for the Kubernetes auto-auth
 	// method.
 	AnnotationVaultRole = "vault.hashicorp.com/role"
 
-	// AnnotationVaultAuthPath specifies the mount path to be used for the Kubernetes auto-auth
-	// method.
+	// AnnotationVaultAuthType specifies the auto-auth method type to be used.
+	AnnotationVaultAuthType = "vault.hashicorp.com/auth-type"
+
+	// AnnotationVaultAuthPath specifies the mount path to be used for the auto-auth method.
 	AnnotationVaultAuthPath = "vault.hashicorp.com/auth-path"
+
+	// AnnotationVaultAuthConfig specifies the Auto Auth Method configuration parameters.
+	// The name of the parameter is any unique string after "vault.hashicorp.com/auth-config-",
+	// such as "vault.hashicorp.com/auth-config-foobar".
+	AnnotationVaultAuthConfig = "vault.hashicorp.com/auth-config"
 
 	// AnnotationVaultSecretVolumePath specifies where the secrets are to be
 	// Mounted after fetching.
@@ -191,11 +204,17 @@ const (
 
 	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
 	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
+
+	// AnnotationAgentCopyVolumeMounts is the name of the container or init container
+	// in the Pod whose volume mounts should be copied onto the Vault Agent init and
+	// sidecar containers. Ignores any Kubernetes service account token mounts.
+	AnnotationAgentCopyVolumeMounts = "vault.hashicorp.com/agent-copy-volume-mounts"
 )
 
 type AgentConfig struct {
 	Image              string
 	Address            string
+	AuthType           string
 	AuthPath           string
 	Namespace          string
 	RevokeOnShutdown   bool
@@ -203,6 +222,7 @@ type AgentConfig struct {
 	GroupID            string
 	SameID             bool
 	SetSecurityContext bool
+	ProxyAddress       string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -238,8 +258,19 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationVaultService] = cfg.Address
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthType]; !ok {
+		if cfg.AuthType == "" {
+			cfg.AuthType = DefaultVaultAuthType
+		}
+		pod.ObjectMeta.Annotations[AnnotationVaultAuthType] = cfg.AuthType
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationProxyAddress]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationProxyAddress] = cfg.ProxyAddress
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentImage]; !ok {
@@ -283,6 +314,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
 	}
 
 	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
@@ -513,4 +548,22 @@ func (a *Agent) agentCacheEnable() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) authConfig() map[string]interface{} {
+	authConfig := make(map[string]interface{})
+
+	prefix := fmt.Sprintf("%s-", AnnotationVaultAuthConfig)
+	for annotation, value := range a.Annotations {
+		if strings.HasPrefix(annotation, prefix) {
+			param := strings.TrimPrefix(annotation, prefix)
+			param = strings.ReplaceAll(param, "-", "_")
+			authConfig[param] = value
+		}
+	}
+	if a.Vault.Role != "" {
+		authConfig["role"] = a.Vault.Role
+	}
+
+	return authConfig
 }

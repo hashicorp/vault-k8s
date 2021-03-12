@@ -4,6 +4,8 @@ go 1.12
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/evanphx/json-patch v4.9.0+incompatible // indirect
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/hashicorp/consul v1.5.0
 	github.com/hashicorp/go-hclog v0.9.2
@@ -31,6 +33,7 @@ require (
 	k8s.io/apimachinery v0.0.0-20190404173353-6a84e37a896d
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v1.0.0 // indirect
+	k8s.io/kube-openapi v0.0.0-20190228160746-b3a7cee44a30 // indirect
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d // indirect
 	sigs.k8s.io/yaml v1.1.0 // indirect
 )

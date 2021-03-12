@@ -1,0 +1,13 @@
+# These are created here so they can be cleaned up easily. The endpoints
+# especially, since if they're left around the leader won't expire for about a
+# minute. 
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: vault-agent-injector-leader
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-injector-certs

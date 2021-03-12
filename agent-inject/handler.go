@@ -37,7 +37,9 @@ type Handler struct {
 	// If this is false, injection is default.
 	RequireAnnotation  bool
 	VaultAddress       string
+	VaultAuthType      string
 	VaultAuthPath      string
+	ProxyAddress       string
 	ImageVault         string
 	Clientset          *kubernetes.Clientset
 	Log                hclog.Logger
@@ -143,7 +145,9 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	cfg := agent.AgentConfig{
 		Image:              h.ImageVault,
 		Address:            h.VaultAddress,
+		AuthType:           h.VaultAuthType,
 		AuthPath:           h.VaultAuthPath,
+		ProxyAddress:       h.ProxyAddress,
 		Namespace:          req.Namespace,
 		RevokeOnShutdown:   h.RevokeOnShutdown,
 		UserID:             h.UserID,

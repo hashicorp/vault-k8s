@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestNotify(t *testing.T) {
@@ -64,6 +66,7 @@ func TestNotifyRace(t *testing.T) {
 		var certSource Source = &GenSource{
 			Name:  "Agent Inject",
 			Hosts: []string{"some", "hosts"},
+			Log:   hclog.Default(),
 		}
 		n := NewNotify(ctx, certCh, certSource)
 

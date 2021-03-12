@@ -18,11 +18,15 @@ import (
 	"github.com/hashicorp/go-hclog"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
+	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/informers"
+	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 )
 
 type Command struct {
@@ -36,14 +40,17 @@ type Command struct {
 	flagAutoName           string // MutatingWebhookConfiguration for updating
 	flagAutoHosts          string // SANs for the auto-generated TLS cert.
 	flagVaultService       string // Name of the Vault service
+	flagProxyAddress       string // HTTP proxy address used to talk to the Vault service
 	flagVaultImage         string // Name of the Vault Image to use
-	flagVaultAuthPath      string // Mount Path of the Vault Kubernetes Auth Method
+	flagVaultAuthType      string // Type of Vault Auth Method to use
+	flagVaultAuthPath      string // Mount path of the Vault Auth Method
 	flagRevokeOnShutdown   bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser          string // User (uid) to run Vault agent as
 	flagRunAsGroup         string // Group (gid) to run Vault agent as
 	flagRunAsSameUser      bool   // Run Vault agent as the User (uid) of the first application container
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
 	flagTelemetryPath      string // Path under which to expose metrics
+	flagUseLeaderElector   bool   // Use leader elector code
 
 	flagSet *flag.FlagSet
 
@@ -85,10 +92,41 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
+	namespace := getNamespace()
+	var secrets informerv1.SecretInformer
+	var leaderElector *leader.LeaderElector
+	if c.flagUseLeaderElector {
+		c.UI.Info("Using leader elector logic")
+		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
+		secrets = factory.Core().V1().Secrets()
+		go secrets.Informer().Run(ctx.Done())
+		if !cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced) {
+			c.UI.Error("timeout syncing Secrets informer")
+			return 1
+		}
+		leaderElector = leader.New()
+	}
+
+	level, err := c.logLevel()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
+		return 1
+	}
+
+	logger := hclog.New(&hclog.LoggerOptions{
+		Name:       "handler",
+		Level:      level,
+		JSONFormat: (c.flagLogFormat == "json")})
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
-		Name:  "Agent Inject",
-		Hosts: strings.Split(c.flagAutoHosts, ","),
+		Name:          "Agent Inject",
+		Hosts:         strings.Split(c.flagAutoHosts, ","),
+		K8sClient:     clientset,
+		Namespace:     namespace,
+		SecretsCache:  secrets,
+		LeaderElector: leaderElector,
+		Log:           logger.Named("auto-tls"),
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -102,23 +140,14 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource)
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset)
-
-	level, err := c.logLevel()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
-		return 1
-	}
-
-	logger := hclog.New(&hclog.LoggerOptions{
-		Name:       "handler",
-		Level:      level,
-		JSONFormat: (c.flagLogFormat == "json")})
+	go c.certWatcher(ctx, certCh, clientset, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:       c.flagVaultService,
+		VaultAuthType:      c.flagVaultAuthType,
 		VaultAuthPath:      c.flagVaultAuthPath,
+		ProxyAddress:       c.flagProxyAddress,
 		ImageVault:         c.flagVaultImage,
 		Clientset:          clientset,
 		RequireAnnotation:  true,
@@ -175,6 +204,15 @@ func (c *Command) Run(args []string) int {
 	return 0
 }
 
+func getNamespace() string {
+	namespace := os.Getenv("NAMESPACE")
+	if namespace != "" {
+		return namespace
+	}
+
+	return "default"
+}
+
 func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 	// Always ready at this point. The main readiness check is whether
 	// there is a TLS certificate. If we reached this point it means we
@@ -191,12 +229,12 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
 	var bundle cert.Bundle
 	for {
 		select {
 		case bundle = <-ch:
-			c.UI.Output("Updated certificate bundle received. Updating certs...")
+			log.Info("Updated certificate bundle received. Updating certs...")
 			// Bundle is updated, set it up
 
 		case <-time.After(1 * time.Second):
@@ -212,12 +250,24 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
+			log.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
 			continue
 		}
 
+		isLeader := true
+		if c.flagUseLeaderElector {
+			// Only the leader should do the caBundle patching in k8s API
+			var err error
+			le := leader.New()
+			isLeader, err = le.IsLeader()
+			if err != nil {
+				log.Error(fmt.Sprintf("error checking leader: %s", err))
+				continue
+			}
+		}
+
 		// If there is a MWC name set, then update the CA bundle.
-		if c.flagAutoName != "" && len(bundle.CACert) > 0 {
+		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
 

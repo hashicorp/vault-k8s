@@ -18,44 +18,30 @@ const (
 	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
+	DefaultAgentLogFormat     = "standard"
 )
 
 // ContainerSidecar creates a new container to be added
 // to the pod being mutated.
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
-	volumeMounts := []corev1.VolumeMount{}
-	if a.AwsIamTokenAccountName == "" || a.AwsIamTokenAccountPath == "" {
-		volumeMounts = []corev1.VolumeMount{
-			{
-				Name:      tokenVolumeNameSidecar,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			{
-				Name:      a.ServiceAccountName,
-				MountPath: a.ServiceAccountPath,
-				ReadOnly:  true,
-			},
-		}
-	} else {
-		volumeMounts = []corev1.VolumeMount{
-			{
-				Name:      tokenVolumeNameSidecar,
-				MountPath: tokenVolumePath,
-				ReadOnly:  false,
-			},
-			{
-				Name:      a.ServiceAccountName,
-				MountPath: a.ServiceAccountPath,
-				ReadOnly:  true,
-			},
-			// add aws volume mounts to be available for sidecar
-			{
-				Name:      a.AwsIamTokenAccountName,
-				MountPath: a.AwsIamTokenAccountPath,
-				ReadOnly:  true,
-			},
-		}
+	volumeMounts := []corev1.VolumeMount{
+		{
+			Name:      a.ServiceAccountName,
+			MountPath: a.ServiceAccountPath,
+			ReadOnly:  true,
+		},
+		{
+			Name:      tokenVolumeNameSidecar,
+			MountPath: tokenVolumePath,
+			ReadOnly:  false,
+		},
+	}
+	if a.AwsIamTokenAccountName != "" && a.AwsIamTokenAccountPath != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      a.AwsIamTokenAccountName,
+			MountPath: a.AwsIamTokenAccountPath,
+			ReadOnly:  true,
+		})
 	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
@@ -65,6 +51,10 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: extraSecretVolumePath,
 			ReadOnly:  true,
 		})
+	}
+
+	if a.CopyVolumeMounts != "" {
+		volumeMounts = append(volumeMounts, a.copyVolumeMounts(a.CopyVolumeMounts)...)
 	}
 
 	arg := DefaultContainerArg

@@ -5,7 +5,7 @@
 # We don't rebuild the software because we want the exact checksums and
 # binary signatures to match the software and our builds aren't fully
 # reproducible currently.
-FROM alpine:latest
+FROM docker.mirror.hashicorp.services/alpine:latest
 
 # NAME and VERSION are the name of the software in releases.hashicorp.com
 # and the version to download. Example: NAME=consul VERSION=1.2.3.
@@ -36,7 +36,7 @@ RUN addgroup vault && \
 
 # Set up certificates, base tools, and software.
 RUN set -eux && \
-    apk add --no-cache ca-certificates curl gnupg libcap openssl su-exec iputils && \
+    apk add --no-cache ca-certificates gnupg libcap openssl su-exec iputils && \
     BUILD_GPGKEY=91A6E7F85D05C65630BEF18951852D87348FFC4C; \
     found=''; \
     for server in \

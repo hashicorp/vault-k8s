@@ -45,8 +45,14 @@ type Specification struct {
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
 
+	// ProxyAddr is the AGENT_INJECT_PROXY_ADDR environment variable.
+	ProxyAddr string `split_words:"true"`
+
 	// VaultImage is the AGENT_INJECT_VAULT_IMAGE environment variable.
 	VaultImage string `split_words:"true"`
+
+	// VaultAuthType is the AGENT_INJECT_VAULT_AUTH_TYPE environment variable.
+	VaultAuthType string `split_words:"true"`
 
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
@@ -68,6 +74,9 @@ type Specification struct {
 
 	// TelemetryPath is the AGENT_INJECT_TELEMETRY_PATH environment variable.
 	TelemetryPath string `split_words:"true"`
+
+	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
+	UseLeaderElector string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -89,8 +98,12 @@ func (c *Command) init() {
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
+	c.flagSet.StringVar(&c.flagProxyAddress, "proxy-address", "",
+		"HTTP proxy address used to talk to the Vault service.")
+	c.flagSet.StringVar(&c.flagVaultAuthType, "vault-auth-type", agent.DefaultVaultAuthType,
+		fmt.Sprintf("Type of Vault Auth Method to use. Defaults to %q.", agent.DefaultVaultAuthType))
 	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
-		fmt.Sprintf("Mount Path of the Vault Kubernetes Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
+		fmt.Sprintf("Mount path of the Vault Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
 	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
 		"Automatically revoke Vault Token on Pod termination.")
 	c.flagSet.StringVar(&c.flagRunAsUser, "run-as-user", strconv.Itoa(agent.DefaultAgentRunAsUser),
@@ -105,6 +118,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext))
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
 		"Path under which to expose metrics")
+	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
+		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -174,6 +189,14 @@ func (c *Command) parseEnvs() error {
 		c.flagVaultService = envs.VaultAddr
 	}
 
+	if envs.ProxyAddr != "" {
+		c.flagProxyAddress = envs.ProxyAddr
+	}
+
+	if envs.VaultAuthType != "" {
+		c.flagVaultAuthType = envs.VaultAuthType
+	}
+
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath
 	}
@@ -209,6 +232,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TelemetryPath != "" {
 		c.flagTelemetryPath = envs.TelemetryPath
+	}
+
+	if envs.UseLeaderElector != "" {
+		c.flagUseLeaderElector, err = strconv.ParseBool(envs.UseLeaderElector)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
