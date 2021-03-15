@@ -549,7 +549,7 @@ func (a *Agent) setSecurityContext() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) agentCacheEnable() (bool, error) {
+func (a *Agent) cacheEnable() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
 	if !ok {
 		return false, nil
@@ -558,14 +558,14 @@ func (a *Agent) agentCacheEnable() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) agentCachePersist() bool {
-	if a.VaultAgentCache.Enable && a.PrePopulate && !a.PrePopulateOnly {
+func (a *Agent) cachePersist(cacheEnabled bool) bool {
+	if cacheEnabled && a.PrePopulate && !a.PrePopulateOnly {
 		return true
 	}
 	return false
 }
 
-func (a *Agent) agentCacheExitOnErr() (bool, error) {
+func (a *Agent) cacheExitOnErr() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheExitOnErr]
 	if !ok {
 		return false, nil

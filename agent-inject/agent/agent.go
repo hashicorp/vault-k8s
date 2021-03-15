@@ -338,12 +338,12 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agentCacheEnable, err := agent.agentCacheEnable()
+	agentCacheEnable, err := agent.cacheEnable()
 	if err != nil {
 		return agent, err
 	}
 
-	agentCacheExitOnErr, err := agent.agentCacheExitOnErr()
+	agentCacheExitOnErr, err := agent.cacheExitOnErr()
 	if err != nil {
 		return agent, err
 	}
@@ -353,8 +353,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 		ExitOnErr:        agentCacheExitOnErr,
+		Persist:          agent.cachePersist(agentCacheEnable),
 	}
-	agent.VaultAgentCache.Persist = agent.agentCachePersist()
 
 	return agent, nil
 }
