@@ -19,6 +19,8 @@ const (
 	secretVolumePath       = "/vault/secrets"
 	extraSecretVolumeName  = "extra-secrets"
 	extraSecretVolumePath  = "/vault/custom"
+	cacheVolumeName        = "vault-agent-cache"
+	cacheVolumePath        = "/vault/agent-cache"
 )
 
 func (a *Agent) getUniqueMountPaths() []string {
@@ -153,4 +155,23 @@ func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
 		)
 	}
 	return volumeMounts
+}
+
+func (a *Agent) cacheVolume() corev1.Volume {
+	return corev1.Volume{
+		Name: cacheVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{
+				Medium: "Memory",
+			},
+		},
+	}
+}
+
+func (a *Agent) cacheVolumeMount() corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      cacheVolumeName,
+		MountPath: cacheVolumePath,
+		ReadOnly:  false,
+	}
 }

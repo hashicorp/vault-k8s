@@ -7,8 +7,10 @@ import (
 
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 func TestContainerSidecarVolume(t *testing.T) {
@@ -884,6 +886,106 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			}
 
 			require.Equal(t, tt.expectedSecurityContext, container.SecurityContext)
+		})
+	}
+}
+
+func TestContainerCache(t *testing.T) {
+	cacheMount := []corev1.VolumeMount{
+		{
+			Name:      cacheVolumeName,
+			MountPath: cacheVolumePath,
+			ReadOnly:  false,
+		},
+	}
+	cacheVolumePatch := []*jsonpatch.JsonPatchOperation{
+		{
+			Operation: "add",
+			Path:      "/spec/volumes",
+			Value: []v1.Volume{
+				{
+					Name: "vault-agent-cache",
+					VolumeSource: v1.VolumeSource{
+						EmptyDir: &v1.EmptyDirVolumeSource{
+							Medium: "Memory",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name                   string
+		annotations            map[string]string
+		expectCacheVolAndMount bool
+	}{
+		{
+			"cache enabled",
+			map[string]string{
+				AnnotationVaultRole:        "role",
+				AnnotationAgentCacheEnable: "true",
+			},
+			true,
+		},
+		{
+			"cache disabled",
+			map[string]string{
+				AnnotationVaultRole:        "role",
+				AnnotationAgentCacheEnable: "false",
+			},
+			false,
+		},
+		{
+			"only init container",
+			map[string]string{
+				AnnotationVaultRole:            "role",
+				AnnotationAgentCacheEnable:     "true",
+				AnnotationAgentPrePopulateOnly: "true",
+			},
+			false,
+		},
+		{
+			"only sidecar container",
+			map[string]string{
+				AnnotationVaultRole:        "role",
+				AnnotationAgentCacheEnable: "true",
+				AnnotationAgentPrePopulate: "false",
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			err = agent.Validate()
+			require.NoError(t, err)
+
+			init, err := agent.ContainerInitSidecar()
+			require.NoError(t, err)
+
+			sidecar, err := agent.ContainerSidecar()
+			require.NoError(t, err)
+
+			_, err = agent.Patch()
+			require.NoError(t, err)
+
+			if tt.expectCacheVolAndMount {
+				assert.Subset(t, init.VolumeMounts, cacheMount)
+				assert.Subset(t, sidecar.VolumeMounts, cacheMount)
+				assert.Subset(t, agent.Patches, cacheVolumePatch)
+			} else {
+				assert.NotSubset(t, init.VolumeMounts, cacheMount)
+				assert.NotSubset(t, sidecar.VolumeMounts, cacheMount)
+				assert.NotSubset(t, agent.Patches, cacheVolumePatch)
+			}
 		})
 	}
 }

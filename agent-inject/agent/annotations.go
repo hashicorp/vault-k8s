@@ -205,6 +205,10 @@ const (
 	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
 	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
 
+	// AnnotationAgentCacheExitOnErr configures whether the agent will exit on an
+	// error while restoring the persistent cache
+	AnnotationAgentCacheExitOnErr = "vault.hashicorp.com/agent-cache-exit-on-err"
+
 	// AnnotationAgentCopyVolumeMounts is the name of the container or init container
 	// in the Pod whose volume mounts should be copied onto the Vault Agent init and
 	// sidecar containers. Ignores any Kubernetes service account token mounts.
@@ -361,6 +365,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
 	}
 
 	return nil
@@ -541,8 +549,24 @@ func (a *Agent) setSecurityContext() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) agentCacheEnable() (bool, error) {
+func (a *Agent) cacheEnable() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) cachePersist(cacheEnabled bool) bool {
+	if cacheEnabled && a.PrePopulate && !a.PrePopulateOnly {
+		return true
+	}
+	return false
+}
+
+func (a *Agent) cacheExitOnErr() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCacheExitOnErr]
 	if !ok {
 		return false, nil
 	}
