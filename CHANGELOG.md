@@ -3,6 +3,7 @@
 Features:
 * Added annotation to specify HTTPS proxy on Vault Agent containers: [GH-211](https://github.com/hashicorp/vault-k8s/pull/211)
 * Added support for all auto-auth methods: [GH-213](https://github.com/hashicorp/vault-k8s/pull/213)
+* Added support for persistent agent caching: [GH-229](https://github.com/hashicorp/vault-k8s/pull/229)
 
 Improvements:
 
