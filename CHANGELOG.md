@@ -1,4 +1,4 @@
-## Unreleased
+## 0.9.0 (March 18, 2021)
 
 Features:
 * Added annotation to specify HTTPS proxy on Vault Agent containers: [GH-211](https://github.com/hashicorp/vault-k8s/pull/211)
