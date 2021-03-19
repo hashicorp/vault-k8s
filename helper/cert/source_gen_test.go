@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 )
 
 // hasOpenSSL is used to determine if the openssl CLI exists for unit tests.
@@ -195,6 +196,8 @@ func TestGenSource_follower(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go secrets.Informer().Run(ctx.Done())
+	synced := cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced)
+	require.True(t, synced, "timeout syncing Secrets informer")
 	source.SecretsCache = secrets
 
 	bundle, err := source.Certificate(ctx, nil)
