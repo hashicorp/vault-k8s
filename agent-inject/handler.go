@@ -48,6 +48,10 @@ type Handler struct {
 	GroupID            string
 	SameID             bool
 	SetSecurityContext bool
+	ResourceRequestCPU string
+	ResourceRequestMem string
+	ResourceLimitCPU   string
+	ResourceLimitMem   string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -154,6 +158,10 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		GroupID:            h.GroupID,
 		SameID:             h.SameID,
 		SetSecurityContext: h.SetSecurityContext,
+		ResourceRequestCPU: h.ResourceRequestCPU,
+		ResourceRequestMem: h.ResourceRequestMem,
+		ResourceLimitCPU:   h.ResourceLimitCPU,
+		ResourceLimitMem:   h.ResourceLimitMem,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {
