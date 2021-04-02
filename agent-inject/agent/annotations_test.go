@@ -20,7 +20,7 @@ func TestInitCanSet(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -57,7 +57,7 @@ func TestInitDefaults(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -91,7 +91,7 @@ func TestInitError(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"image", "", DefaultVaultAuthType, "authPath", "namespace", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err == nil {
@@ -155,7 +155,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -206,7 +206,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -293,7 +293,7 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -378,7 +378,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -438,7 +438,7 @@ func TestTemplateShortcuts(t *testing.T) {
 			pod := testPod(tt.annotations)
 			agentConfig := AgentConfig{
 				"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -498,7 +498,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -631,7 +631,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -652,7 +652,7 @@ func TestInitEmptyPod(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err == nil {
@@ -681,7 +681,7 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -841,7 +841,7 @@ func TestAuthConfigAnnotations(t *testing.T) {
 
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -854,5 +854,89 @@ func TestAuthConfigAnnotations(t *testing.T) {
 		}
 
 		require.Equal(t, agent.Vault.AuthConfig, tt.expectedAuthConfig, "expected AuthConfig %v, got %v", tt.expectedAuthConfig, agent.Vault.AuthConfig)
+	}
+}
+
+func TestDefaultTemplateOverride(t *testing.T) {
+	tests := []struct {
+		annotations   map[string]string
+		expectedValue string
+		expectedErr   bool
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "json",
+			},
+			"json",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "JSON",
+			},
+			"json",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "map",
+			},
+			"map",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "MAP",
+			},
+			"map",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "foobar",
+			},
+			"",
+			true,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "jsn",
+			},
+			"",
+			true,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "",
+			},
+			"",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agentConfig := AgentConfig{
+			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
+		}
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		agent, err := New(pod, patches)
+		if err != nil && !tt.expectedErr {
+			t.Errorf("got error, shouldn't have: %s", err)
+		} else if err == nil && tt.expectedErr {
+			t.Error("got no error, should have")
+		}
+
+		if !tt.expectedErr {
+			require.Equal(t, agent.DefaultTemplate, tt.expectedValue,
+				"expected %v, got %v", tt.expectedValue, agent.DefaultTemplate)
+		}
 	}
 }

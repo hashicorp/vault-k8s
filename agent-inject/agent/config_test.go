@@ -45,7 +45,7 @@ func TestNewConfig(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -211,7 +211,7 @@ func TestFilePathAndName(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 			}
 			err := Init(pod, agentConfig)
 			if err != nil {
@@ -243,7 +243,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -282,7 +282,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 	}
 	err := Init(pod, agentConfig)
 	if err != nil {
@@ -414,7 +414,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 			}
 			err := Init(pod, agentConfig)
 			require.NoError(t, err, "got error initialising pod: %s", err)

@@ -48,6 +48,7 @@ type Handler struct {
 	GroupID            string
 	SameID             bool
 	SetSecurityContext bool
+	DefaultTemplate    string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -154,6 +155,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		GroupID:            h.GroupID,
 		SameID:             h.SameID,
 		SetSecurityContext: h.SetSecurityContext,
+		DefaultTemplate:    h.DefaultTemplate,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

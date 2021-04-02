@@ -8,11 +8,12 @@ import (
 )
 
 const (
-	DefaultTemplate = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
-	TokenTemplate   = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
-	TokenSecret     = "auth/token/lookup-self"
-	PidFile         = "/home/vault/.pid"
-	TokenFile       = "/home/vault/.vault-token"
+	DefaultMapTemplate  = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	DefaultJSONTemplate = "{{ with secret \"%s\" }}{{ .Data | toJSON }}\n{{ end }}"
+	TokenTemplate       = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
+	TokenSecret         = "auth/token/lookup-self"
+	PidFile             = "/home/vault/.pid"
+	TokenFile           = "/home/vault/.vault-token"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -103,7 +104,12 @@ func (a *Agent) newTemplateConfigs() []*Template {
 	for _, secret := range a.Secrets {
 		template := secret.Template
 		if template == "" {
-			template = fmt.Sprintf(DefaultTemplate, secret.Path)
+			switch a.DefaultTemplate {
+			case "json":
+				template = fmt.Sprintf(DefaultJSONTemplate, secret.Path)
+			case "map":
+				template = fmt.Sprintf(DefaultMapTemplate, secret.Path)
+			}
 		}
 
 		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)

@@ -125,6 +125,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
 		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
 		{env: "AGENT_INJECT_TELEMETRY_PATH", value: "/metrics", cmdPtr: &cmd.flagTelemetryPath},
+		{env: "AGENT_INJECT_DEFAULT_TEMPLATE", value: "json", cmdPtr: &cmd.flagDefaultTemplate},
 	}
 
 	for _, tt := range tests {

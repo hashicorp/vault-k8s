@@ -77,6 +77,9 @@ type Specification struct {
 
 	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
 	UseLeaderElector string `split_words:"true"`
+
+	// DefaultTemplate is the AGENT_INJECT_DEFAULT_TEMPLATE environment variable.
+	DefaultTemplate string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -120,6 +123,8 @@ func (c *Command) init() {
 		"Path under which to expose metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
 		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
+	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", "map",
+		"Sets the default template type (map or json). Defaults to map.")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -239,6 +244,10 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.DefaultTemplate != "" {
+		c.flagDefaultTemplate = envs.DefaultTemplate
 	}
 
 	return nil

@@ -45,6 +45,10 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
+	// are "json" and "map".
+	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
+
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
@@ -227,6 +231,7 @@ type AgentConfig struct {
 	SameID             bool
 	SetSecurityContext bool
 	ProxyAddress       string
+	DefaultTemplate    string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -369,6 +374,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
 	}
 
 	return nil
