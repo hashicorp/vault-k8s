@@ -52,6 +52,10 @@ type Command struct {
 	flagTelemetryPath      string // Path under which to expose metrics
 	flagUseLeaderElector   bool   // Use leader elector code
 	flagDefaultTemplate    string // Toggles which default template to use
+	flagResourceRequestCPU string // Set CPU request in the injected containers
+	flagResourceRequestMem string // Set Memory request in the injected containers
+	flagResourceLimitCPU   string // Set CPU limit in the injected containers
+	flagResourceLimitMem   string // Set Memory limit in the injected containers
 
 	flagSet *flag.FlagSet
 
@@ -167,6 +171,10 @@ func (c *Command) Run(args []string) int {
 		SameID:             c.flagRunAsSameUser,
 		SetSecurityContext: c.flagSetSecurityContext,
 		DefaultTemplate:    c.flagDefaultTemplate,
+		ResourceRequestCPU: c.flagResourceRequestCPU,
+		ResourceRequestMem: c.flagResourceRequestMem,
+		ResourceLimitCPU:   c.flagResourceLimitCPU,
+		ResourceLimitMem:   c.flagResourceLimitMem,
 	}
 
 	mux := http.NewServeMux()

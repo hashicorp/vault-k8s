@@ -1,3 +1,8 @@
+## Unreleased
+
+Features:
+* Added flags/envs to change default resources for all injected containers: [GH-235](https://github.com/hashicorp/vault-k8s/pull/235)
+
 ## 0.9.0 (March 18, 2021)
 
 Features:

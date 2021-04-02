@@ -78,6 +78,14 @@ spec:
               value: "true"
             - name: AGENT_INJECT_DEFAULT_TEMPLATE
               value: "map"
+            - name: AGENT_INJECT_CPU_REQUEST
+              value: "250m"
+            - name: AGENT_INJECT_MEM_REQUEST
+              value: "64Mi"
+            - name: AGENT_INJECT_CPU_LIMIT
+              value: "500m"
+            - name: AGENT_INJECT_MEM_LIMIT
+              value: "128Mi"
           args:
             - agent-inject
             - 2>&1
