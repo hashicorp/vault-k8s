@@ -51,6 +51,10 @@ type Command struct {
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
 	flagTelemetryPath      string // Path under which to expose metrics
 	flagUseLeaderElector   bool   // Use leader elector code
+	flagResourceRequestCPU string // Set CPU request in the injected containers
+	flagResourceRequestMem string // Set Memory request in the injected containers
+	flagResourceLimitCPU   string // Set CPU limit in the injected containers
+	flagResourceLimitMem   string // Set Memory limit in the injected containers
 
 	flagSet *flag.FlagSet
 
@@ -157,6 +161,10 @@ func (c *Command) Run(args []string) int {
 		GroupID:            c.flagRunAsGroup,
 		SameID:             c.flagRunAsSameUser,
 		SetSecurityContext: c.flagSetSecurityContext,
+		ResourceRequestCPU: c.flagResourceRequestCPU,
+		ResourceRequestMem: c.flagResourceRequestMem,
+		ResourceLimitCPU:   c.flagResourceLimitCPU,
+		ResourceLimitMem:   c.flagResourceLimitMem,
 	}
 
 	mux := http.NewServeMux()

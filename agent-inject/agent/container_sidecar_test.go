@@ -41,7 +41,12 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -102,7 +107,12 @@ func TestContainerSidecar(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128"})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "https://proxy:3128",
+		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -215,7 +225,12 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			pod := testPod(annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+			agentConfig := AgentConfig{
+				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+			}
+			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -264,7 +279,12 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+	agentConfig := AgentConfig{
+		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+	}
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -960,7 +980,12 @@ func TestContainerCache(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+			agentConfig := AgentConfig{
+				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+			}
+			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
 			agent, err := New(pod, patches)

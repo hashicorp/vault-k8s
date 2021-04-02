@@ -227,6 +227,10 @@ type AgentConfig struct {
 	SameID             bool
 	SetSecurityContext bool
 	ProxyAddress       string
+	ResourceRequestCPU string
+	ResourceRequestMem string
+	ResourceLimitCPU   string
+	ResourceLimitMem   string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -289,19 +293,19 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU] = DefaultResourceLimitCPU
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU] = cfg.ResourceLimitCPU
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = DefaultResourceLimitMem
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = cfg.ResourceLimitMem
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = DefaultResourceRequestCPU
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = cfg.ResourceRequestCPU
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = cfg.ResourceRequestMem
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
