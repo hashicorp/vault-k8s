@@ -934,6 +934,7 @@ func TestDefaultTemplateOverride(t *testing.T) {
 		agentConfig := AgentConfig{
 			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
 			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
+            DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
