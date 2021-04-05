@@ -70,10 +70,11 @@ type Sink struct {
 type Template struct {
 	CreateDestDirs bool   `json:"create_dest_dirs,omitempty"`
 	Destination    string `json:"destination"`
-	Contents       string `json:"contents"`
+	Contents       string `json:"contents,omitempty"`
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
 	Command        string `json:"command,omitempty"`
+	Source         string `json:"source,omitempty"`
 }
 
 // Listener defines the configuration for Vault Agent Cache Listener
@@ -102,8 +103,12 @@ func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
 		template := secret.Template
-		if template == "" {
-			template = fmt.Sprintf(DefaultTemplate, secret.Path)
+		templateFile := secret.TemplateFile
+		if templateFile == "" {
+			template = secret.Template
+			if template == "" {
+				template = fmt.Sprintf(DefaultTemplate, secret.Path)
+			}
 		}
 
 		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
@@ -112,6 +117,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		}
 
 		tmpl := &Template{
+			Source:      templateFile,
 			Contents:    template,
 			Destination: filePathAndName,
 			LeftDelim:   "{{",
