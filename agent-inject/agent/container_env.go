@@ -2,7 +2,6 @@ package agent
 
 import (
 	"encoding/base64"
-	
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -62,13 +61,11 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	// Add IRSA AWS Env variables for vault containers
 	if a.Vault.AuthType == "aws" {
 		envMap := a.getAwsEnvsFromContainer(a.Pod)
-		if len(envMap) == 0 || len(envMap) >= 2 {
-			for k, v := range envMap {
-				envs = append(envs, corev1.EnvVar{
-					Name:  k,
-					Value: v,
-				})
-			}
+		for k, v := range envMap {
+			envs = append(envs, corev1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
 		}
 	}
 
