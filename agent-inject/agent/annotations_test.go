@@ -478,6 +478,137 @@ func TestTemplateShortcuts(t *testing.T) {
 	}
 }
 
+func TestSecretMixedTemplatesAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations     map[string]string
+		expectedSecrets map[string]Secret
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+				"vault.hashicorp.com/agent-inject-secret-test2":         "test2",
+				"vault.hashicorp.com/agent-inject-template-test2":       "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
+			},
+			map[string]Secret{
+				"foobar": Secret{
+					Name:         "foobar",
+					Path:         "test1",
+					Template:     "",
+					TemplateFile: "/etc/config.tmpl",
+					MountPath:    secretVolumePath,
+				},
+				"test2": Secret{
+					Name:         "test2",
+					Path:         "test2",
+					Template:     "foobarTemplate",
+					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		agentConfig := AgentConfig{
+			"", "http://foobar:8200", "test", "test", true, "100", "1000",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		}
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) != len(tt.expectedSecrets) {
+			t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecrets))
+		}
+
+		for _, s := range agent.Secrets {
+			if s == nil {
+				t.Error("Got a nil agent Secret")
+				t.FailNow()
+			}
+			expectedSecret, found := tt.expectedSecrets[s.Name]
+			if !found {
+				t.Errorf("Unexpected agent secret name %q", s.Name)
+				t.FailNow()
+			}
+			if !reflect.DeepEqual(expectedSecret, *s) {
+				t.Errorf("expected secret %+v, got agent secret %+v", expectedSecret, *s)
+			}
+		}
+	}
+}
+
+func TestSecretTemplateFileAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations          map[string]string
+		expectedKey          string
+		expectedTemplate     string
+		expectedTemplateFile string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+			}, "foobar", "foobarTemplate", "",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+			}, "foobar", "", "/etc/config.tmpl",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agentConfig := AgentConfig{
+			"", "http://foobar:8200", "test", "test", true, "100", "1000",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+		}
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Template != tt.expectedTemplate {
+			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
+		}
+
+		if agent.Secrets[0].TemplateFile != tt.expectedTemplateFile {
+			t.Errorf("expected template file path %s, got %s", tt.expectedTemplateFile, agent.Secrets[0].TemplateFile)
+		}
+
+	}
+}
+
 func TestSecretCommandAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations     map[string]string

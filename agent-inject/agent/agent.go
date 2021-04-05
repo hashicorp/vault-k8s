@@ -152,6 +152,9 @@ type Secret struct {
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
 
+	// Template file is the optional path on disk to the custom template to use when rendering the secret.
+	TemplateFile string
+
 	// Mount Path for the volume holding the rendered secret file
 	MountPath string
 
