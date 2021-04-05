@@ -517,8 +517,9 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
 		agentConfig := AgentConfig{
-			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
@@ -581,8 +582,9 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := AgentConfig{
-			"", "http://foobar:8200", "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext,
+			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
+			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 		}
 		err := Init(pod, agentConfig)
 		if err != nil {
