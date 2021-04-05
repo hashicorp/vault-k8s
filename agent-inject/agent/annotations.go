@@ -48,7 +48,7 @@ const (
 	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
 	// are "json" and "map".
 	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
-  
+
 	// AnnotationAgentInjectTemplateFile is the optional key annotation that configures Vault
 	// Agent what template on disk to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-file-",

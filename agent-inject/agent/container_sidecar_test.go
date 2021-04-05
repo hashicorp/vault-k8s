@@ -113,7 +113,7 @@ func TestContainerSidecar(t *testing.T) {
 		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 	}
 
-  err := Init(pod, agentConfig)
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -232,7 +232,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 			}
 
-      err := Init(pod, agentConfig)
+			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -287,7 +287,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 	}
 
-  err := Init(pod, agentConfig)
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}

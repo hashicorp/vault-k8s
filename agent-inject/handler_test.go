@@ -22,7 +22,7 @@ func basicHandler() Handler {
 		VaultAuthPath:   "kubernetes",
 		ImageVault:      "vault",
 		Log:             hclog.Default().Named("handler"),
-		DefaultTemplate: "map",
+		DefaultTemplate: agent.DefaultTemplateType,
 	}
 }
 

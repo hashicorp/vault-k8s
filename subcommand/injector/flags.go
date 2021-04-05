@@ -134,8 +134,8 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
 		"Path under which to expose metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
-		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
-	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", "map",
+		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
+	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
 		"Sets the default template type (map or json). Defaults to map.")
 
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
@@ -270,7 +270,7 @@ func (c *Command) parseEnvs() error {
 
 	if envs.DefaultTemplate != "" {
 		c.flagDefaultTemplate = envs.DefaultTemplate
-  }
+	}
 
 	if envs.ResourceRequestCPU != "" {
 		c.flagResourceRequestCPU = envs.ResourceRequestCPU

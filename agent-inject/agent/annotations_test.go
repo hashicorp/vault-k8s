@@ -27,7 +27,7 @@ func basicAgentConfig() AgentConfig {
 		SameID:             DefaultAgentRunAsSameUser,
 		SetSecurityContext: DefaultAgentSetSecurityContext,
 		ProxyAddress:       "http://proxy:3128",
-		DefaultTemplate:    "map",
+		DefaultTemplate:    DefaultTemplateType,
 		ResourceRequestCPU: DefaultResourceRequestCPU,
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
@@ -512,11 +512,7 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 	}
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -577,11 +573,7 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
