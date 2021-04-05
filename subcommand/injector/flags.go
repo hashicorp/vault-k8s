@@ -77,6 +77,18 @@ type Specification struct {
 
 	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
 	UseLeaderElector string `split_words:"true"`
+
+	// ResourceRequestCPU is the AGENT_INJECT_CPU_REQUEST environment variable.
+	ResourceRequestCPU string `envconfig:"AGENT_INJECT_CPU_REQUEST"`
+
+	// ResourceRequestMem is the AGENT_INJECT_MEM_REQUEST environment variable.
+	ResourceRequestMem string `envconfig:"AGENT_INJECT_MEM_REQUEST"`
+
+	// ResourceLimitCPU is the AGENT_INJECT_CPU_LIMIT environment variable.
+	ResourceLimitCPU string `envconfig:"AGENT_INJECT_CPU_LIMIT"`
+
+	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
+	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
 }
 
 func (c *Command) init() {
@@ -120,6 +132,16 @@ func (c *Command) init() {
 		"Path under which to expose metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
 		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
+
+	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
+		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
+	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
+		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
+
+	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
+		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
+	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
+		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -239,6 +261,22 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.ResourceRequestCPU != "" {
+		c.flagResourceRequestCPU = envs.ResourceRequestCPU
+	}
+
+	if envs.ResourceRequestMem != "" {
+		c.flagResourceRequestMem = envs.ResourceRequestMem
+	}
+
+	if envs.ResourceLimitCPU != "" {
+		c.flagResourceLimitCPU = envs.ResourceLimitCPU
+	}
+
+	if envs.ResourceLimitMem != "" {
+		c.flagResourceLimitMem = envs.ResourceLimitMem
 	}
 
 	return nil

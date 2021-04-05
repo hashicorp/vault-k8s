@@ -1,8 +1,15 @@
 ## Unreleased
 
 Features:
+* Added flags/envs to change default resources for all injected containers: [GH-235](https://github.com/hashicorp/vault-k8s/pull/235)
+
+## 0.9.0 (March 18, 2021)
+
+Features:
 * Added annotation to specify HTTPS proxy on Vault Agent containers: [GH-211](https://github.com/hashicorp/vault-k8s/pull/211)
 * Added support for all auto-auth methods: [GH-213](https://github.com/hashicorp/vault-k8s/pull/213)
+* Added support for persistent agent caching: [GH-229](https://github.com/hashicorp/vault-k8s/pull/229)
+* Arm binaries and images are now being published as part of a release: [GH-221](https://github.com/hashicorp/vault-k8s/pull/221)
 
 Improvements:
 

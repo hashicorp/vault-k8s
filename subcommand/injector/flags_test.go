@@ -115,7 +115,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_VAULT_ADDR", value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
 		{env: "AGENT_INJECT_PROXY_ADDR", value: "http://proxy:3128", cmdPtr: &cmd.flagProxyAddress},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
-		{env: "AGENT_INJECT_VAULT_IMAGE", value: "vault:1.6.2", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "vault:1.6.3", cmdPtr: &cmd.flagVaultImage},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
 		{env: "AGENT_INJECT_TLS_AUTO_HOSTS", value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},
@@ -125,6 +125,10 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
 		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
 		{env: "AGENT_INJECT_TELEMETRY_PATH", value: "/metrics", cmdPtr: &cmd.flagTelemetryPath},
+		{env: "AGENT_INJECT_CPU_REQUEST", value: "10m", cmdPtr: &cmd.flagResourceRequestCPU},
+		{env: "AGENT_INJECT_MEM_REQUEST", value: "256m", cmdPtr: &cmd.flagResourceRequestMem},
+		{env: "AGENT_INJECT_CPU_LIMIT", value: "1000m", cmdPtr: &cmd.flagResourceLimitCPU},
+		{env: "AGENT_INJECT_MEM_LIMIT", value: "256m", cmdPtr: &cmd.flagResourceLimitMem},
 	}
 
 	for _, tt := range tests {

@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.6.2"
+	DefaultVaultImage                    = "vault:1.6.3"
 	DefaultVaultAuthType                 = "kubernetes"
 	DefaultVaultAuthPath                 = "auth/kubernetes"
 	DefaultAgentRunAsUser                = 100
@@ -27,6 +27,7 @@ const (
 	DefaultAgentCacheEnable              = "false"
 	DefaultAgentCacheUseAutoAuthToken    = "true"
 	DefaultAgentCacheListenerPort        = "8200"
+	DefaultAgentCacheExitOnErr           = false
 	DefaultAgentUseLeaderElector         = false
 )
 
@@ -238,6 +239,13 @@ type VaultAgentCache struct {
 
 	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
 	UseAutoAuthToken string
+
+	// Persist marks whether persistent caching is enabled or not
+	Persist bool
+
+	// ExitOnErr configures whether the agent will exit on an error while
+	// restoring the persistent cache
+	ExitOnErr bool
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -344,7 +352,12 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agentCacheEnable, err := agent.agentCacheEnable()
+	agentCacheEnable, err := agent.cacheEnable()
+	if err != nil {
+		return agent, err
+	}
+
+	agentCacheExitOnErr, err := agent.cacheExitOnErr()
 	if err != nil {
 		return agent, err
 	}
@@ -353,6 +366,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Enable:           agentCacheEnable,
 		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
+		ExitOnErr:        agentCacheExitOnErr,
+		Persist:          agent.cachePersist(agentCacheEnable),
 	}
 
 	return agent, nil
@@ -430,6 +445,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
+			"/spec/volumes")...)
+	}
+
+	// Add persistent cache volume if configured
+	if a.VaultAgentCache.Persist {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.cacheVolume()},
 			"/spec/volumes")...)
 	}
 
