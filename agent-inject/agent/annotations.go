@@ -45,6 +45,10 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
+	// are "json" and "map".
+	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
+
 	// AnnotationAgentInjectTemplateFile is the optional key annotation that configures Vault
 	// Agent what template on disk to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-file-",
@@ -236,6 +240,7 @@ type AgentConfig struct {
 	SameID             bool
 	SetSecurityContext bool
 	ProxyAddress       string
+	DefaultTemplate    string
 	ResourceRequestCPU string
 	ResourceRequestMem string
 	ResourceLimitCPU   string
@@ -382,6 +387,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
 	}
 
 	return nil

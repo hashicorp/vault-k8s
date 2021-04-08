@@ -51,6 +51,7 @@ type Command struct {
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
 	flagTelemetryPath      string // Path under which to expose metrics
 	flagUseLeaderElector   bool   // Use leader elector code
+	flagDefaultTemplate    string // Toggles which default template to use
 	flagResourceRequestCPU string // Set CPU request in the injected containers
 	flagResourceRequestMem string // Set Memory request in the injected containers
 	flagResourceLimitCPU   string // Set CPU limit in the injected containers
@@ -80,6 +81,14 @@ func (c *Command) Run(args []string) int {
 
 	if c.flagVaultService == "" {
 		c.UI.Error("No Vault service configured")
+		return 1
+	}
+
+	switch c.flagDefaultTemplate {
+	case "map":
+	case "json":
+	default:
+		c.UI.Error(fmt.Sprintf("Invalid default flag type: %s", c.flagDefaultTemplate))
 		return 1
 	}
 
@@ -161,6 +170,7 @@ func (c *Command) Run(args []string) int {
 		GroupID:            c.flagRunAsGroup,
 		SameID:             c.flagRunAsSameUser,
 		SetSecurityContext: c.flagSetSecurityContext,
+		DefaultTemplate:    c.flagDefaultTemplate,
 		ResourceRequestCPU: c.flagResourceRequestCPU,
 		ResourceRequestMem: c.flagResourceRequestMem,
 		ResourceLimitCPU:   c.flagResourceLimitCPU,

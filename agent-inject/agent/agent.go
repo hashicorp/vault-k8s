@@ -38,6 +38,10 @@ type Agent struct {
 	// configure the Vault Agent container.
 	Annotations map[string]string
 
+	// DefaultTemplate is the default template to be used when
+	// no custom template is specified via annotations.
+	DefaultTemplate string
+
 	// ImageName is the name of the Vault image to use for the
 	// sidecar container.
 	ImageName string
@@ -251,6 +255,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Annotations:        pod.Annotations,
 		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
 		ImageName:          pod.Annotations[AnnotationAgentImage],
+		DefaultTemplate:    pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
@@ -349,6 +354,14 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agentCacheExitOnErr, err := agent.cacheExitOnErr()
 	if err != nil {
 		return agent, err
+	}
+
+	agent.DefaultTemplate = strings.ToLower(agent.DefaultTemplate)
+	switch agent.DefaultTemplate {
+	case "map":
+	case "json":
+	default:
+		return agent, fmt.Errorf("invalid default template type: %s", agent.DefaultTemplate)
 	}
 
 	agent.VaultAgentCache = VaultAgentCache{

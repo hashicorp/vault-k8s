@@ -47,11 +47,7 @@ func TestNewConfig(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -221,11 +217,7 @@ func TestFilePathAndName(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -254,11 +246,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -294,11 +282,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -427,11 +411,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err, "got error initialising pod: %s", err)
 

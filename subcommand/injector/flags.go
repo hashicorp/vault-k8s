@@ -78,6 +78,9 @@ type Specification struct {
 	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
 	UseLeaderElector string `split_words:"true"`
 
+	// DefaultTemplate is the AGENT_INJECT_DEFAULT_TEMPLATE environment variable.
+	DefaultTemplate string `split_words:"true"`
+
 	// ResourceRequestCPU is the AGENT_INJECT_CPU_REQUEST environment variable.
 	ResourceRequestCPU string `envconfig:"AGENT_INJECT_CPU_REQUEST"`
 
@@ -131,7 +134,9 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
 		"Path under which to expose metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
-		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
+		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
+	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
+		"Sets the default template type (map or json). Defaults to map.")
 
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
@@ -261,6 +266,10 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.DefaultTemplate != "" {
+		c.flagDefaultTemplate = envs.DefaultTemplate
 	}
 
 	if envs.ResourceRequestCPU != "" {
