@@ -48,6 +48,7 @@ type Handler struct {
 	GroupID            string
 	SameID             bool
 	SetSecurityContext bool
+	DefaultTemplate    string
 	ResourceRequestCPU string
 	ResourceRequestMem string
 	ResourceLimitCPU   string
@@ -158,6 +159,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 		GroupID:            h.GroupID,
 		SameID:             h.SameID,
 		SetSecurityContext: h.SetSecurityContext,
+		DefaultTemplate:    h.DefaultTemplate,
 		ResourceRequestCPU: h.ResourceRequestCPU,
 		ResourceRequestMem: h.ResourceRequestMem,
 		ResourceLimitCPU:   h.ResourceLimitCPU,

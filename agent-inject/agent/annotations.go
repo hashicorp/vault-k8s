@@ -45,6 +45,19 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
+	// are "json" and "map".
+	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
+
+	// AnnotationAgentInjectTemplateFile is the optional key annotation that configures Vault
+	// Agent what template on disk to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-file-",
+	// such as "vault.hashicorp.com/agent-inject-template-file-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// The value is the filename and path of the template used by the agent to render the secrets.
+	// If not provided, the template content key annotation is used.
+	AnnotationAgentInjectTemplateFile = "vault.hashicorp.com/agent-inject-template-file"
+
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
@@ -227,6 +240,7 @@ type AgentConfig struct {
 	SameID             bool
 	SetSecurityContext bool
 	ProxyAddress       string
+	DefaultTemplate    string
 	ResourceRequestCPU string
 	ResourceRequestMem string
 	ResourceLimitCPU   string
@@ -375,6 +389,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
+	}
+
 	return nil
 }
 
@@ -413,6 +431,12 @@ func (a *Agent) secrets() []*Secret {
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 			if val, ok := a.Annotations[templateName]; ok {
 				s.Template = val
+			}
+			if s.Template == "" {
+				templateFileAnnotation := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, raw)
+				if val, ok := a.Annotations[templateFileAnnotation]; ok {
+					s.TemplateFile = val
+				}
 			}
 
 			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]

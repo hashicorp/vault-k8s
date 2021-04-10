@@ -14,15 +14,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func basicAgentConfig() AgentConfig {
+	return AgentConfig{
+		Image:              "foobar-image",
+		Address:            "http://foobar:8200",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "100",
+		GroupID:            "1000",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		ProxyAddress:       "http://proxy:3128",
+		DefaultTemplate:    DefaultTemplateType,
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+	}
+}
+
 func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
@@ -56,11 +73,12 @@ func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	agentConfig := AgentConfig{
-		"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "", "",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
+	agentConfig.Image = ""
+	agentConfig.UserID = ""
+	agentConfig.GroupID = ""
+	agentConfig.ProxyAddress = ""
+
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
@@ -91,11 +109,9 @@ func TestInitError(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
 
-	agentConfig := AgentConfig{
-		"image", "", DefaultVaultAuthType, "authPath", "namespace", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
+	agentConfig.Address = ""
+
 	err := Init(pod, agentConfig)
 	if err == nil {
 		t.Error("expected error no address, got none")
@@ -156,11 +172,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -208,11 +220,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -296,11 +304,7 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
@@ -382,11 +386,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -443,11 +443,7 @@ func TestTemplateShortcuts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			agentConfig := AgentConfig{
-				"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
@@ -482,6 +478,131 @@ func TestTemplateShortcuts(t *testing.T) {
 	}
 }
 
+func TestSecretMixedTemplatesAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations     map[string]string
+		expectedSecrets map[string]Secret
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+				"vault.hashicorp.com/agent-inject-secret-test2":         "test2",
+				"vault.hashicorp.com/agent-inject-template-test2":       "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
+			},
+			map[string]Secret{
+				"foobar": Secret{
+					Name:         "foobar",
+					Path:         "test1",
+					Template:     "",
+					TemplateFile: "/etc/config.tmpl",
+					MountPath:    secretVolumePath,
+				},
+				"test2": Secret{
+					Name:         "test2",
+					Path:         "test2",
+					Template:     "foobarTemplate",
+					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		agentConfig := basicAgentConfig()
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) != len(tt.expectedSecrets) {
+			t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecrets))
+		}
+
+		for _, s := range agent.Secrets {
+			if s == nil {
+				t.Error("Got a nil agent Secret")
+				t.FailNow()
+			}
+			expectedSecret, found := tt.expectedSecrets[s.Name]
+			if !found {
+				t.Errorf("Unexpected agent secret name %q", s.Name)
+				t.FailNow()
+			}
+			if !reflect.DeepEqual(expectedSecret, *s) {
+				t.Errorf("expected secret %+v, got agent secret %+v", expectedSecret, *s)
+			}
+		}
+	}
+}
+
+func TestSecretTemplateFileAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations          map[string]string
+		expectedKey          string
+		expectedTemplate     string
+		expectedTemplateFile string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+			}, "foobar", "foobarTemplate", "",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+			}, "foobar", "", "/etc/config.tmpl",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agentConfig := basicAgentConfig()
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].Template != tt.expectedTemplate {
+			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
+		}
+
+		if agent.Secrets[0].TemplateFile != tt.expectedTemplateFile {
+			t.Errorf("expected template file path %s, got %s", tt.expectedTemplateFile, agent.Secrets[0].TemplateFile)
+		}
+
+	}
+}
+
 func TestSecretCommandAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations     map[string]string
@@ -504,11 +625,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -637,12 +754,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		annotations := map[string]string{tt.key: tt.value}
 		pod := testPod(annotations)
 		var patches []*jsonpatch.JsonPatchOperation
-
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -659,12 +771,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 
 func TestInitEmptyPod(t *testing.T) {
 	var pod *corev1.Pod
-
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err == nil {
 		t.Errorf("got no error, should have")
@@ -690,11 +797,7 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 		pod := testPod(annotation)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -851,11 +954,7 @@ func TestAuthConfigAnnotations(t *testing.T) {
 		pod := testPod(tt.annotations)
 		var patches []*jsonpatch.JsonPatchOperation
 
-		agentConfig := AgentConfig{
-			"", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-			DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-		}
+		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
@@ -867,5 +966,86 @@ func TestAuthConfigAnnotations(t *testing.T) {
 		}
 
 		require.Equal(t, agent.Vault.AuthConfig, tt.expectedAuthConfig, "expected AuthConfig %v, got %v", tt.expectedAuthConfig, agent.Vault.AuthConfig)
+	}
+}
+
+func TestDefaultTemplateOverride(t *testing.T) {
+	tests := []struct {
+		annotations   map[string]string
+		expectedValue string
+		expectedErr   bool
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "json",
+			},
+			"json",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "JSON",
+			},
+			"json",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "map",
+			},
+			"map",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "MAP",
+			},
+			"map",
+			false,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "foobar",
+			},
+			"",
+			true,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "jsn",
+			},
+			"",
+			true,
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-default-template": "",
+			},
+			"",
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agentConfig := basicAgentConfig()
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		agent, err := New(pod, patches)
+		if err != nil && !tt.expectedErr {
+			t.Errorf("got error, shouldn't have: %s", err)
+		} else if err == nil && tt.expectedErr {
+			t.Error("got no error, should have")
+		}
+
+		if !tt.expectedErr {
+			require.Equal(t, agent.DefaultTemplate, tt.expectedValue,
+				"expected %v, got %v", tt.expectedValue, agent.DefaultTemplate)
+		}
 	}
 }

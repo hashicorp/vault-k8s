@@ -40,12 +40,12 @@ func TestContainerSidecarVolume(t *testing.T) {
 
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
-
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 	}
+
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
@@ -64,32 +64,32 @@ func TestContainerSidecarVolume(t *testing.T) {
 	require.Equal(
 		t,
 		[]corev1.VolumeMount{
-			corev1.VolumeMount{
+			{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      secretVolumeName,
 				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      extraSecretVolumeName,
 				MountPath: extraSecretVolumePath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      "tobecopied",
 				MountPath: "/etc/somewhereelse",
 				ReadOnly:  false,
@@ -100,7 +100,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 }
 
 func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
-	
+
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
 		// this will have different mount path
@@ -122,48 +122,50 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	pod := testPodIRSA(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{"foobar-image", "http://foobar:1234", "aws", "test", "test", true, "1000", "100", DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, ""})
+	err := Init(pod, AgentConfig{
+		"foobar-image", "http://foobar:1234", "aws", "test", "test", true, "1000", "100",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
+		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem})
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
 	agent, err := New(pod, patches)
-	agent.AwsIamTokenAccountName = "aws-iam-token"
-	agent.AwsIamTokenAccountPath = "/var/run/secrets/eks.amazonaws.com/serviceaccount"
+	require.NoError(t, err)
+	assert.Equal(t, "aws-iam-token", agent.AwsIamTokenAccountName)
+	assert.Equal(t, "/var/run/secrets/eks.amazonaws.com/serviceaccount", agent.AwsIamTokenAccountPath)
 
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
 
 	container, err := agent.ContainerSidecar()
-
+	require.NoError(t, err)
 	// One token volume mount, one config volume mount and two secrets volume mounts
-	require.Equal(t, 5, len(container.VolumeMounts))
-
 	require.Equal(
 		t,
 		[]corev1.VolumeMount{
-			corev1.VolumeMount{
+			{
 				Name:      agent.ServiceAccountName,
 				MountPath: agent.ServiceAccountPath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      tokenVolumeNameSidecar,
 				MountPath: tokenVolumePath,
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      agent.AwsIamTokenAccountName,
 				MountPath: agent.AwsIamTokenAccountPath,
 				ReadOnly:  true,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      secretVolumeName,
 				MountPath: agent.Annotations[AnnotationVaultSecretVolumePath],
 				ReadOnly:  false,
 			},
-			corev1.VolumeMount{
+			{
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, 0),
 				MountPath: "/etc/container_environment",
 				ReadOnly:  false,
@@ -183,9 +185,10 @@ func TestContainerSidecar(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "https://proxy:3128",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "https://proxy:3128", "map",
 		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 	}
+
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
@@ -301,9 +304,10 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 			}
+
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
@@ -355,9 +359,10 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 
 	agentConfig := AgentConfig{
 		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 	}
+
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
@@ -1056,9 +1061,10 @@ func TestContainerCache(t *testing.T) {
 
 			agentConfig := AgentConfig{
 				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
+				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
 				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
 			}
+
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 

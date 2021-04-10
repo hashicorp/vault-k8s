@@ -125,6 +125,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
 		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
 		{env: "AGENT_INJECT_TELEMETRY_PATH", value: "/metrics", cmdPtr: &cmd.flagTelemetryPath},
+		{env: "AGENT_INJECT_DEFAULT_TEMPLATE", value: "json", cmdPtr: &cmd.flagDefaultTemplate},
 		{env: "AGENT_INJECT_CPU_REQUEST", value: "10m", cmdPtr: &cmd.flagResourceRequestCPU},
 		{env: "AGENT_INJECT_MEM_REQUEST", value: "256m", cmdPtr: &cmd.flagResourceRequestMem},
 		{env: "AGENT_INJECT_CPU_LIMIT", value: "1000m", cmdPtr: &cmd.flagResourceLimitCPU},

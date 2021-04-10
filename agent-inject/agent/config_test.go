@@ -35,6 +35,10 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-different-path":                "different-path",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
+		// render this secret from a template on disk
+		"vault.hashicorp.com/agent-inject-secret-with-file-template":                  "with-file-template",
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, "with-file-template"): "/etc/file-template",
+
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
 		AnnotationAgentCacheEnable: "true",
@@ -43,11 +47,7 @@ func TestNewConfig(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -112,8 +112,8 @@ func TestNewConfig(t *testing.T) {
 		t.Error("agent Cache should be disabled for init containers")
 	}
 
-	if len(config.Templates) != 3 {
-		t.Errorf("expected 3 template, got %d", len(config.Templates))
+	if len(config.Templates) != 4 {
+		t.Errorf("expected 4 template, got %d", len(config.Templates))
 	}
 
 	for _, template := range config.Templates {
@@ -139,6 +139,13 @@ func TestNewConfig(t *testing.T) {
 		} else if strings.Contains(template.Destination, "different-path") {
 			if template.Destination != "/etc/container_environment/different-path" {
 				t.Errorf("expected template destination to be %s, got %s", "/etc/container_environment", template.Destination)
+			}
+		} else if strings.Contains(template.Destination, "with-file-template") {
+			if template.Source != "/etc/file-template" {
+				t.Errorf("expected template file path to be %s, got %s", "/etc/file-template", template.Source)
+			}
+			if template.Contents != "" {
+				t.Errorf("expected template contents to be empty, got %s", template.Contents)
 			}
 		} else {
 			t.Error("shouldn't have got here")
@@ -210,11 +217,7 @@ func TestFilePathAndName(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -243,11 +246,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -283,11 +282,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -416,11 +411,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err, "got error initialising pod: %s", err)
 

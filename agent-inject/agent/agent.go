@@ -38,6 +38,10 @@ type Agent struct {
 	// configure the Vault Agent container.
 	Annotations map[string]string
 
+	// DefaultTemplate is the default template to be used when
+	// no custom template is specified via annotations.
+	DefaultTemplate string
+
 	// ImageName is the name of the Vault image to use for the
 	// sidecar container.
 	ImageName string
@@ -156,6 +160,9 @@ type Secret struct {
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
 
+	// Template file is the optional path on disk to the custom template to use when rendering the secret.
+	TemplateFile string
+
 	// Mount Path for the volume holding the rendered secret file
 	MountPath string
 
@@ -252,14 +259,15 @@ type VaultAgentCache struct {
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
 	var iamName, iamPath string
-	if pod.Annotations[AnnotationVaultAuthPath] == "aws" {
+	if pod.Annotations[AnnotationVaultAuthType] == "aws" {
 		iamName, iamPath = getAwsIamTokenVolume(pod)
 	}
-	
+
 	agent := &Agent{
 		Annotations:            pod.Annotations,
 		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
 		ImageName:              pod.Annotations[AnnotationAgentImage],
+		DefaultTemplate:        pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
@@ -271,7 +279,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ServiceAccountPath:     saPath,
 		Status:                 pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
-		CopyVolumeMounts:   pod.Annotations[AnnotationAgentCopyVolumeMounts],
+		CopyVolumeMounts:       pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName: iamName,
 		AwsIamTokenAccountPath: iamPath,
 		Vault: Vault{
@@ -360,6 +368,14 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agentCacheExitOnErr, err := agent.cacheExitOnErr()
 	if err != nil {
 		return agent, err
+	}
+
+	agent.DefaultTemplate = strings.ToLower(agent.DefaultTemplate)
+	switch agent.DefaultTemplate {
+	case "map":
+	case "json":
+	default:
+		return agent, fmt.Errorf("invalid default template type: %s", agent.DefaultTemplate)
 	}
 
 	agent.VaultAgentCache = VaultAgentCache{
