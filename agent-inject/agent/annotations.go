@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -632,6 +633,10 @@ func (a *Agent) authConfig() map[string]interface{} {
 	}
 	if a.Vault.Role != "" {
 		authConfig["role"] = a.Vault.Role
+	}
+
+	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
+		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
 
 	return authConfig
