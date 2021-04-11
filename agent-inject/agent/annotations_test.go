@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -967,6 +968,95 @@ func TestAuthConfigAnnotations(t *testing.T) {
 
 		require.Equal(t, agent.Vault.AuthConfig, tt.expectedAuthConfig, "expected AuthConfig %v, got %v", tt.expectedAuthConfig, agent.Vault.AuthConfig)
 	}
+}
+
+func TestInjectContainers(t *testing.T){
+	tests := []struct{
+		name 			string
+		annotations 	map[string]string
+		expectedValue   string
+		ExpectedPatch 	[]jsonpatch.JsonPatchOperation
+	}{
+		{
+			name: "No InjectionContainers annotations",
+			annotations: map[string]string{},
+			expectedValue: "foobar,foo1,foo2",
+			ExpectedPatch: []jsonpatch.JsonPatchOperation{
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/volumes/-"},
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/containers/0/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/containers/-"},
+				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+
+
+			},
+		},
+		{
+			name: "InjectionContainers annotation with container name",
+			annotations: map[string]string{AnnotationAgentInjectContainers: "foo1"},
+			expectedValue: "foo1",
+			ExpectedPatch: []jsonpatch.JsonPatchOperation{
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/volumes/-"},
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/containers/-"},
+				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+
+			},
+		},
+		{
+			name: "InjectionContainer annotations with multiple containers names",
+			annotations: map[string]string{AnnotationAgentInjectContainers: "foo1,foo2"},
+			expectedValue: "foo1,foo2",
+			ExpectedPatch: []jsonpatch.JsonPatchOperation{
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/volumes/-"},
+				{Operation: "add", Path: "/spec/volumes"},
+				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
+				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/containers/-"},
+				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+			},
+
+		},
+	}
+
+	for _, tt := range tests{
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+			patch, err := agent.Patch()
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+			require.Equal(t, pod.Annotations[AnnotationAgentInjectContainers], tt.expectedValue)
+
+			var output []jsonpatch.JsonPatchOperation
+			require.NoError(t, json.Unmarshal(patch, &output))
+			for i := range output {
+				output[i].Value = nil
+			}
+			require.Equal(t, tt.ExpectedPatch, output)
+
+		})
+	}
+
 }
 
 func TestDefaultTemplateOverride(t *testing.T) {

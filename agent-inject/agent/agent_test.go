@@ -29,6 +29,25 @@ func testPod(annotations map[string]string) *corev1.Pod {
 						},
 					},
 				},
+				{
+					Name: "foo1",
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name: "foo1",
+							MountPath: "/data/foo1",
+						},
+					},
+				},
+				{
+					Name: "foo2",
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name: "foo2",
+							MountPath: "/data/foo2",
+						},
+					},
+				},
+
 			},
 		},
 	}

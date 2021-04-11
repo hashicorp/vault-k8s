@@ -45,6 +45,12 @@ const (
 	// If not provided, a default generic template is used.
 	AnnotationAgentInjectTemplate = "vault.hashicorp.com/agent-inject-template"
 
+	// AnnotationAgentInjectContainers is the key of the annotation that controls
+	// in which containers the secrets volume should be mounted. Multiple containers can
+	// be specified in a comma-separated list. If not provided, the secrets volume will
+	// be mounted in all containers in the pod.
+	AnnotationAgentInjectContainers = "vault.hashicorp.com/agent-inject-containers"
+
 	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
 	// are "json" and "map".
 	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
@@ -388,6 +394,15 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
 	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectContainers]; !ok {
+		containerNames := make([]string, len(pod.Spec.Containers))
+		for i, v := range pod.Spec.Containers {
+			containerNames[i] = v.Name
+		}
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectContainers] = strings.Join(containerNames, ",")
+	}
+
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate

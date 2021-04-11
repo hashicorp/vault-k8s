@@ -46,6 +46,9 @@ type Agent struct {
 	// sidecar container.
 	ImageName string
 
+	//Containers determine which containers should be injected
+	Containers  []string
+
 	// Inject is the flag used to determine if a container should be requested
 	// in a pod request.
 	Inject bool
@@ -259,6 +262,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
+		Containers: 		[]string{pod.Annotations[AnnotationAgentInjectContainers]},
 		Patches:            patches,
 		Pod:                pod,
 		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
@@ -460,10 +464,16 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	//Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
-		a.Patches = append(a.Patches, addVolumeMounts(
-			container.VolumeMounts,
-			a.ContainerVolumeMounts(),
-			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
+		for _, k := range a.Containers {
+			name := strings.Split(k, ",")
+			if contains(name, container.Name){
+				a.Patches = append(a.Patches, addVolumeMounts(
+					container.VolumeMounts,
+					a.ContainerVolumeMounts(),
+					fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
+			}
+		}
+
 	}
 
 	// Init Container
@@ -624,4 +634,14 @@ func (a *Agent) copyVolumeMounts(targetContainerName string) []corev1.VolumeMoun
 		}
 	}
 	return copiedVolumeMounts
+}
+
+//contains looks for a string in a list of strings.
+func contains(core []string, target string) bool {
+	for _, items := range core {
+		if items == target {
+			return true
+		}
+	}
+	return false
 }
