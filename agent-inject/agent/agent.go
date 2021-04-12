@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -466,7 +467,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	for i, container := range a.Pod.Spec.Containers {
 		for _, k := range a.Containers {
 			name := strings.Split(k, ",")
-			if contains(name, container.Name){
+			if strutil.StrListContains(name, container.Name){
 				a.Patches = append(a.Patches, addVolumeMounts(
 					container.VolumeMounts,
 					a.ContainerVolumeMounts(),
@@ -634,14 +635,4 @@ func (a *Agent) copyVolumeMounts(targetContainerName string) []corev1.VolumeMoun
 		}
 	}
 	return copiedVolumeMounts
-}
-
-//contains looks for a string in a list of strings.
-func contains(core []string, target string) bool {
-	for _, items := range core {
-		if items == target {
-			return true
-		}
-	}
-	return false
 }
