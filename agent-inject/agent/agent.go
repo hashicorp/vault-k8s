@@ -620,7 +620,7 @@ func (a *Agent) getAwsEnvsFromContainer(pod *corev1.Pod) map[string]string {
 	envMap := make(map[string]string)
 	for _, container := range pod.Spec.Containers {
 		for _, env := range container.Env {
-			if strings.Contains(env.Name, "AWS_ROLE_ARN") || strings.Contains(env.Name, "AWS_WEB_IDENTITY_TOKEN_FILE") {
+			if env.Name == "AWS_ROLE_ARN" || env.Name == "AWS_WEB_IDENTITY_TOKEN_FILE" {
 				if _, ok := envMap[env.Name]; !ok {
 					envMap[env.Name] = env.Value
 				}
