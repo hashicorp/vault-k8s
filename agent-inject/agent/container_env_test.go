@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/vault/sdk/helper/strutil"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestContainerEnvs(t *testing.T) {
@@ -25,7 +27,6 @@ func TestContainerEnvs(t *testing.T) {
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
-
 		if len(envs) != len(tt.expectedEnvs) {
 			t.Errorf("number of envs mismatch, wanted %d, got %d", len(tt.expectedEnvs), len(envs))
 		}
@@ -35,5 +36,59 @@ func TestContainerEnvs(t *testing.T) {
 				t.Errorf("unexpected env found %s", env.Name)
 			}
 		}
+	}
+}
+
+func TestContainerEnvsForIRSA(t *testing.T) {
+	envTests := []struct {
+		agent        Agent
+		expectedEnvs []string
+	}{
+		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws",}}, 
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+		},
+	}
+	for _, tt := range envTests {
+		envs, err := tt.agent.ContainerEnvVars(true)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+		if len(envs) != len(tt.expectedEnvs) {
+			t.Errorf("number of envs mismatch, wanted %d, got %d", len(tt.expectedEnvs), len(envs))
+		}
+	}
+}
+
+func testPodWithoutIRSA() *corev1.Pod {
+	return testPodWithEnv(nil)
+}
+
+func testPodWithIRSA() *corev1.Pod {
+	return testPodWithEnv([]corev1.EnvVar{
+		{
+			Name:  "AWS_ROLE_ARN",
+			Value: "foorole",
+		},
+		{
+			Name:  "AWS_WEB_IDENTITY_TOKEN_FILE",
+			Value: "footoken",
+		},
+	})
+}
+
+func testPodWithEnv(envVars []corev1.EnvVar) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "foobar",
+					Env:  envVars,
+				},
+			},
+		},
 	}
 }
