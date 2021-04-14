@@ -1,6 +1,6 @@
 FROM docker.mirror.hashicorp.services/alpine:latest
 
-ARG VERSION=0.9.0
+ARG VERSION=0.10.0
 
 RUN addgroup vault && \
     adduser -S -G vault vault

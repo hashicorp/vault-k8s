@@ -1,9 +1,12 @@
-## Unreleased
+## 0.10.0 (April 14, 2021)
 
 Features:
 * Added flags/envs to change default resources for all injected containers: [GH-235](https://github.com/hashicorp/vault-k8s/pull/235)
 * Added an annotation to use template path on disk: [GH-222](https://github.com/hashicorp/vault-k8s/pull/222)
 * Added an annotation and global flag to change default template from map to json: [GH-242](https://github.com/hashicorp/vault-k8s/pull/242)
+
+Improvements:
+* Better support for IRSA on AWS/EKS: [GH-169](https://github.com/hashicorp/vault-k8s/pull/169)
 
 ## 0.9.0 (March 18, 2021)
 
