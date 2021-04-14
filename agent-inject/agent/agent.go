@@ -275,7 +275,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
-    Containers: 		        []string{pod.Annotations[AnnotationAgentInjectContainers]},
+    	Containers: 		    []string{pod.Annotations[AnnotationAgentInjectContainers]},
 		Patches:                patches,
 		Pod:                    pod,
 		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
