@@ -58,8 +58,8 @@ const (
 	// If not provided, the template content key annotation is used.
 	AnnotationAgentInjectTemplateFile = "vault.hashicorp.com/agent-inject-template-file"
 
-	// AnnotationAgentInjectToken is the annotation key for injecting the token
-	// from auth/token/lookup-self
+	// AnnotationAgentInjectToken is the annotation key for injecting the
+	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
@@ -407,11 +407,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
-	// First check for the token-only injection annotation
-	if _, found := a.Annotations[AnnotationAgentInjectToken]; found {
-		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
-		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
-	}
 	for name, path := range a.Annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
@@ -599,6 +594,14 @@ func (a *Agent) cacheExitOnErr() (bool, error) {
 		return false, nil
 	}
 
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) injectToken() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentInjectToken]
+	if !ok {
+		return DefaultAgentInjectToken, nil
+	}
 	return strconv.ParseBool(raw)
 }
 
