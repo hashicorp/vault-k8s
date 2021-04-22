@@ -1,3 +1,9 @@
+## Unreleased
+
+Bugs:
+* Fix agent-inject-token when caching enabled: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+* Remove new line from injected token: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+
 ## 0.10.0 (April 14, 2021)
 
 Features:
