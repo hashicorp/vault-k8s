@@ -29,6 +29,7 @@ const (
 	DefaultAgentCacheListenerPort        = "8200"
 	DefaultAgentCacheExitOnErr           = false
 	DefaultAgentUseLeaderElector         = false
+	DefaultAgentInjectToken              = false
 )
 
 // Agent is the top level structure holding all the
@@ -143,9 +144,14 @@ type Agent struct {
 	// where the JWT would be present
 	// Need this for IRSA aka pod identity
 	AwsIamTokenAccountPath string
+
 	// CopyVolumeMounts is the name of the container in the Pod whose volume mounts
 	// should be copied into the Vault Agent init and/or sidecar containers.
 	CopyVolumeMounts string
+
+	// InjectToken controls whether the auto-auth token is injected into the
+	// secrets volume (e.g. /vault/secrets/token)
+	InjectToken bool
 }
 
 type Secret struct {
@@ -376,6 +382,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	case "json":
 	default:
 		return agent, fmt.Errorf("invalid default template type: %s", agent.DefaultTemplate)
+	}
+
+	agent.InjectToken, err = agent.injectToken()
+	if err != nil {
+		return agent, err
 	}
 
 	agent.VaultAgentCache = VaultAgentCache{

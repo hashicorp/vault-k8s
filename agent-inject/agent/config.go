@@ -3,6 +3,7 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
 )
@@ -11,8 +12,6 @@ const (
 	DefaultMapTemplate  = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
 	DefaultJSONTemplate = "{{ with secret \"%s\" }}{{ .Data | toJSON }}\n{{ end }}"
 	DefaultTemplateType = "map"
-	TokenTemplate       = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
-	TokenSecret         = "auth/token/lookup-self"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
 )
@@ -166,6 +165,15 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+	}
+
+	if a.InjectToken {
+		config.AutoAuth.Sinks = append(config.AutoAuth.Sinks, &Sink{
+			Type: "file",
+			Config: map[string]interface{}{
+				"path": path.Join(a.Annotations[AnnotationVaultSecretVolumePath], "token"),
+			},
+		})
 	}
 
 	cacheListener := []*Listener{

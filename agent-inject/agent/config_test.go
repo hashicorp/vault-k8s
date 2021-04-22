@@ -446,3 +446,78 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 	}
 
 }
+
+func TestInjectTokenSink(t *testing.T) {
+
+	tokenHelperSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": TokenFile,
+		},
+	}
+	injectTokenSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": secretVolumePath + "/token",
+		},
+	}
+
+	tests := []struct {
+		name          string
+		annotations   map[string]string
+		expectedSinks []*Sink
+	}{
+		{
+			"token true",
+			map[string]string{
+				AnnotationAgentInjectToken: "true",
+			},
+			[]*Sink{tokenHelperSink, injectTokenSink},
+		},
+		{
+			"token false",
+			map[string]string{
+				AnnotationAgentInjectToken: "false",
+			},
+			[]*Sink{tokenHelperSink},
+		},
+		{
+			"custom secret volume path",
+			map[string]string{
+				AnnotationAgentInjectToken:      "true",
+				AnnotationVaultSecretVolumePath: "/new/secrets",
+			},
+			[]*Sink{
+				tokenHelperSink,
+				{
+					Type: "file",
+					Config: map[string]interface{}{
+						"path": "/new/secrets/token",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedSinks, config.AutoAuth.Sinks)
+		})
+	}
+}
