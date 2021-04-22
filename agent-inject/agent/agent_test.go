@@ -110,6 +110,25 @@ func TestValidate(t *testing.T) {
 				ServiceAccountPath: "foobar",
 				ServiceAccountName: "foobar",
 				ImageName:          "test",
+				ConfigMapName:      "test",
+				ConfigMapNames:     "test1,test2,test3",
+			}, false,
+		},
+		{
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				ImageName:          "test",
+				ConfigMapNames:     "test1,test2,test3",
+			}, true,
+		},
+		{
+			Agent{
+				Namespace:          "test",
+				ServiceAccountPath: "foobar",
+				ServiceAccountName: "foobar",
+				ImageName:          "test",
 				Vault: Vault{
 					Role:     "test",
 					Address:  "https://foobar.com:8200",

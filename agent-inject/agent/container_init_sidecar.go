@@ -47,7 +47,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 
 	arg := DefaultContainerArg
 
-	if a.ConfigMapName != "" {
+	if a.ConfigMapName != "" || a.ConfigMapNames != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
 			Name:      configVolumeName,
 			MountPath: configVolumePath,

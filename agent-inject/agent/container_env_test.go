@@ -16,10 +16,12 @@ func TestContainerEnvs(t *testing.T) {
 	}{
 		{Agent{}, []string{"VAULT_CONFIG"}},
 		{Agent{ConfigMapName: "foobar"}, []string{}},
+		{Agent{ConfigMapNames: "foobar"}, []string{}},
 		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES"}},
 		{Agent{Vault: Vault{ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_CLIENT_TIMEOUT"}},
 		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
 		{Agent{ConfigMapName: "foobar", Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY"}},
+		{Agent{ConfigMapNames: "barbaz", Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY"}},
 	}
 
 	for _, tt := range tests {
@@ -45,7 +47,7 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 		expectedEnvs []string
 	}{
 		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
-		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws",}}, 
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
 		},
 	}

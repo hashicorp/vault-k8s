@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -45,7 +46,7 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
-	if a.ConfigMapName == "" {
+	if a.ConfigMapName == "" && a.ConfigMapNames == "" {
 		config, err := a.newConfig(init)
 		if err != nil {
 			return envs, err

@@ -111,6 +111,10 @@ type Agent struct {
 	// container(s).
 	ConfigMapName string
 
+	// ConfigMapNames is a comma-separate list of all the names of the configmaps a user
+	// wants to mount to Vault Agent container(s).
+	ConfigMapNames string
+
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
 
@@ -266,6 +270,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent := &Agent{
 		Annotations:            pod.Annotations,
 		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
+		ConfigMapNames:         pod.Annotations[AnnotationAgentConfigMaps],
 		ImageName:              pod.Annotations[AnnotationAgentImage],
 		DefaultTemplate:        pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
@@ -448,6 +453,14 @@ func (a *Agent) Patch() ([]byte, error) {
 			"/spec/volumes")...)
 	}
 
+	// Add ConfigMaps if any were provided
+	if a.ConfigMapNames != "" {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			a.ContainerConfigMapVolumes(),
+			"/spec/volumes")...)
+	}
+
 	// Add ExtraSecret if one was provided
 	if a.ExtraSecret != "" {
 		a.Patches = append(a.Patches, addVolumes(
@@ -569,7 +582,7 @@ func (a *Agent) Validate() error {
 		return errors.New("no Vault image found")
 	}
 
-	if a.ConfigMapName == "" {
+	if a.ConfigMapName == "" && a.ConfigMapNames == "" {
 		if a.Vault.AuthType == "" {
 			return errors.New("no Vault Auth Type found")
 		}
@@ -586,6 +599,10 @@ func (a *Agent) Validate() error {
 		if a.Vault.Address == "" {
 			return errors.New("no Vault address found")
 		}
+	}
+
+	if a.ConfigMapName != "" && a.ConfigMapNames != "" {
+		return errors.New("both agent-configmap and agent-configmaps specified; use only agent-configmaps for multiple configmaps")
 	}
 	return nil
 }

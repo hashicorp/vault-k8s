@@ -94,6 +94,10 @@ const (
 	// configuration file and templates can be found.
 	AnnotationAgentConfigMap = "vault.hashicorp.com/agent-configmap"
 
+	// AnnotationAgentConfigMap is a comma-separated list of the configuration mappings where Vault Agent
+	// configuration files and templatess can be found.
+	AnnotationAgentConfigMaps = "vault.hashicorp.com/agent-configmaps"
+
 	// AnnotationAgentExtraSecret is the name of a Kubernetes secret that will be mounted
 	// into the Vault agent container so that the agent config can reference secrets.
 	AnnotationAgentExtraSecret = "vault.hashicorp.com/agent-extra-secret"

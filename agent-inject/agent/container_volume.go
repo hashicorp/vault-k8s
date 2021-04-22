@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
@@ -106,6 +107,27 @@ func (a *Agent) ContainerConfigMapVolume() corev1.Volume {
 			},
 		},
 	}
+}
+
+// ContainerConfigMapVolume returns a list of volumes to mount
+// a comma-separated list of config maps if the user supplied any.
+func (a *Agent) ContainerConfigMapVolumes() []corev1.Volume {
+	var configMapNames = strings.Split(a.ConfigMapNames, ",")
+	var volumes []corev1.Volume
+	for _, configMapName := range configMapNames {
+		volumes = append(volumes,
+			corev1.Volume{
+				Name: configVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: configMapName,
+						},
+					},
+				},
+			})
+	}
+	return volumes
 }
 
 // ContainerExtraSecretVolume returns a volume to mount a Kube secret
