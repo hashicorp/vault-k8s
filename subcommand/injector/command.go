@@ -151,7 +151,7 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(ctx, certCh, certSource)
+	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, clientset, logger.Named("certwatcher"))
 
@@ -192,6 +192,7 @@ func (c *Command) Run(args []string) int {
 		Addr:      c.flagListen,
 		Handler:   handler,
 		TLSConfig: &tls.Config{GetCertificate: c.getCertificate},
+		ErrorLog:  logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
 	}
 
 	trap := make(chan os.Signal, 1)
