@@ -54,7 +54,7 @@ func (n *Notify) Run() {
 
 		next, err := n.source.Certificate(n.ctx, last)
 		if err != nil {
-			n.logger.Warn("error loading next cert", "err", err.Error())
+			n.logger.Warn("error loading next cert", "error", err.Error())
 			continue
 		}
 
