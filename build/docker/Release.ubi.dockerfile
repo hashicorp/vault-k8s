@@ -5,7 +5,7 @@
 # We don't rebuild the software because we want the exact checksums and
 # binary signatures to match the software and our builds aren't fully
 # reproducible currently.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3
 
 # NAME and VERSION are the name of the software in releases.hashicorp.com
 # and the version to download.
