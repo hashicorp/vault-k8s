@@ -1,4 +1,4 @@
-## Unreleased
+## 0.10.1 (May 25, 2021)
 
 Bugs:
 * Fix agent-inject-token when caching enabled: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
