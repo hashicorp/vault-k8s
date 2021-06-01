@@ -8,7 +8,8 @@ metadata:
     app.kubernetes.io/instance: vault
 spec:
   ports:
-  - port: 443
+  - name: https
+    port: 443
     targetPort: 8080
   selector:
     app.kubernetes.io/name: vault-injector
