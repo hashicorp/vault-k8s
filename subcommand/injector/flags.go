@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
+	"github.com/hashicorp/vault-k8s/helper/flags"
 	"github.com/kelseyhightower/envconfig"
 )
 
