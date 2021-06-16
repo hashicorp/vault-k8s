@@ -1,3 +1,8 @@
+## Unreleased
+
+Improvements:
+* Dependency update: [GH-265](https://github.com/hashicorp/vault-k8s/pull/265)
+
 ## 0.10.1 (May 25, 2021)
 
 Bugs:
