@@ -14,22 +14,23 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.7.3"
-	DefaultVaultAuthType                 = "kubernetes"
-	DefaultVaultAuthPath                 = "auth/kubernetes"
-	DefaultAgentRunAsUser                = 100
-	DefaultAgentRunAsGroup               = 1000
-	DefaultAgentRunAsSameUser            = false
-	DefaultAgentAllowPrivilegeEscalation = false
-	DefaultAgentDropCapabilities         = "ALL"
-	DefaultAgentSetSecurityContext       = true
-	DefaultAgentReadOnlyRoot             = true
-	DefaultAgentCacheEnable              = "false"
-	DefaultAgentCacheUseAutoAuthToken    = "true"
-	DefaultAgentCacheListenerPort        = "8200"
-	DefaultAgentCacheExitOnErr           = false
-	DefaultAgentUseLeaderElector         = false
-	DefaultAgentInjectToken              = false
+	DefaultVaultImage                            = "vault:1.7.3"
+	DefaultVaultAuthType                         = "kubernetes"
+	DefaultVaultAuthPath                         = "auth/kubernetes"
+	DefaultAgentRunAsUser                        = 100
+	DefaultAgentRunAsGroup                       = 1000
+	DefaultAgentRunAsSameUser                    = false
+	DefaultAgentAllowPrivilegeEscalation         = false
+	DefaultAgentDropCapabilities                 = "ALL"
+	DefaultAgentSetSecurityContext               = true
+	DefaultAgentReadOnlyRoot                     = true
+	DefaultAgentCacheEnable                      = "false"
+	DefaultAgentCacheUseAutoAuthToken            = "true"
+	DefaultAgentCacheListenerPort                = "8200"
+	DefaultAgentCacheExitOnErr                   = false
+	DefaultAgentUseLeaderElector                 = false
+	DefaultAgentInjectToken                      = false
+	DefaultAgentTemplateConfigExitOnRetryFailure = true
 )
 
 // Agent is the top level structure holding all the
@@ -117,6 +118,10 @@ type Agent struct {
 
 	// VaultAgentCache is the structure holding the Vault agent cache specific configurations
 	VaultAgentCache VaultAgentCache
+
+	// VaultAgentTemplateConfig is the structure holding the Vault agent
+	// template_config specific configuration
+	VaultAgentTemplateConfig VaultAgentTemplateConfig
 
 	// RunAsUser is the user ID to run the Vault agent container(s) as.
 	RunAsUser int64
@@ -261,6 +266,12 @@ type VaultAgentCache struct {
 	ExitOnErr bool
 }
 
+type VaultAgentTemplateConfig struct {
+	// ExitOnRetryFailure configure whether agent should exit after failing
+	// all its retry attempts when rendering templates
+	ExitOnRetryFailure bool
+}
+
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
@@ -395,6 +406,15 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
 		ExitOnErr:        agentCacheExitOnErr,
 		Persist:          agent.cachePersist(agentCacheEnable),
+	}
+
+	exitOnRetryFailure, err := agent.templateConfigExitOnRetryFailure()
+	if err != nil {
+		return nil, err
+	}
+
+	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
+		ExitOnRetryFailure: exitOnRetryFailure,
 	}
 
 	return agent, nil

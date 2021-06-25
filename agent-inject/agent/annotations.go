@@ -226,6 +226,11 @@ const (
 	// in the Pod whose volume mounts should be copied onto the Vault Agent init and
 	// sidecar containers. Ignores any Kubernetes service account token mounts.
 	AnnotationAgentCopyVolumeMounts = "vault.hashicorp.com/agent-copy-volume-mounts"
+
+	// AnnotationAgentTemplateConfigExitOnRetryFailure configure whether agent
+	// will exit on template render failures once it has exhausted all its retry
+	// attempts. Defaults to true.
+	AnnotationAgentTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/agent-template-config-exit-on-retry-failure"
 )
 
 type AgentConfig struct {
@@ -245,6 +250,7 @@ type AgentConfig struct {
 	ResourceRequestMem string
 	ResourceLimitCPU   string
 	ResourceLimitMem   string
+	ExitOnRetryFailure bool
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -391,6 +397,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
 	}
 
 	return nil
@@ -576,6 +586,15 @@ func (a *Agent) cacheEnable() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
 	if !ok {
 		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure]
+	if !ok {
+		return DefaultAgentTemplateConfigExitOnRetryFailure, nil
 	}
 
 	return strconv.ParseBool(raw)

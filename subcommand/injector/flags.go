@@ -30,6 +30,10 @@ type Specification struct {
 	// LogFormat is the AGENT_INJECT_LOG_FORMAT environment variable
 	LogFormat string `split_words:"true"`
 
+	// TemplateConfigExitOnRetryFailure is the
+	// AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE environment variable.
+	TemplateConfigExitOnRetryFailure string `split_words:"true"`
+
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
 
@@ -101,6 +105,8 @@ func (c *Command) init() {
 		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
 	c.flagSet.StringVar(&c.flagLogFormat, "log-format", DefaultLogFormat, "Log output format. "+
 		`Supported log formats: "standard", "json".`)
+	c.flagSet.BoolVar(&c.flagExitOnRetryFailure, "template-config-exit-on-retry-failure", agent.DefaultAgentTemplateConfigExitOnRetryFailure,
+		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultAgentTemplateConfigExitOnRetryFailure))
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
@@ -190,6 +196,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.LogFormat != "" {
 		c.flagLogFormat = envs.LogFormat
+	}
+
+	if envs.TemplateConfigExitOnRetryFailure != "" {
+		c.flagExitOnRetryFailure, err = strconv.ParseBool(envs.TemplateConfigExitOnRetryFailure)
+		if err != nil {
+			return err
+		}
 	}
 
 	if envs.TLSAuto != "" {

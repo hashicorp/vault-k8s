@@ -19,13 +19,14 @@ const (
 // Config is the top level struct that composes a Vault Agent
 // configuration file.
 type Config struct {
-	AutoAuth      *AutoAuth    `json:"auto_auth"`
-	ExitAfterAuth bool         `json:"exit_after_auth"`
-	PidFile       string       `json:"pid_file"`
-	Vault         *VaultConfig `json:"vault"`
-	Templates     []*Template  `json:"template,omitempty"`
-	Listener      []*Listener  `json:"listener,omitempty"`
-	Cache         *Cache       `json:"cache,omitempty"`
+	AutoAuth       *AutoAuth       `json:"auto_auth"`
+	ExitAfterAuth  bool            `json:"exit_after_auth"`
+	PidFile        string          `json:"pid_file"`
+	Vault          *VaultConfig    `json:"vault"`
+	Templates      []*Template     `json:"template,omitempty"`
+	Listener       []*Listener     `json:"listener,omitempty"`
+	Cache          *Cache          `json:"cache,omitempty"`
+	TemplateConfig *TemplateConfig `json:"template_config,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -100,6 +101,11 @@ type CachePersist struct {
 	ServiceAccountTokenFile string `json:"service_account_token_file,omitempty"`
 }
 
+// TemplateConfig defines the configuration for template_config in Vault Agent
+type TemplateConfig struct {
+	ExitOnRetryFailure bool `json:"exit_on_retry_failure"`
+}
+
 func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
@@ -165,6 +171,9 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+		TemplateConfig: &TemplateConfig{
+			ExitOnRetryFailure: a.VaultAgentTemplateConfig.ExitOnRetryFailure,
+		},
 	}
 
 	if a.InjectToken {

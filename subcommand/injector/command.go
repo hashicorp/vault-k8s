@@ -37,6 +37,7 @@ type Command struct {
 	flagLogFormat          string // Log format
 	flagCertFile           string // TLS Certificate to serve
 	flagKeyFile            string // TLS private key to serve
+	flagExitOnRetryFailure bool   // Set template_config.exit_on_retry_failure on agent
 	flagAutoName           string // MutatingWebhookConfiguration for updating
 	flagAutoHosts          string // SANs for the auto-generated TLS cert.
 	flagVaultService       string // Name of the Vault service
@@ -175,6 +176,7 @@ func (c *Command) Run(args []string) int {
 		ResourceRequestMem: c.flagResourceRequestMem,
 		ResourceLimitCPU:   c.flagResourceLimitCPU,
 		ResourceLimitMem:   c.flagResourceLimitMem,
+		ExitOnRetryFailure: c.flagExitOnRetryFailure,
 	}
 
 	mux := http.NewServeMux()

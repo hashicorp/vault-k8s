@@ -41,9 +41,22 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: true,
 	}
 
 	err := Init(pod, agentConfig)
@@ -122,10 +135,26 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	pod := testPodIRSA(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	err := Init(pod, AgentConfig{
-		"foobar-image", "http://foobar:1234", "aws", "test", "test", true, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem})
+	agentConfig := AgentConfig{
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           "aws",
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: true,
+	}
+
+	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
@@ -184,9 +213,22 @@ func TestContainerSidecar(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", false, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "https://proxy:3128", "map",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		ProxyAddress:       "https://proxy:3128",
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: true,
 	}
 
 	err := Init(pod, agentConfig)
@@ -303,9 +345,22 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", tt.revokeFlag, "1000", "100",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   tt.revokeFlag,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: true,
 			}
 
 			err := Init(pod, agentConfig)
@@ -358,9 +413,22 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
-		DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: true,
 	}
 
 	err := Init(pod, agentConfig)
@@ -1060,9 +1128,22 @@ func TestContainerCache(t *testing.T) {
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:1234", DefaultVaultAuthType, "test", "test", true, "1000", "100",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "", "map",
-				DefaultResourceRequestCPU, DefaultResourceRequestMem, DefaultResourceLimitCPU, DefaultResourceLimitMem,
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: true,
 			}
 
 			err := Init(pod, agentConfig)
