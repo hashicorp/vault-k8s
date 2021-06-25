@@ -14,23 +14,23 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                            = "vault:1.7.3"
-	DefaultVaultAuthType                         = "kubernetes"
-	DefaultVaultAuthPath                         = "auth/kubernetes"
-	DefaultAgentRunAsUser                        = 100
-	DefaultAgentRunAsGroup                       = 1000
-	DefaultAgentRunAsSameUser                    = false
-	DefaultAgentAllowPrivilegeEscalation         = false
-	DefaultAgentDropCapabilities                 = "ALL"
-	DefaultAgentSetSecurityContext               = true
-	DefaultAgentReadOnlyRoot                     = true
-	DefaultAgentCacheEnable                      = "false"
-	DefaultAgentCacheUseAutoAuthToken            = "true"
-	DefaultAgentCacheListenerPort                = "8200"
-	DefaultAgentCacheExitOnErr                   = false
-	DefaultAgentUseLeaderElector                 = false
-	DefaultAgentInjectToken                      = false
-	DefaultAgentTemplateConfigExitOnRetryFailure = true
+	DefaultVaultImage                       = "vault:1.7.3"
+	DefaultVaultAuthType                    = "kubernetes"
+	DefaultVaultAuthPath                    = "auth/kubernetes"
+	DefaultAgentRunAsUser                   = 100
+	DefaultAgentRunAsGroup                  = 1000
+	DefaultAgentRunAsSameUser               = false
+	DefaultAgentAllowPrivilegeEscalation    = false
+	DefaultAgentDropCapabilities            = "ALL"
+	DefaultAgentSetSecurityContext          = true
+	DefaultAgentReadOnlyRoot                = true
+	DefaultAgentCacheEnable                 = "false"
+	DefaultAgentCacheUseAutoAuthToken       = "true"
+	DefaultAgentCacheListenerPort           = "8200"
+	DefaultAgentCacheExitOnErr              = false
+	DefaultAgentUseLeaderElector            = false
+	DefaultAgentInjectToken                 = false
+	DefaultTemplateConfigExitOnRetryFailure = true
 )
 
 // Agent is the top level structure holding all the
@@ -267,7 +267,7 @@ type VaultAgentCache struct {
 }
 
 type VaultAgentTemplateConfig struct {
-	// ExitOnRetryFailure configure whether agent should exit after failing
+	// ExitOnRetryFailure configures whether agent should exit after failing
 	// all its retry attempts when rendering templates
 	ExitOnRetryFailure bool
 }

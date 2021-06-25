@@ -32,7 +32,7 @@ func basicAgentConfig() AgentConfig {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: true,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 }
 

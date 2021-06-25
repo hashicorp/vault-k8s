@@ -227,10 +227,10 @@ const (
 	// sidecar containers. Ignores any Kubernetes service account token mounts.
 	AnnotationAgentCopyVolumeMounts = "vault.hashicorp.com/agent-copy-volume-mounts"
 
-	// AnnotationAgentTemplateConfigExitOnRetryFailure configure whether agent
+	// AnnotationTemplateConfigExitOnRetryFailure configures whether agent
 	// will exit on template render failures once it has exhausted all its retry
 	// attempts. Defaults to true.
-	AnnotationAgentTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/agent-template-config-exit-on-retry-failure"
+	AnnotationTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/template-config-exit-on-retry-failure"
 )
 
 type AgentConfig struct {
@@ -399,8 +399,8 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
 	}
 
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
 	}
 
 	return nil
@@ -592,9 +592,9 @@ func (a *Agent) cacheEnable() (bool, error) {
 }
 
 func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
-	raw, ok := a.Annotations[AnnotationAgentTemplateConfigExitOnRetryFailure]
+	raw, ok := a.Annotations[AnnotationTemplateConfigExitOnRetryFailure]
 	if !ok {
-		return DefaultAgentTemplateConfigExitOnRetryFailure, nil
+		return DefaultTemplateConfigExitOnRetryFailure, nil
 	}
 
 	return strconv.ParseBool(raw)

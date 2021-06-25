@@ -56,7 +56,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: true,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -151,7 +151,7 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: true,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -228,7 +228,7 @@ func TestContainerSidecar(t *testing.T) {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: true,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -360,7 +360,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 				ResourceRequestMem: DefaultResourceRequestMem,
 				ResourceLimitCPU:   DefaultResourceLimitCPU,
 				ResourceLimitMem:   DefaultResourceLimitMem,
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 			}
 
 			err := Init(pod, agentConfig)
@@ -428,7 +428,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: true,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -1143,7 +1143,7 @@ func TestContainerCache(t *testing.T) {
 				ResourceRequestMem: DefaultResourceRequestMem,
 				ResourceLimitCPU:   DefaultResourceLimitCPU,
 				ResourceLimitMem:   DefaultResourceLimitMem,
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 			}
 
 			err := Init(pod, agentConfig)
