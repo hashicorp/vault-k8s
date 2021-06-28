@@ -447,6 +447,56 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 
 }
 
+func TestConfigVaultAgentTemplateConfig(t *testing.T) {
+	tests := []struct {
+		name                   string
+		annotations            map[string]string
+		expectedTemplateConfig *TemplateConfig
+	}{
+		{
+			"exit_on_retry_failure true",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "true",
+			},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+		{
+			"exit_on_retry_failure false",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "false",
+			},
+			&TemplateConfig{ExitOnRetryFailure: false},
+		},
+		{
+			"exit_on_retry_failure absent",
+			map[string]string{},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedTemplateConfig, config.TemplateConfig)
+		})
+	}
+}
+
 func TestInjectTokenSink(t *testing.T) {
 
 	tokenHelperSink := &Sink{
