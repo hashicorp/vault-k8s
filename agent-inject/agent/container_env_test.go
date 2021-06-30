@@ -45,7 +45,7 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 		expectedEnvs []string
 	}{
 		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
-		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws",}}, 
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
 		},
 	}
@@ -57,6 +57,44 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 		if len(envs) != len(tt.expectedEnvs) {
 			t.Errorf("number of envs mismatch, wanted %d, got %d", len(tt.expectedEnvs), len(envs))
 		}
+	}
+}
+
+func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
+	input := []struct {
+		agent        Agent
+		expectedEnvs []string
+	}{
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"},
+		},
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws", AuthConfig: getWrongRegionMap()}},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+		},
+		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+		},
+	}
+	for _, item := range input {
+		envs, err := item.agent.ContainerEnvVars(true)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+		if len(envs) != len(item.expectedEnvs) {
+			t.Errorf("number of envs mismatch, wanted %d, got %d", len(item.expectedEnvs), len(envs))
+		}
+	}
+}
+
+func getRegionMap() map[string]interface{} {
+	return map[string]interface{}{
+		"region": "us-gov-east-1",
+	}
+}
+
+func getWrongRegionMap() map[string]interface{} {
+	return map[string]interface{}{
+		"region": true,
 	}
 }
 
