@@ -68,9 +68,6 @@ func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"},
 		},
-		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws", AuthConfig: getWrongRegionMap()}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
-		},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
 		},
@@ -89,12 +86,6 @@ func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
 func getRegionMap() map[string]interface{} {
 	return map[string]interface{}{
 		"region": "us-gov-east-1",
-	}
-}
-
-func getWrongRegionMap() map[string]interface{} {
-	return map[string]interface{}{
-		"region": true,
 	}
 }
 
