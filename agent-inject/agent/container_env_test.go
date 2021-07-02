@@ -46,7 +46,7 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 	}{
 		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"},
 		},
 	}
 	for _, tt := range envTests {
@@ -65,11 +65,11 @@ func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
 		agent        Agent
 		expectedEnvs []string
 	}{
-		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
+		{Agent{Pod: testPodWithRegionAnnotation(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"},
 		},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"},
 		},
 	}
 	for _, item := range input {
@@ -94,6 +94,27 @@ func testPodWithoutIRSA() *corev1.Pod {
 }
 
 func testPodWithIRSA() *corev1.Pod {
+	return testPodWithEnv([]corev1.EnvVar{
+		{
+			Name:  "AWS_ROLE_ARN",
+			Value: "foorole",
+		},
+		{
+			Name:  "AWS_WEB_IDENTITY_TOKEN_FILE",
+			Value: "footoken",
+		},
+		{
+			Name:  "AWS_DEFAULT_REGION",
+			Value: "default-region",
+		},
+		{
+			Name:  "AWS_REGION",
+			Value: "test-region",
+		},
+	})
+}
+
+func testPodWithRegionAnnotation() *corev1.Pod {
 	return testPodWithEnv([]corev1.EnvVar{
 		{
 			Name:  "AWS_ROLE_ARN",
