@@ -48,13 +48,17 @@ metadata:
     app.kubernetes.io/instance: vault
 rules:
 - apiGroups: [""]
-  resources: ["endpoints", "secrets"]
+  resources: ["secrets", "configmaps"]
   verbs: 
     - "create"
     - "get"
     - "watch"
     - "list"
     - "update"
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs:
+    - "get"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

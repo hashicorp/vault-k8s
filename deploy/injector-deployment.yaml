@@ -20,38 +20,6 @@ spec:
     spec:
       serviceAccountName: "vault-injector"
       containers:
-        - name: leader-elector
-          image: k8s.gcr.io/leader-elector:0.4
-          args:
-            - --election=vault-agent-injector-leader
-            - --election-namespace=$(NAMESPACE)
-            - --http=0.0.0.0:4040
-            - --ttl=60s
-          env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 4040
-              scheme: HTTP
-            failureThreshold: 2
-            initialDelaySeconds: 1
-            periodSeconds: 2
-            successThreshold: 1
-            timeoutSeconds: 5
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 4040
-              scheme: HTTP
-            failureThreshold: 2
-            initialDelaySeconds: 2
-            periodSeconds: 2
-            successThreshold: 1
-            timeoutSeconds: 5
         - name: sidecar-injector
           image: "hashicorp/vault-k8s:0.10.2"
           imagePullPolicy: IfNotPresent
@@ -60,6 +28,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
             - name: AGENT_INJECT_LISTEN
               value: ":8080"
             - name: AGENT_INJECT_LOG_LEVEL
@@ -95,7 +67,7 @@ spec:
               port: 8080
               scheme: HTTPS
             failureThreshold: 2
-            initialDelaySeconds: 1
+            initialDelaySeconds: 5
             periodSeconds: 2
             successThreshold: 1
             timeoutSeconds: 5
@@ -105,7 +77,7 @@ spec:
               port: 8080
               scheme: HTTPS
             failureThreshold: 2
-            initialDelaySeconds: 2
+            initialDelaySeconds: 5
             periodSeconds: 2
             successThreshold: 1
             timeoutSeconds: 5
