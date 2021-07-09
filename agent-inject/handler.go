@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,8 +86,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admReq v1beta1.AdmissionReview
-	var admResp v1beta1.AdmissionReview
+	var admReq v1.AdmissionReview
+	var admResp v1.AdmissionReview
 	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
 		msg := fmt.Sprintf("error decoding admission request: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
@@ -112,13 +112,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 // Mutate takes an admission request and performs mutation if necessary,
 // returning the final API response.
-func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (h *Handler) Mutate(req *v1.AdmissionRequest) *v1.AdmissionResponse {
 	// Decode the pod from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
 		h.Log.Debug("%s", req.Object.Raw)
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -126,7 +126,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	// Build the basic response
-	resp := &v1beta1.AdmissionResponse{
+	resp := &v1.AdmissionResponse{
 		Allowed: true,
 		UID:     req.UID,
 	}
@@ -195,14 +195,14 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	resp.Patch = patch
-	patchType := v1beta1.PatchTypeJSONPatch
+	patchType := v1.PatchTypeJSONPatch
 	resp.PatchType = &patchType
 
 	return resp
 }
 
-func admissionError(err error) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
+func admissionError(err error) *v1.AdmissionResponse {
+	return &v1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},
