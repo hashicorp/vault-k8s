@@ -130,7 +130,7 @@ func (c *Command) Run(args []string) int {
 			c.UI.Error("timeout syncing Secrets informer")
 			return 1
 		}
-		leaderElector = leader.New(ctx, logger)
+		leaderElector = leader.New(ctx, logger, clientset)
 	}
 
 	// Determine where to source the certificates from
