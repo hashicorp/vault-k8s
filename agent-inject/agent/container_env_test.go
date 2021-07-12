@@ -65,7 +65,7 @@ func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
 		agent        Agent
 		expectedEnvs []string
 	}{
-		{Agent{Pod: testPodWithRegionAnnotation(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
+		{Agent{Pod: testPodWithRegionInAuthConfig(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
 			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"},
 		},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
@@ -114,7 +114,7 @@ func testPodWithIRSA() *corev1.Pod {
 	})
 }
 
-func testPodWithRegionAnnotation() *corev1.Pod {
+func testPodWithRegionInAuthConfig() *corev1.Pod {
 	return testPodWithEnv([]corev1.EnvVar{
 		{
 			Name:  "AWS_ROLE_ARN",
