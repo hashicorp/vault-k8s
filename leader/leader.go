@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"sync/atomic"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	operator_leader "github.com/operator-framework/operator-lib/leader"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,6 +16,7 @@ import (
 )
 
 type Elector interface {
+	// IsLeader returns whether this host is the leader
 	IsLeader() (bool, error)
 }
 
@@ -23,7 +26,6 @@ type LeaderForLife struct {
 
 // New returns a Elector that uses the operator-sdk's leader for life elector
 func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface) *LeaderForLife {
-	logger.Debug("starting leader.New()")
 	le := &LeaderForLife{}
 	le.isLeader.Store(false)
 
@@ -39,6 +41,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 		err := operator_leader.Become(ctx, "vault-k8s-leader")
 		if err != nil {
 			logger.Error("trouble becoming leader:", "error", err)
+			return
 		}
 		le.isLeader.Store(true)
 		if err := setLeaderLabel(ctx, clientset, true); err != nil {
@@ -69,10 +72,17 @@ func setLeaderLabel(ctx context.Context, clientset kubernetes.Interface, label b
 		"path": "/metadata/labels/leader",
 		"value": "%t"
 	}]`, label)
-	_, err := clientset.CoreV1().Pods(namespace).Patch(ctx, podName, types.JSONPatchType, []byte(patch), v1.PatchOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to set leader=%t on pod %s, namespace %s: %w",
-			label, podName, namespace, err)
-	}
-	return nil
+
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxInterval = time.Second * 5
+	bo.MaxElapsedTime = time.Minute
+
+	return backoff.Retry(func() error {
+		_, err := clientset.CoreV1().Pods(namespace).Patch(ctx, podName, types.JSONPatchType, []byte(patch), v1.PatchOptions{})
+		if err != nil {
+			return fmt.Errorf("failed to set leader=%t on pod %s, namespace %s: %w",
+				label, podName, namespace, err)
+		}
+		return nil
+	}, bo)
 }
