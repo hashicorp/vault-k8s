@@ -284,7 +284,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
-			log.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
+			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
 			continue
 		}
 
@@ -294,7 +294,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			var err error
 			isLeader, err = leaderElector.IsLeader()
 			if err != nil {
-				log.Error(fmt.Sprintf("error checking leader: %s", err))
+				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
 				continue
 			}
 		}
