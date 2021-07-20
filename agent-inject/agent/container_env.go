@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -66,6 +67,14 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 				Name:  k,
 				Value: v,
 			})
+		}
+		if a.Vault.AuthConfig["region"] != nil {
+			if r, ok := a.Vault.AuthConfig["region"].(string); ok {
+				envs = append(envs, corev1.EnvVar{
+					Name:  "AWS_REGION",
+					Value: r,
+				})
+			}
 		}
 	}
 
