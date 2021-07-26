@@ -252,7 +252,7 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
-func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) string {
+func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
 	adminAPIVersion := "v1"
 	_, err := clientset.AdmissionregistrationV1().
 		MutatingWebhookConfigurations().
@@ -260,12 +260,15 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) st
 	if k8sErrors.IsNotFound(err) {
 		adminAPIVersion = "v1beta1"
 	}
-	return adminAPIVersion
+	return adminAPIVersion, err
 }
 
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
 	var bundle cert.Bundle
-	adminAPIVersion := getAdminAPIVersion(ctx, clientset)
+	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
+	if err != nil {
+		log.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
+	}
 
 	for {
 		select {
@@ -306,12 +309,12 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
-			payload := fmt.Sprintf(
+			payload := []byte(fmt.Sprintf(
 				`[{
 					"op": "add",
 					"path": "/webhooks/0/clientConfig/caBundle",
 					"value": %q
-				}]`, value)
+				}]`, value))
 
 			var err error
 			switch adminAPIVersion {
@@ -319,14 +322,16 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			case "v1":
 				_, err = clientset.AdmissionregistrationV1().
 					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, []byte(payload),
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
 						metav1.PatchOptions{})
 			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
 			case "v1beta1":
 				_, err = clientset.AdmissionregistrationV1beta1().
 					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, []byte(payload),
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
 						metav1.PatchOptions{})
+			default:
+				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
 			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
