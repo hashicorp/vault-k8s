@@ -3,6 +3,7 @@
 Improvements:
 * Switch the default vault image to come from the hashicorp docker hub org: [GH-270](https://github.com/hashicorp/vault-k8s/pull/270)
 * Better support for setting the region when auth type is AWS: [GH-268](https://github.com/hashicorp/vault-k8s/pull/268)
+* Added support for K8s v1 Admission API: [GH-273](https://github.com/hashicorp/vault-k8s/pull/273)
 
 ## 0.10.2 (June 16, 2021)
 
