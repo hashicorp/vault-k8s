@@ -1,5 +1,5 @@
 ---
-apiVersion: admissionregistration.k8s.io/v1beta1
+apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: vault-agent-injector-cfg
@@ -8,6 +8,10 @@ metadata:
     app.kubernetes.io/instance: vault
 webhooks:
   - name: vault.hashicorp.com
+    sideEffects: None
+    admissionReviewVersions:
+      - "v1"
+      - "v1beta"
     clientConfig:
       service:
         name: vault-agent-injector-svc
@@ -20,3 +24,5 @@ webhooks:
         apiVersions: ["v1"]
         resources: ["deployments", "jobs", "pods", "statefulsets"]
     namespaceSelector: {}
+    objectSelector: {}
+    failurePolicy: Ignore

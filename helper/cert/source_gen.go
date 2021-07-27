@@ -143,7 +143,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		result.Key = []byte(key)
 
 		if s.LeaderElector != nil {
-			if err := s.updateSecret(result); err != nil {
+			if err := s.updateSecret(ctx, result); err != nil {
 				return result, fmt.Errorf("failed to update Secret: %s", err)
 			}
 		}
@@ -182,7 +182,7 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 	}
 }
 
-func (s *GenSource) updateSecret(bundle Bundle) error {
+func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: certSecretName,
@@ -194,9 +194,9 @@ func (s *GenSource) updateSecret(bundle Bundle) error {
 	}
 	// Attempt updating the Secret first, and if it doesn't exist, fallback to
 	// create
-	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(secret)
+	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
 	if errors.IsNotFound(err) {
-		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(secret)
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	}
 	if err != nil {
 		return err

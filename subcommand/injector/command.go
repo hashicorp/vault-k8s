@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
@@ -250,8 +252,24 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
+func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
+	adminAPIVersion := "v1"
+	_, err := clientset.AdmissionregistrationV1().
+		MutatingWebhookConfigurations().
+		List(ctx, metav1.ListOptions{})
+	if k8sErrors.IsNotFound(err) {
+		adminAPIVersion = "v1beta1"
+	}
+	return adminAPIVersion, err
+}
+
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
 	var bundle cert.Bundle
+	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
+	if err != nil {
+		log.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
+	}
+
 	for {
 		select {
 		case bundle = <-ch:
@@ -291,15 +309,30 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
+			payload := []byte(fmt.Sprintf(
+				`[{
+					"op": "add",
+					"path": "/webhooks/0/clientConfig/caBundle",
+					"value": %q
+				}]`, value))
 
-			_, err := clientset.AdmissionregistrationV1beta1().
-				MutatingWebhookConfigurations().
-				Patch(c.flagAutoName, types.JSONPatchType, []byte(fmt.Sprintf(
-					`[{
-						"op": "add",
-						"path": "/webhooks/0/clientConfig/caBundle",
-						"value": %q
-					}]`, value)))
+			var err error
+			switch adminAPIVersion {
+			// AdmissionregistrationV1 is valid in k8s 1.16+
+			case "v1":
+				_, err = clientset.AdmissionregistrationV1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
+			case "v1beta1":
+				_, err = clientset.AdmissionregistrationV1beta1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			default:
+				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error updating MutatingWebhookConfiguration: %s",
