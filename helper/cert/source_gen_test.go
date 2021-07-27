@@ -144,7 +144,7 @@ func TestGenSource_leader(t *testing.T) {
 	testBundleVerify(t, &bundle)
 
 	// check that the Secret has been created
-	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(context.TODO(), certSecretName, metav1.GetOptions{})
+	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(context.Background(), certSecretName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, checkSecret.Data["cert"], bundle.Cert,
 		"cert in the Secret should've matched what was returned from source.Certificate()",

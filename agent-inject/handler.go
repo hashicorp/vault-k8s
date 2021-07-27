@@ -53,6 +53,7 @@ type Handler struct {
 	ResourceRequestMem string
 	ResourceLimitCPU   string
 	ResourceLimitMem   string
+	ExitOnRetryFailure bool
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -164,6 +165,7 @@ func (h *Handler) Mutate(req *v1.AdmissionRequest) *v1.AdmissionResponse {
 		ResourceRequestMem: h.ResourceRequestMem,
 		ResourceLimitCPU:   h.ResourceLimitCPU,
 		ResourceLimitMem:   h.ResourceLimitMem,
+		ExitOnRetryFailure: h.ExitOnRetryFailure,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

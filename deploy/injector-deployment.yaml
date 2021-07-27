@@ -41,7 +41,7 @@ spec:
             - name: AGENT_INJECT_VAULT_ADDR
               value: "https://vault.$(NAMESPACE).svc:8200"
             - name: AGENT_INJECT_VAULT_IMAGE
-              value: "vault:1.7.3"
+              value: "hashicorp/vault:1.7.3"
             - name: AGENT_INJECT_TLS_AUTO
               value: vault-agent-injector-cfg
             - name: AGENT_INJECT_TLS_AUTO_HOSTS
