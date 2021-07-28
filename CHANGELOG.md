@@ -1,4 +1,4 @@
-## Unreleased
+## 0.11.0 (July 28, 2021)
 
 Improvements:
 * Switch the default vault image to come from the hashicorp docker hub org: [GH-270](https://github.com/hashicorp/vault-k8s/pull/270)
