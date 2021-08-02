@@ -152,7 +152,7 @@ func TestNewConfig(t *testing.T) {
 		} else if strings.Contains(template.Destination, "baz") {
 			if template.LeftDelim != "[[" || template.RightDelim != "]]" {
 				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, "[[", "]]")
-      }
+			}
 		} else if strings.Contains(template.Destination, "with-file-template") {
 			if template.Source != "/etc/file-template" {
 				t.Errorf("expected template file path to be %s, got %s", "/etc/file-template", template.Source)
