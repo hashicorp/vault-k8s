@@ -3,30 +3,32 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"path/filepath"
 	"time"
 )
 
 const (
-	DefaultTemplate   = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
-	TokenTemplate     = "{{ with secret \"auth/token/lookup-self\" }}{{ .Data.id }}\n{{ end }}"
-	TokenSecret       = "auth/token/lookup-self"
-	PidFile           = "/home/vault/.pid"
-	TokenFile         = "/home/vault/.vault-token"
-	DefaultLeftDelim  = "{{"
-	DefaultRightDelim = "}}"
+	DefaultMapTemplate  = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
+	DefaultJSONTemplate = "{{ with secret \"%s\" }}{{ .Data | toJSON }}\n{{ end }}"
+	DefaultTemplateType = "map"
+	PidFile             = "/home/vault/.pid"
+	TokenFile           = "/home/vault/.vault-token"
+	DefaultLeftDelim    = "{{"
+	DefaultRightDelim   = "}}"
 )
 
 // Config is the top level struct that composes a Vault Agent
 // configuration file.
 type Config struct {
-	AutoAuth      *AutoAuth    `json:"auto_auth"`
-	ExitAfterAuth bool         `json:"exit_after_auth"`
-	PidFile       string       `json:"pid_file"`
-	Vault         *VaultConfig `json:"vault"`
-	Templates     []*Template  `json:"template,omitempty"`
-	Listener      []*Listener  `json:"listener,omitempty"`
-	Cache         *Cache       `json:"cache,omitempty"`
+	AutoAuth       *AutoAuth       `json:"auto_auth"`
+	ExitAfterAuth  bool            `json:"exit_after_auth"`
+	PidFile        string          `json:"pid_file"`
+	Vault          *VaultConfig    `json:"vault"`
+	Templates      []*Template     `json:"template,omitempty"`
+	Listener       []*Listener     `json:"listener,omitempty"`
+	Cache          *Cache          `json:"cache,omitempty"`
+	TemplateConfig *TemplateConfig `json:"template_config,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -72,10 +74,11 @@ type Sink struct {
 type Template struct {
 	CreateDestDirs bool   `json:"create_dest_dirs,omitempty"`
 	Destination    string `json:"destination"`
-	Contents       string `json:"contents"`
+	Contents       string `json:"contents,omitempty"`
 	LeftDelim      string `json:"left_delimiter,omitempty"`
 	RightDelim     string `json:"right_delimiter,omitempty"`
 	Command        string `json:"command,omitempty"`
+	Source         string `json:"source,omitempty"`
 }
 
 // Listener defines the configuration for Vault Agent Cache Listener
@@ -87,15 +90,39 @@ type Listener struct {
 
 // Cache defines the configuration for the Vault Agent Cache
 type Cache struct {
-	UseAuthAuthToken string `json:"use_auto_auth_token"`
+	UseAutoAuthToken string        `json:"use_auto_auth_token"`
+	Persist          *CachePersist `json:"persist,omitempty"`
+}
+
+// CachePersist defines the configuration for persistent caching in Vault Agent
+type CachePersist struct {
+	Type                    string `json:"type"`
+	Path                    string `json:"path"`
+	KeepAfterImport         bool   `json:"keep_after_import,omitempty"`
+	ExitOnErr               bool   `json:"exit_on_err,omitempty"`
+	ServiceAccountTokenFile string `json:"service_account_token_file,omitempty"`
+}
+
+// TemplateConfig defines the configuration for template_config in Vault Agent
+type TemplateConfig struct {
+	ExitOnRetryFailure bool `json:"exit_on_retry_failure"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
 		template := secret.Template
-		if template == "" {
-			template = fmt.Sprintf(DefaultTemplate, secret.Path)
+		templateFile := secret.TemplateFile
+		if templateFile == "" {
+			template = secret.Template
+			if template == "" {
+				switch a.DefaultTemplate {
+				case "json":
+					template = fmt.Sprintf(DefaultJSONTemplate, secret.Path)
+				case "map":
+					template = fmt.Sprintf(DefaultMapTemplate, secret.Path)
+				}
+			}
 		}
 
 		leftDelim := secret.LeftDelimiter
@@ -114,6 +141,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		}
 
 		tmpl := &Template{
+			Source:      templateFile,
 			Contents:    template,
 			Destination: filePathAndName,
 			LeftDelim:   leftDelim,
@@ -155,18 +183,41 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+		TemplateConfig: &TemplateConfig{
+			ExitOnRetryFailure: a.VaultAgentTemplateConfig.ExitOnRetryFailure,
+		},
 	}
 
-	if a.VaultAgentCache.Enable && !init {
-		config.Listener = []*Listener{
-			{
-				Type:       "tcp",
-				Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
-				TLSDisable: true,
+	if a.InjectToken {
+		config.AutoAuth.Sinks = append(config.AutoAuth.Sinks, &Sink{
+			Type: "file",
+			Config: map[string]interface{}{
+				"path": path.Join(a.Annotations[AnnotationVaultSecretVolumePath], "token"),
+			},
+		})
+	}
+
+	cacheListener := []*Listener{
+		{
+			Type:       "tcp",
+			Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
+			TLSDisable: true,
+		},
+	}
+	if a.VaultAgentCache.Persist {
+		config.Listener = cacheListener
+		config.Cache = &Cache{
+			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+			Persist: &CachePersist{
+				Type:      "kubernetes",
+				Path:      cacheVolumePath,
+				ExitOnErr: a.VaultAgentCache.ExitOnErr,
 			},
 		}
+	} else if a.VaultAgentCache.Enable && !a.PrePopulateOnly && !init {
+		config.Listener = cacheListener
 		config.Cache = &Cache{
-			UseAuthAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 		}
 	}
 

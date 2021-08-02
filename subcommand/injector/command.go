@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
@@ -37,6 +39,7 @@ type Command struct {
 	flagLogFormat          string // Log format
 	flagCertFile           string // TLS Certificate to serve
 	flagKeyFile            string // TLS private key to serve
+	flagExitOnRetryFailure bool   // Set template_config.exit_on_retry_failure on agent
 	flagAutoName           string // MutatingWebhookConfiguration for updating
 	flagAutoHosts          string // SANs for the auto-generated TLS cert.
 	flagVaultService       string // Name of the Vault service
@@ -51,6 +54,11 @@ type Command struct {
 	flagSetSecurityContext bool   // Set SecurityContext in injected containers
 	flagTelemetryPath      string // Path under which to expose metrics
 	flagUseLeaderElector   bool   // Use leader elector code
+	flagDefaultTemplate    string // Toggles which default template to use
+	flagResourceRequestCPU string // Set CPU request in the injected containers
+	flagResourceRequestMem string // Set Memory request in the injected containers
+	flagResourceLimitCPU   string // Set CPU limit in the injected containers
+	flagResourceLimitMem   string // Set Memory limit in the injected containers
 
 	flagSet *flag.FlagSet
 
@@ -76,6 +84,14 @@ func (c *Command) Run(args []string) int {
 
 	if c.flagVaultService == "" {
 		c.UI.Error("No Vault service configured")
+		return 1
+	}
+
+	switch c.flagDefaultTemplate {
+	case "map":
+	case "json":
+	default:
+		c.UI.Error(fmt.Sprintf("Invalid default flag type: %s", c.flagDefaultTemplate))
 		return 1
 	}
 
@@ -138,7 +154,7 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(ctx, certCh, certSource)
+	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, clientset, logger.Named("certwatcher"))
 
@@ -157,6 +173,12 @@ func (c *Command) Run(args []string) int {
 		GroupID:            c.flagRunAsGroup,
 		SameID:             c.flagRunAsSameUser,
 		SetSecurityContext: c.flagSetSecurityContext,
+		DefaultTemplate:    c.flagDefaultTemplate,
+		ResourceRequestCPU: c.flagResourceRequestCPU,
+		ResourceRequestMem: c.flagResourceRequestMem,
+		ResourceLimitCPU:   c.flagResourceLimitCPU,
+		ResourceLimitMem:   c.flagResourceLimitMem,
+		ExitOnRetryFailure: c.flagExitOnRetryFailure,
 	}
 
 	mux := http.NewServeMux()
@@ -174,6 +196,7 @@ func (c *Command) Run(args []string) int {
 		Addr:      c.flagListen,
 		Handler:   handler,
 		TLSConfig: &tls.Config{GetCertificate: c.getCertificate},
+		ErrorLog:  logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
 	}
 
 	trap := make(chan os.Signal, 1)
@@ -229,8 +252,24 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
+func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
+	adminAPIVersion := "v1"
+	_, err := clientset.AdmissionregistrationV1().
+		MutatingWebhookConfigurations().
+		List(ctx, metav1.ListOptions{})
+	if k8sErrors.IsNotFound(err) {
+		adminAPIVersion = "v1beta1"
+	}
+	return adminAPIVersion, err
+}
+
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
 	var bundle cert.Bundle
+	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
+	if err != nil {
+		log.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
+	}
+
 	for {
 		select {
 		case bundle = <-ch:
@@ -270,15 +309,30 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
+			payload := []byte(fmt.Sprintf(
+				`[{
+					"op": "add",
+					"path": "/webhooks/0/clientConfig/caBundle",
+					"value": %q
+				}]`, value))
 
-			_, err := clientset.AdmissionregistrationV1beta1().
-				MutatingWebhookConfigurations().
-				Patch(c.flagAutoName, types.JSONPatchType, []byte(fmt.Sprintf(
-					`[{
-						"op": "add",
-						"path": "/webhooks/0/clientConfig/caBundle",
-						"value": %q
-					}]`, value)))
+			var err error
+			switch adminAPIVersion {
+			// AdmissionregistrationV1 is valid in k8s 1.16+
+			case "v1":
+				_, err = clientset.AdmissionregistrationV1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
+			case "v1beta1":
+				_, err = clientset.AdmissionregistrationV1beta1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			default:
+				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error updating MutatingWebhookConfiguration: %s",

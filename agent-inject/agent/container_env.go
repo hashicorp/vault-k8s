@@ -59,5 +59,24 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		})
 	}
 
+	// Add IRSA AWS Env variables for vault containers
+	if a.Vault.AuthType == "aws" {
+		envMap := a.getAwsEnvsFromContainer(a.Pod)
+		for k, v := range envMap {
+			envs = append(envs, corev1.EnvVar{
+				Name:  k,
+				Value: v,
+			})
+		}
+		if a.Vault.AuthConfig["region"] != nil {
+			if r, ok := a.Vault.AuthConfig["region"].(string); ok {
+				envs = append(envs, corev1.EnvVar{
+					Name:  "AWS_REGION",
+					Value: r,
+				})
+			}
+		}
+	}
+
 	return envs, nil
 }

@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -33,6 +35,10 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-different-path":                "different-path",
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
+		// render this secret from a template on disk
+		"vault.hashicorp.com/agent-inject-secret-with-file-template":                  "with-file-template",
+		fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, "with-file-template"): "/etc/file-template",
+
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
 		"vault.hashicorp.com/agent-inject-secret-baz":                   "db/creds/baz",
@@ -46,10 +52,7 @@ func TestNewConfig(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "http://proxy:3128",
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -149,6 +152,13 @@ func TestNewConfig(t *testing.T) {
 		} else if strings.Contains(template.Destination, "baz") {
 			if template.LeftDelim != "[[" || template.RightDelim != "]]" {
 				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, "[[", "]]")
+      }
+		} else if strings.Contains(template.Destination, "with-file-template") {
+			if template.Source != "/etc/file-template" {
+				t.Errorf("expected template file path to be %s, got %s", "/etc/file-template", template.Source)
+			}
+			if template.Contents != "" {
+				t.Errorf("expected template contents to be empty, got %s", template.Contents)
 			}
 		} else {
 			t.Error("shouldn't have got here")
@@ -220,10 +230,7 @@ func TestFilePathAndName(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation
 
-			agentConfig := AgentConfig{
-				"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-				DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-			}
+			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -252,10 +259,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -291,10 +295,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 
-	agentConfig := AgentConfig{
-		"foobar-image", "http://foobar:8200", DefaultVaultAuthType, "test", "test", true, "100", "1000",
-		DefaultAgentRunAsSameUser, DefaultAgentSetSecurityContext, "",
-	}
+	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
 	if err != nil {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
@@ -319,8 +320,8 @@ func TestConfigVaultAgentCache(t *testing.T) {
 		t.Error("agent Cache should be enabled")
 	}
 
-	if config.Cache.UseAuthAuthToken != "force" {
-		t.Errorf("agent Cache use_auto_auth_token should be 'force', got %s instead", config.Cache.UseAuthAuthToken)
+	if config.Cache.UseAutoAuthToken != "force" {
+		t.Errorf("agent Cache use_auto_auth_token should be 'force', got %s instead", config.Cache.UseAutoAuthToken)
 	}
 
 	if config.Listener[0].Type != "tcp" {
@@ -333,5 +334,253 @@ func TestConfigVaultAgentCache(t *testing.T) {
 
 	if !config.Listener[0].TLSDisable {
 		t.Error("agent Cache listener TLS should be disabled")
+	}
+}
+
+func TestConfigVaultAgentCache_persistent(t *testing.T) {
+	tests := []struct {
+		name              string
+		annotations       map[string]string
+		expectedInitCache bool
+		expectedCache     *Cache
+		expectedListeners []*Listener
+	}{
+		{
+			name: "cache defaults",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable: "true",
+			},
+			expectedInitCache: true,
+			expectedCache: &Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type: "kubernetes",
+					Path: "/vault/agent-cache",
+				},
+			},
+			expectedListeners: []*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			name: "exit on err",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable:    "true",
+				AnnotationAgentCacheExitOnErr: "true",
+			},
+			expectedInitCache: true,
+			expectedCache: &Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type:      "kubernetes",
+					Path:      "/vault/agent-cache",
+					ExitOnErr: true,
+				},
+			},
+			expectedListeners: []*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			name: "just memory cache when only sidecar",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable: "true",
+				AnnotationAgentPrePopulate: "false",
+			},
+			expectedInitCache: false,
+			expectedCache: &Cache{
+				UseAutoAuthToken: "true",
+			},
+			expectedListeners: []*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
+			name: "no cache at all with only init container",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable:     "true",
+				AnnotationAgentPrePopulateOnly: "true",
+			},
+			expectedInitCache: false,
+			expectedCache:     nil,
+			expectedListeners: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err, "got error initialising pod: %s", err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err, "got error creating agent: %s", err)
+
+			initCfg, err := agent.newConfig(true)
+			require.NoError(t, err, "got error creating Vault config: %s", err)
+
+			initConfig := &Config{}
+			err = json.Unmarshal(initCfg, initConfig)
+			require.NoError(t, err, "got error unmarshalling Vault init config: %s", err)
+
+			if tt.expectedInitCache {
+				assert.Equal(t, tt.expectedCache, initConfig.Cache)
+				assert.Equal(t, tt.expectedListeners, initConfig.Listener)
+			} else {
+				assert.Nil(t, initConfig.Cache)
+				assert.Nil(t, initConfig.Listener)
+			}
+
+			sidecarCfg, err := agent.newConfig(false)
+			require.NoError(t, err, "got error creating Vault sidecar config: %s", err)
+
+			sidecarConfig := &Config{}
+			err = json.Unmarshal(sidecarCfg, sidecarConfig)
+			require.NoError(t, err, "got error unmarshalling Vault sidecar config: %s", err)
+
+			assert.Equal(t, tt.expectedCache, sidecarConfig.Cache)
+			assert.Equal(t, tt.expectedListeners, sidecarConfig.Listener)
+		})
+	}
+
+}
+
+func TestConfigVaultAgentTemplateConfig(t *testing.T) {
+	tests := []struct {
+		name                   string
+		annotations            map[string]string
+		expectedTemplateConfig *TemplateConfig
+	}{
+		{
+			"exit_on_retry_failure true",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "true",
+			},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+		{
+			"exit_on_retry_failure false",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "false",
+			},
+			&TemplateConfig{ExitOnRetryFailure: false},
+		},
+		{
+			"exit_on_retry_failure absent",
+			map[string]string{},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedTemplateConfig, config.TemplateConfig)
+		})
+	}
+}
+
+func TestInjectTokenSink(t *testing.T) {
+
+	tokenHelperSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": TokenFile,
+		},
+	}
+	injectTokenSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": secretVolumePath + "/token",
+		},
+	}
+
+	tests := []struct {
+		name          string
+		annotations   map[string]string
+		expectedSinks []*Sink
+	}{
+		{
+			"token true",
+			map[string]string{
+				AnnotationAgentInjectToken: "true",
+			},
+			[]*Sink{tokenHelperSink, injectTokenSink},
+		},
+		{
+			"token false",
+			map[string]string{
+				AnnotationAgentInjectToken: "false",
+			},
+			[]*Sink{tokenHelperSink},
+		},
+		{
+			"custom secret volume path",
+			map[string]string{
+				AnnotationAgentInjectToken:      "true",
+				AnnotationVaultSecretVolumePath: "/new/secrets",
+			},
+			[]*Sink{
+				tokenHelperSink,
+				{
+					Type: "file",
+					Config: map[string]interface{}{
+						"path": "/new/secrets/token",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedSinks, config.AutoAuth.Sinks)
+		})
 	}
 }

@@ -14,20 +14,23 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                    = "vault:1.6.2"
-	DefaultVaultAuthType                 = "kubernetes"
-	DefaultVaultAuthPath                 = "auth/kubernetes"
-	DefaultAgentRunAsUser                = 100
-	DefaultAgentRunAsGroup               = 1000
-	DefaultAgentRunAsSameUser            = false
-	DefaultAgentAllowPrivilegeEscalation = false
-	DefaultAgentDropCapabilities         = "ALL"
-	DefaultAgentSetSecurityContext       = true
-	DefaultAgentReadOnlyRoot             = true
-	DefaultAgentCacheEnable              = "false"
-	DefaultAgentCacheUseAutoAuthToken    = "true"
-	DefaultAgentCacheListenerPort        = "8200"
-	DefaultAgentUseLeaderElector         = false
+	DefaultVaultImage                       = "hashicorp/vault:1.8.0"
+	DefaultVaultAuthType                    = "kubernetes"
+	DefaultVaultAuthPath                    = "auth/kubernetes"
+	DefaultAgentRunAsUser                   = 100
+	DefaultAgentRunAsGroup                  = 1000
+	DefaultAgentRunAsSameUser               = false
+	DefaultAgentAllowPrivilegeEscalation    = false
+	DefaultAgentDropCapabilities            = "ALL"
+	DefaultAgentSetSecurityContext          = true
+	DefaultAgentReadOnlyRoot                = true
+	DefaultAgentCacheEnable                 = "false"
+	DefaultAgentCacheUseAutoAuthToken       = "true"
+	DefaultAgentCacheListenerPort           = "8200"
+	DefaultAgentCacheExitOnErr              = false
+	DefaultAgentUseLeaderElector            = false
+	DefaultAgentInjectToken                 = false
+	DefaultTemplateConfigExitOnRetryFailure = true
 )
 
 // Agent is the top level structure holding all the
@@ -36,6 +39,10 @@ type Agent struct {
 	// Annotations are the current pod annotations used to
 	// configure the Vault Agent container.
 	Annotations map[string]string
+
+	// DefaultTemplate is the default template to be used when
+	// no custom template is specified via annotations.
+	DefaultTemplate string
 
 	// ImageName is the name of the Vault image to use for the
 	// sidecar container.
@@ -112,6 +119,10 @@ type Agent struct {
 	// VaultAgentCache is the structure holding the Vault agent cache specific configurations
 	VaultAgentCache VaultAgentCache
 
+	// VaultAgentTemplateConfig is the structure holding the Vault agent
+	// template_config specific configuration
+	VaultAgentTemplateConfig VaultAgentTemplateConfig
+
 	// RunAsUser is the user ID to run the Vault agent container(s) as.
 	RunAsUser int64
 
@@ -130,9 +141,22 @@ type Agent struct {
 	// which can be referenced by the Agent config for secrets. Mounted at /vault/custom/
 	ExtraSecret string
 
+	// AwsIamTokenAccountName is the aws iam volume mount name for the pod.
+	// Need this for IRSA aka pod identity
+	AwsIamTokenAccountName string
+
+	// AwsIamTokenAccountPath is the aws iam volume mount path for the pod
+	// where the JWT would be present
+	// Need this for IRSA aka pod identity
+	AwsIamTokenAccountPath string
+
 	// CopyVolumeMounts is the name of the container in the Pod whose volume mounts
 	// should be copied into the Vault Agent init and/or sidecar containers.
 	CopyVolumeMounts string
+
+	// InjectToken controls whether the auto-auth token is injected into the
+	// secrets volume (e.g. /vault/secrets/token)
+	InjectToken bool
 }
 
 type Secret struct {
@@ -146,6 +170,9 @@ type Secret struct {
 
 	// Template is the optional custom template to use when rendering the secret.
 	Template string
+
+	// Template file is the optional path on disk to the custom template to use when rendering the secret.
+	TemplateFile string
 
 	// Mount Path for the volume holding the rendered secret file
 	MountPath string
@@ -236,28 +263,48 @@ type VaultAgentCache struct {
 
 	// UseAutoAuthToken configures whether the auto auth token is used in cache requests
 	UseAutoAuthToken string
+
+	// Persist marks whether persistent caching is enabled or not
+	Persist bool
+
+	// ExitOnErr configures whether the agent will exit on an error while
+	// restoring the persistent cache
+	ExitOnErr bool
+}
+
+type VaultAgentTemplateConfig struct {
+	// ExitOnRetryFailure configures whether agent should exit after failing
+	// all its retry attempts when rendering templates
+	ExitOnRetryFailure bool
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
 	saName, saPath := serviceaccount(pod)
+	var iamName, iamPath string
+	if pod.Annotations[AnnotationVaultAuthType] == "aws" {
+		iamName, iamPath = getAwsIamTokenVolume(pod)
+	}
 
 	agent := &Agent{
-		Annotations:        pod.Annotations,
-		ConfigMapName:      pod.Annotations[AnnotationAgentConfigMap],
-		ImageName:          pod.Annotations[AnnotationAgentImage],
-		LimitsCPU:          pod.Annotations[AnnotationAgentLimitsCPU],
-		LimitsMem:          pod.Annotations[AnnotationAgentLimitsMem],
-		Namespace:          pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:            patches,
-		Pod:                pod,
-		RequestsCPU:        pod.Annotations[AnnotationAgentRequestsCPU],
-		RequestsMem:        pod.Annotations[AnnotationAgentRequestsMem],
-		ServiceAccountName: saName,
-		ServiceAccountPath: saPath,
-		Status:             pod.Annotations[AnnotationAgentStatus],
-		ExtraSecret:        pod.Annotations[AnnotationAgentExtraSecret],
-		CopyVolumeMounts:   pod.Annotations[AnnotationAgentCopyVolumeMounts],
+		Annotations:            pod.Annotations,
+		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:              pod.Annotations[AnnotationAgentImage],
+		DefaultTemplate:        pod.Annotations[AnnotationAgentInjectDefaultTemplate],
+		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
+		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
+		Patches:                patches,
+		Pod:                    pod,
+		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
+		RequestsMem:            pod.Annotations[AnnotationAgentRequestsMem],
+		ServiceAccountName:     saName,
+		ServiceAccountPath:     saPath,
+		Status:                 pod.Annotations[AnnotationAgentStatus],
+		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
+		CopyVolumeMounts:       pod.Annotations[AnnotationAgentCopyVolumeMounts],
+		AwsIamTokenAccountName: iamName,
+		AwsIamTokenAccountPath: iamPath,
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
@@ -336,7 +383,25 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return agent, err
 	}
 
-	agentCacheEnable, err := agent.agentCacheEnable()
+	agentCacheEnable, err := agent.cacheEnable()
+	if err != nil {
+		return agent, err
+	}
+
+	agentCacheExitOnErr, err := agent.cacheExitOnErr()
+	if err != nil {
+		return agent, err
+	}
+
+	agent.DefaultTemplate = strings.ToLower(agent.DefaultTemplate)
+	switch agent.DefaultTemplate {
+	case "map":
+	case "json":
+	default:
+		return agent, fmt.Errorf("invalid default template type: %s", agent.DefaultTemplate)
+	}
+
+	agent.InjectToken, err = agent.injectToken()
 	if err != nil {
 		return agent, err
 	}
@@ -345,6 +410,17 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Enable:           agentCacheEnable,
 		ListenerPort:     pod.Annotations[AnnotationAgentCacheListenerPort],
 		UseAutoAuthToken: pod.Annotations[AnnotationAgentCacheUseAutoAuthToken],
+		ExitOnErr:        agentCacheExitOnErr,
+		Persist:          agent.cachePersist(agentCacheEnable),
+	}
+
+	exitOnRetryFailure, err := agent.templateConfigExitOnRetryFailure()
+	if err != nil {
+		return nil, err
+	}
+
+	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
+		ExitOnRetryFailure: exitOnRetryFailure,
 	}
 
 	return agent, nil
@@ -422,6 +498,14 @@ func (a *Agent) Patch() ([]byte, error) {
 		a.Patches = append(a.Patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
+			"/spec/volumes")...)
+	}
+
+	// Add persistent cache volume if configured
+	if a.VaultAgentCache.Persist {
+		a.Patches = append(a.Patches, addVolumes(
+			a.Pod.Spec.Volumes,
+			[]corev1.Volume{a.cacheVolume()},
 			"/spec/volumes")...)
 	}
 
@@ -553,6 +637,34 @@ func serviceaccount(pod *corev1.Pod) (string, string) {
 		}
 	}
 	return serviceAccountName, serviceAccountPath
+}
+
+// IRSA support - get aws_iam_token volume mount details to inject to vault containers
+func getAwsIamTokenVolume(pod *corev1.Pod) (string, string) {
+	var awsIamTokenAccountName, awsIamTokenAccountPath string
+	for _, container := range pod.Spec.Containers {
+		for _, volumes := range container.VolumeMounts {
+			if strings.Contains(volumes.MountPath, "eks.amazonaws.com") {
+				return volumes.Name, volumes.MountPath
+			}
+		}
+	}
+	return awsIamTokenAccountName, awsIamTokenAccountPath
+}
+
+// IRSA support - get aws envs to inject to vault containers
+func (a *Agent) getAwsEnvsFromContainer(pod *corev1.Pod) map[string]string {
+	envMap := make(map[string]string)
+	for _, container := range pod.Spec.Containers {
+		for _, env := range container.Env {
+			if env.Name == "AWS_ROLE_ARN" || env.Name == "AWS_WEB_IDENTITY_TOKEN_FILE" || env.Name == "AWS_DEFAULT_REGION" || env.Name == "AWS_REGION" {
+				if _, ok := envMap[env.Name]; !ok {
+					envMap[env.Name] = env.Value
+				}
+			}
+		}
+	}
+	return envMap
 }
 
 func (a *Agent) vaultCliFlags() []string {

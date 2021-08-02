@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 )
 
 // hasOpenSSL is used to determine if the openssl CLI exists for unit tests.
@@ -149,7 +150,7 @@ func TestGenSource_leader(t *testing.T) {
 	testBundleVerify(t, &bundle)
 
 	// check that the Secret has been created
-	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(certSecretName, metav1.GetOptions{})
+	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(context.Background(), certSecretName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, checkSecret.Data["cert"], bundle.Cert,
 		"cert in the Secret should've matched what was returned from source.Certificate()",
@@ -195,6 +196,8 @@ func TestGenSource_follower(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go secrets.Informer().Run(ctx.Done())
+	synced := cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced)
+	require.True(t, synced, "timeout syncing Secrets informer")
 	source.SecretsCache = secrets
 
 	bundle, err := source.Certificate(ctx, nil)

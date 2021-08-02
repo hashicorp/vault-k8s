@@ -1,8 +1,41 @@
-## Unreleased
+## 0.11.0 (July 28, 2021)
+
+Features:
+* Added exit_on_retry_failure flag and annotation: [GH-267](https://github.com/hashicorp/vault-k8s/pull/267)
+
+Improvements:
+* Switch the default vault image to come from the hashicorp docker hub org: [GH-270](https://github.com/hashicorp/vault-k8s/pull/270)
+* Better support for setting the region when auth type is AWS: [GH-268](https://github.com/hashicorp/vault-k8s/pull/268)
+* Added support for K8s v1 Admission API: [GH-273](https://github.com/hashicorp/vault-k8s/pull/273)
+
+## 0.10.2 (June 16, 2021)
+
+Improvements:
+* Dependency update: [GH-265](https://github.com/hashicorp/vault-k8s/pull/265)
+
+## 0.10.1 (May 25, 2021)
+
+Bugs:
+* Fix agent-inject-token when caching enabled: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+* Remove new line from injected token: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+
+## 0.10.0 (April 14, 2021)
+
+Features:
+* Added flags/envs to change default resources for all injected containers: [GH-235](https://github.com/hashicorp/vault-k8s/pull/235)
+* Added an annotation to use template path on disk: [GH-222](https://github.com/hashicorp/vault-k8s/pull/222)
+* Added an annotation and global flag to change default template from map to json: [GH-242](https://github.com/hashicorp/vault-k8s/pull/242)
+
+Improvements:
+* Better support for IRSA on AWS/EKS: [GH-169](https://github.com/hashicorp/vault-k8s/pull/169)
+
+## 0.9.0 (March 18, 2021)
 
 Features:
 * Added annotation to specify HTTPS proxy on Vault Agent containers: [GH-211](https://github.com/hashicorp/vault-k8s/pull/211)
 * Added support for all auto-auth methods: [GH-213](https://github.com/hashicorp/vault-k8s/pull/213)
+* Added support for persistent agent caching: [GH-229](https://github.com/hashicorp/vault-k8s/pull/229)
+* Arm binaries and images are now being published as part of a release: [GH-221](https://github.com/hashicorp/vault-k8s/pull/221)
 
 Improvements:
 

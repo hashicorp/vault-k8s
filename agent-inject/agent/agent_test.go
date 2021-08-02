@@ -34,6 +34,37 @@ func testPod(annotations map[string]string) *corev1.Pod {
 	}
 }
 
+func testPodIRSA(annotations map[string]string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "foo",
+			Annotations: annotations,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: "foobar",
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "foobar",
+							MountPath: "serviceaccount/somewhere",
+						},
+					},
+				},
+				{
+					Name: "aws-iam-token",
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      "aws-iam-token",
+							MountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func TestShouldInject(t *testing.T) {
 	tests := []struct {
 		annotations map[string]string

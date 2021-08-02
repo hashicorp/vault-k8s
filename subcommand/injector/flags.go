@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
+	"github.com/hashicorp/vault-k8s/helper/flags"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -29,6 +29,10 @@ type Specification struct {
 
 	// LogFormat is the AGENT_INJECT_LOG_FORMAT environment variable
 	LogFormat string `split_words:"true"`
+
+	// TemplateConfigExitOnRetryFailure is the
+	// AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE environment variable.
+	TemplateConfigExitOnRetryFailure string `split_words:"true"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
@@ -77,6 +81,21 @@ type Specification struct {
 
 	// UseLeaderElector is the AGENT_INJECT_USE_LEADER_ELECTOR environment variable.
 	UseLeaderElector string `split_words:"true"`
+
+	// DefaultTemplate is the AGENT_INJECT_DEFAULT_TEMPLATE environment variable.
+	DefaultTemplate string `split_words:"true"`
+
+	// ResourceRequestCPU is the AGENT_INJECT_CPU_REQUEST environment variable.
+	ResourceRequestCPU string `envconfig:"AGENT_INJECT_CPU_REQUEST"`
+
+	// ResourceRequestMem is the AGENT_INJECT_MEM_REQUEST environment variable.
+	ResourceRequestMem string `envconfig:"AGENT_INJECT_MEM_REQUEST"`
+
+	// ResourceLimitCPU is the AGENT_INJECT_CPU_LIMIT environment variable.
+	ResourceLimitCPU string `envconfig:"AGENT_INJECT_CPU_LIMIT"`
+
+	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
+	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
 }
 
 func (c *Command) init() {
@@ -86,6 +105,8 @@ func (c *Command) init() {
 		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
 	c.flagSet.StringVar(&c.flagLogFormat, "log-format", DefaultLogFormat, "Log output format. "+
 		`Supported log formats: "standard", "json".`)
+	c.flagSet.BoolVar(&c.flagExitOnRetryFailure, "template-config-exit-on-retry-failure", agent.DefaultTemplateConfigExitOnRetryFailure,
+		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
@@ -119,7 +140,19 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
 		"Path under which to expose metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
-		fmt.Sprintf("Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls"))
+		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
+	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
+		"Sets the default template type (map or json). Defaults to map.")
+
+	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
+		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
+	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
+		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
+
+	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
+		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
+	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
+		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -163,6 +196,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.LogFormat != "" {
 		c.flagLogFormat = envs.LogFormat
+	}
+
+	if envs.TemplateConfigExitOnRetryFailure != "" {
+		c.flagExitOnRetryFailure, err = strconv.ParseBool(envs.TemplateConfigExitOnRetryFailure)
+		if err != nil {
+			return err
+		}
 	}
 
 	if envs.TLSAuto != "" {
@@ -239,6 +279,26 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.DefaultTemplate != "" {
+		c.flagDefaultTemplate = envs.DefaultTemplate
+	}
+
+	if envs.ResourceRequestCPU != "" {
+		c.flagResourceRequestCPU = envs.ResourceRequestCPU
+	}
+
+	if envs.ResourceRequestMem != "" {
+		c.flagResourceRequestMem = envs.ResourceRequestMem
+	}
+
+	if envs.ResourceLimitCPU != "" {
+		c.flagResourceLimitCPU = envs.ResourceLimitCPU
+	}
+
+	if envs.ResourceLimitMem != "" {
+		c.flagResourceLimitMem = envs.ResourceLimitMem
 	}
 
 	return nil

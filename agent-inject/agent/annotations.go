@@ -61,8 +61,21 @@ const (
 	// If not provided, a default right delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#right_delimiter
 	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-inject-template-right-delimiter"
 
-	// AnnotationAgentInjectToken is the annotation key for injecting the token
-	// from auth/token/lookup-self
+	// AnnotationAgentInjectDefaultTemplate sets the default template type. Possible values
+	// are "json" and "map".
+	AnnotationAgentInjectDefaultTemplate = "vault.hashicorp.com/agent-inject-default-template"
+
+	// AnnotationAgentInjectTemplateFile is the optional key annotation that configures Vault
+	// Agent what template on disk to use for rendering the secrets.  The name
+	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-file-",
+	// such as "vault.hashicorp.com/agent-inject-template-file-foobar".  This should map
+	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
+	// The value is the filename and path of the template used by the agent to render the secrets.
+	// If not provided, the template content key annotation is used.
+	AnnotationAgentInjectTemplateFile = "vault.hashicorp.com/agent-inject-template-file"
+
+	// AnnotationAgentInjectToken is the annotation key for injecting the
+	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
@@ -221,10 +234,19 @@ const (
 	// AnnotationAgentCacheListenerPort configures the port the agent cache should listen on
 	AnnotationAgentCacheListenerPort = "vault.hashicorp.com/agent-cache-listener-port"
 
+	// AnnotationAgentCacheExitOnErr configures whether the agent will exit on an
+	// error while restoring the persistent cache
+	AnnotationAgentCacheExitOnErr = "vault.hashicorp.com/agent-cache-exit-on-err"
+
 	// AnnotationAgentCopyVolumeMounts is the name of the container or init container
 	// in the Pod whose volume mounts should be copied onto the Vault Agent init and
 	// sidecar containers. Ignores any Kubernetes service account token mounts.
 	AnnotationAgentCopyVolumeMounts = "vault.hashicorp.com/agent-copy-volume-mounts"
+
+	// AnnotationTemplateConfigExitOnRetryFailure configures whether agent
+	// will exit on template render failures once it has exhausted all its retry
+	// attempts. Defaults to true.
+	AnnotationTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/template-config-exit-on-retry-failure"
 )
 
 type AgentConfig struct {
@@ -239,6 +261,12 @@ type AgentConfig struct {
 	SameID             bool
 	SetSecurityContext bool
 	ProxyAddress       string
+	DefaultTemplate    string
+	ResourceRequestCPU string
+	ResourceRequestMem string
+	ResourceLimitCPU   string
+	ResourceLimitMem   string
+	ExitOnRetryFailure bool
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -301,19 +329,19 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU] = DefaultResourceLimitCPU
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsCPU] = cfg.ResourceLimitCPU
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = DefaultResourceLimitMem
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = cfg.ResourceLimitMem
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = DefaultResourceRequestCPU
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = cfg.ResourceRequestCPU
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = DefaultResourceRequestMem
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = cfg.ResourceRequestMem
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
@@ -379,6 +407,18 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentCacheUseAutoAuthToken] = DefaultAgentCacheUseAutoAuthToken
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentCacheExitOnErr] = strconv.FormatBool(DefaultAgentCacheExitOnErr)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInjectDefaultTemplate] = cfg.DefaultTemplate
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
+	}
+
 	return nil
 }
 
@@ -393,11 +433,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
-	// First check for the token-only injection annotation
-	if _, found := a.Annotations[AnnotationAgentInjectToken]; found {
-		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectSecret, "token")] = TokenSecret
-		a.Annotations[fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, "token")] = TokenTemplate
-	}
 	for name, path := range a.Annotations {
 		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
 		if strings.Contains(name, secretName) {
@@ -417,6 +452,12 @@ func (a *Agent) secrets() []*Secret {
 			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
 			if val, ok := a.Annotations[templateName]; ok {
 				s.Template = val
+			}
+			if s.Template == "" {
+				templateFileAnnotation := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, raw)
+				if val, ok := a.Annotations[templateFileAnnotation]; ok {
+					s.TemplateFile = val
+				}
 			}
 
 			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
@@ -567,12 +608,45 @@ func (a *Agent) setSecurityContext() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) agentCacheEnable() (bool, error) {
+func (a *Agent) cacheEnable() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentCacheEnable]
 	if !ok {
 		return false, nil
 	}
 
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
+	raw, ok := a.Annotations[AnnotationTemplateConfigExitOnRetryFailure]
+	if !ok {
+		return DefaultTemplateConfigExitOnRetryFailure, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) cachePersist(cacheEnabled bool) bool {
+	if cacheEnabled && a.PrePopulate && !a.PrePopulateOnly {
+		return true
+	}
+	return false
+}
+
+func (a *Agent) cacheExitOnErr() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentCacheExitOnErr]
+	if !ok {
+		return false, nil
+	}
+
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) injectToken() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentInjectToken]
+	if !ok {
+		return DefaultAgentInjectToken, nil
+	}
 	return strconv.ParseBool(raw)
 }
 

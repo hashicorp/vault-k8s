@@ -10,11 +10,21 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/require"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+func basicHandler() Handler {
+	return Handler{
+		VaultAddress:    "https://vault:8200",
+		VaultAuthPath:   "kubernetes",
+		ImageVault:      "vault",
+		Log:             hclog.Default().Named("handler"),
+		DefaultTemplate: agent.DefaultTemplateType,
+	}
+}
 
 func TestHandlerHandle(t *testing.T) {
 	basicSpec := corev1.PodSpec{
@@ -51,14 +61,14 @@ func TestHandlerHandle(t *testing.T) {
 	cases := []struct {
 		Name    string
 		Handler Handler
-		Req     v1beta1.AdmissionRequest
+		Req     admissionv1.AdmissionRequest
 		Err     string // expected error string, not exact
 		Patches []jsonpatch.JsonPatchOperation
 	}{
 		{
 			"kube-system namespace",
-			Handler{Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: metav1.NamespaceSystem,
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -76,8 +86,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"already injected",
-			Handler{Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
@@ -94,8 +104,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"no injection by default",
-			Handler{Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Object: encodeRaw(t, &corev1.Pod{
 					Spec: basicSpec,
 				}),
@@ -106,8 +116,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"injection disabled",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -125,8 +135,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"basic pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler"), ProxyAddress: "http://proxy:3128"},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -177,8 +187,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"init first ",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -238,8 +248,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"configmap pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -294,8 +304,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -355,8 +365,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -412,8 +422,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap no init pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -458,8 +468,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"tls no configmap init only pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -508,8 +518,8 @@ func TestHandlerHandle(t *testing.T) {
 
 		{
 			"copy volume mounts pod injection",
-			Handler{VaultAddress: "https://vault:8200", VaultAuthPath: "kubernetes", ImageVault: "vault", Log: hclog.Default().Named("handler")},
-			v1beta1.AdmissionRequest{
+			basicHandler(),
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -557,6 +567,25 @@ func TestHandlerHandle(t *testing.T) {
 					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
+		},
+		{
+			"invalid default template",
+			basicHandler(),
+			admissionv1.AdmissionRequest{
+				Namespace: "foo",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject:                "true",
+							agent.AnnotationVaultRole:                  "demo",
+							agent.AnnotationAgentInjectDefaultTemplate: "foobar",
+						},
+					},
+					Spec: basicSpec,
+				}),
+			},
+			"invalid default template type",
+			nil,
 		},
 	}
 

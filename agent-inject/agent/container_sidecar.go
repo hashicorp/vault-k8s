@@ -36,6 +36,13 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			ReadOnly:  false,
 		},
 	}
+	if a.AwsIamTokenAccountName != "" && a.AwsIamTokenAccountPath != "" {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      a.AwsIamTokenAccountName,
+			MountPath: a.AwsIamTokenAccountPath,
+			ReadOnly:  true,
+		})
+	}
 	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
 
 	if a.ExtraSecret != "" {
@@ -67,6 +74,10 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: tlsSecretVolumePath,
 			ReadOnly:  true,
 		})
+	}
+
+	if a.VaultAgentCache.Persist {
+		volumeMounts = append(volumeMounts, a.cacheVolumeMount())
 	}
 
 	envs, err := a.ContainerEnvVars(false)
