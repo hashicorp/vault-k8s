@@ -14,6 +14,8 @@ const (
 	DefaultTemplateType = "map"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
+	DefaultLeftDelim    = "{{"
+	DefaultRightDelim   = "}}"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -123,6 +125,16 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			}
 		}
 
+		leftDelim := secret.LeftDelimiter
+		if leftDelim == "" {
+			leftDelim = DefaultLeftDelim
+		}
+
+		rightDelim := secret.RightDelimiter
+		if rightDelim == "" {
+			rightDelim = DefaultRightDelim
+		}
+
 		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
 		if secret.FilePathAndName != "" {
 			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
@@ -132,8 +144,8 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			Source:      templateFile,
 			Contents:    template,
 			Destination: filePathAndName,
-			LeftDelim:   "{{",
-			RightDelim:  "}}",
+			LeftDelim:   leftDelim,
+			RightDelim:  rightDelim,
 			Command:     secret.Command,
 		}
 		templates = append(templates, tmpl)

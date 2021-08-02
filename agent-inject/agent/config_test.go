@@ -41,6 +41,11 @@ func TestNewConfig(t *testing.T) {
 
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
+		"vault.hashicorp.com/agent-inject-secret-baz":                   "db/creds/baz",
+		"vault.hashicorp.com/agent-inject-template-baz":                 `[[ with secret "db/creds/baz" ]][[ range $k, $v := .Data ]][[ $k ]]: [[ $v ]]\n[[ end ]][[ end ]]`,
+		"vault.hashicorp.com/agent-inject-template-left-delimiter-baz":  "[[",
+		"vault.hashicorp.com/agent-inject-template-right-delimiter-baz": "]]",
+
 		AnnotationAgentCacheEnable: "true",
 	}
 
@@ -125,6 +130,10 @@ func TestNewConfig(t *testing.T) {
 			if template.Contents != "template foo" {
 				t.Errorf("expected template contents to be %s, got %s", "template foo", template.Contents)
 			}
+
+			if template.LeftDelim != DefaultLeftDelim || template.RightDelim != DefaultRightDelim {
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, DefaultLeftDelim, DefaultRightDelim)
+			}
 		} else if strings.Contains(template.Destination, "bar") {
 			if template.Destination != "/vault/secrets/bar" {
 				t.Errorf("expected template destination to be %s, got %s", "/vault/secrets/bar", template.Destination)
@@ -139,6 +148,10 @@ func TestNewConfig(t *testing.T) {
 		} else if strings.Contains(template.Destination, "different-path") {
 			if template.Destination != "/etc/container_environment/different-path" {
 				t.Errorf("expected template destination to be %s, got %s", "/etc/container_environment", template.Destination)
+			}
+		} else if strings.Contains(template.Destination, "baz") {
+			if template.LeftDelim != "[[" || template.RightDelim != "]]" {
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, "[[", "]]")
 			}
 		} else if strings.Contains(template.Destination, "with-file-template") {
 			if template.Source != "/etc/file-template" {
