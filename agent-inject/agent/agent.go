@@ -4,33 +4,33 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
-	"strings"
-
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
+	"strconv"
+	"strings"
 )
 
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.8.0"
-	DefaultVaultAuthType                    = "kubernetes"
-	DefaultVaultAuthPath                    = "auth/kubernetes"
-	DefaultAgentRunAsUser                   = 100
-	DefaultAgentRunAsGroup                  = 1000
-	DefaultAgentRunAsSameUser               = false
-	DefaultAgentAllowPrivilegeEscalation    = false
-	DefaultAgentDropCapabilities            = "ALL"
-	DefaultAgentSetSecurityContext          = true
-	DefaultAgentReadOnlyRoot                = true
-	DefaultAgentCacheEnable                 = "false"
-	DefaultAgentCacheUseAutoAuthToken       = "true"
-	DefaultAgentCacheListenerPort           = "8200"
-	DefaultAgentCacheExitOnErr              = false
-	DefaultAgentUseLeaderElector            = false
-	DefaultAgentInjectToken                 = false
-	DefaultTemplateConfigExitOnRetryFailure = true
+	DefaultVaultImage                               = "hashicorp/vault:1.8.0"
+	DefaultVaultAuthType                            = "kubernetes"
+	DefaultVaultAuthPath                            = "auth/kubernetes"
+	DefaultAgentRunAsUser                           = 100
+	DefaultAgentRunAsGroup                          = 1000
+	DefaultAgentRunAsSameUser                       = false
+	DefaultAgentAllowPrivilegeEscalation            = false
+	DefaultAgentDropCapabilities                    = "ALL"
+	DefaultAgentSetSecurityContext                  = true
+	DefaultAgentReadOnlyRoot                        = true
+	DefaultAgentCacheEnable                         = "false"
+	DefaultAgentCacheUseAutoAuthToken               = "true"
+	DefaultAgentCacheListenerPort                   = "8200"
+	DefaultAgentCacheExitOnErr                      = false
+	DefaultAgentUseLeaderElector                    = false
+	DefaultAgentInjectToken                         = false
+	DefaultTemplateConfigExitOnRetryFailure         = true
+	DefaultTemplateConfigStaticSecretRenderInterval = "5m"
 )
 
 // Agent is the top level structure holding all the
@@ -270,6 +270,10 @@ type VaultAgentTemplateConfig struct {
 	// ExitOnRetryFailure configures whether agent should exit after failing
 	// all its retry attempts when rendering templates
 	ExitOnRetryFailure bool
+
+	// StaticSecretRenderInterval If specified, configures how often
+	// Vault Agent Template should render non-leased secrets such as KV v2
+	StaticSecretRenderInterval string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -412,9 +416,14 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	if err != nil {
 		return nil, err
 	}
+	staticSecretRenderInterval, err := agent.templateConfigStaticSecretRenderInterval()
+	if err != nil {
+		return nil, err
+	}
 
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
-		ExitOnRetryFailure: exitOnRetryFailure,
+		ExitOnRetryFailure:         exitOnRetryFailure,
+		StaticSecretRenderInterval: staticSecretRenderInterval,
 	}
 
 	return agent, nil

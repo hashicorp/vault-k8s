@@ -231,26 +231,32 @@ const (
 	// will exit on template render failures once it has exhausted all its retry
 	// attempts. Defaults to true.
 	AnnotationTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/template-config-exit-on-retry-failure"
+
+	// AnnotationTemplateConfigStaticSecretRenderInterval
+	// If specified, configures how often Vault Agent Template should render non-leased secrets such as KV v2.
+	// Defaults to 5 minutes.
+	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-config-static-secret-render-interval"
 )
 
 type AgentConfig struct {
-	Image              string
-	Address            string
-	AuthType           string
-	AuthPath           string
-	Namespace          string
-	RevokeOnShutdown   bool
-	UserID             string
-	GroupID            string
-	SameID             bool
-	SetSecurityContext bool
-	ProxyAddress       string
-	DefaultTemplate    string
-	ResourceRequestCPU string
-	ResourceRequestMem string
-	ResourceLimitCPU   string
-	ResourceLimitMem   string
-	ExitOnRetryFailure bool
+	Image                      string
+	Address                    string
+	AuthType                   string
+	AuthPath                   string
+	Namespace                  string
+	RevokeOnShutdown           bool
+	UserID                     string
+	GroupID                    string
+	SameID                     bool
+	SetSecurityContext         bool
+	ProxyAddress               string
+	DefaultTemplate            string
+	ResourceRequestCPU         string
+	ResourceRequestMem         string
+	ResourceLimitCPU           string
+	ResourceLimitMem           string
+	ExitOnRetryFailure         bool
+	StaticSecretRenderInterval string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -401,6 +407,9 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
+	}
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = DefaultTemplateConfigStaticSecretRenderInterval
 	}
 
 	return nil
@@ -598,6 +607,15 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) templateConfigStaticSecretRenderInterval() (string, error) {
+	raw, ok := a.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]
+	if !ok {
+		return DefaultTemplateConfigStaticSecretRenderInterval, nil
+	}
+
+	return raw, nil
 }
 
 func (a *Agent) cachePersist(cacheEnabled bool) bool {
