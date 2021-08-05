@@ -182,6 +182,9 @@ type Secret struct {
 
 	// FilePathAndName is the optional file path and name for the rendered secret file.
 	FilePathAndName string
+
+	// FilePermission is the optional file permission for the rendered secret file
+	FilePermission string
 }
 
 type Vault struct {
