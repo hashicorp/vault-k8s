@@ -539,6 +539,55 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 
 func TestSecretCommandAnnotations(t *testing.T) {
 	tests := []struct {
+		annotations        map[string]string
+		expectedKey        string
+		expectedPermission string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":          "test1",
+				"vault.hashicorp.com/agent-inject-file-permission-foobar": "0600",
+			}, "foobar", "0600",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":           "test2",
+				"vault.hashicorp.com/agent-inject-file-permission-foobar2": "0600",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		agentConfig := basicAgentConfig()
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].FilePermission != tt.expectedPermission {
+			t.Errorf("expected permission %s, got %s", tt.expectedPermission, agent.Secrets[0].Command)
+		}
+	}
+}
+
+func TestSecretPErmissionAnnotations(t *testing.T) {
+	tests := []struct {
 		annotations     map[string]string
 		expectedKey     string
 		expectedCommand string
