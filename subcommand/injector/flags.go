@@ -35,8 +35,8 @@ type Specification struct {
 	TemplateConfigExitOnRetryFailure string `split_words:"true"`
 
 	// TemplateConfigStaticSecretRenderInterval is the
-	// AGENT_INJECT_TEMPLATE_CONFIG_STATIC_SECRET_RENDER_INTERVAL environment variable.
-	TemplateConfigStaticSecretRenderInterval string `envconfig:"AGENT_INJECT_TEMPLATE_CONFIG_STATIC_SECRET_RENDER_INTERVAL"`
+	// AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL environment variable.
+	TemplateConfigStaticSecretRenderInterval string `envconfig:"AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
@@ -111,7 +111,7 @@ func (c *Command) init() {
 		`Supported log formats: "standard", "json".`)
 	c.flagSet.BoolVar(&c.flagExitOnRetryFailure, "template-config-exit-on-retry-failure", agent.DefaultTemplateConfigExitOnRetryFailure,
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
-	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-config-static-secret-render-interval", agent.DefaultTemplateConfigStaticSecretRenderInterval,
+	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", agent.DefaultTemplateConfigStaticSecretRenderInterval,
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %s.", agent.DefaultTemplateConfigStaticSecretRenderInterval))
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")

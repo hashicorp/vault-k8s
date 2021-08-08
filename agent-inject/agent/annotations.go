@@ -235,7 +235,7 @@ const (
 	// AnnotationTemplateConfigStaticSecretRenderInterval
 	// If specified, configures how often Vault Agent Template should render non-leased secrets such as KV v2.
 	// Defaults to 5 minutes.
-	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-config-static-secret-render-interval"
+	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-static-secret-render-interval"
 )
 
 type AgentConfig struct {
