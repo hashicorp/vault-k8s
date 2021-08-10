@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
 	v1 "k8s.io/api/core/v1"
@@ -60,6 +61,12 @@ type GenSource struct {
 	Namespace     string
 	SecretsCache  informerv1.SecretInformer
 	LeaderElector *leader.LeaderElector
+
+	// UpdateCancel and StopUpdate are used to control and sync the goroutine
+	// that continuously attempts to update the K8s Secret with the new
+	// certificate
+	UpdateCancel context.CancelFunc
+	StopUpdate   chan struct{}
 
 	Log hclog.Logger
 }
@@ -143,9 +150,19 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		result.Key = []byte(key)
 
 		if s.LeaderElector != nil {
-			if err := s.updateSecret(ctx, result); err != nil {
-				return result, fmt.Errorf("failed to update Secret: %s", err)
+			// Cancel and wait for the previous retryUpdateSecret to quit
+			if s.UpdateCancel != nil && s.StopUpdate != nil {
+				s.Log.Trace("cancelling cert secret update context")
+				s.UpdateCancel()
+				<-s.StopUpdate
 			}
+			// Start a new update goroutine
+			var updateCtx context.Context
+			updateCtx, s.UpdateCancel = context.WithCancel(ctx)
+			if s.StopUpdate == nil {
+				s.StopUpdate = make(chan struct{})
+			}
+			go s.retryUpdateSecret(updateCtx, result)
 		}
 	}
 
@@ -178,6 +195,33 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 				s.Log.Named("checkLeader").Trace("got done")
 				return
 			}
+		}
+	}
+}
+
+func (s *GenSource) retryUpdateSecret(ctx context.Context, bundle Bundle) {
+	defer func() {
+		s.StopUpdate <- struct{}{}
+	}()
+
+	// New exponential backoff with unlimited retries
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxInterval = time.Second * 30
+	bo.MaxElapsedTime = 0
+	ticker := backoff.NewTicker(bo)
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := s.updateSecret(ctx, bundle); err != nil {
+				s.Log.Error(fmt.Sprintf("attempt to update Secret %q failed: %s", certSecretName, err))
+			} else {
+				s.Log.Trace(fmt.Sprintf("updated secret %q, quitting update thread", certSecretName))
+				return
+			}
+		case <-ctx.Done():
+			s.Log.Trace("quitting update thread")
+			return
 		}
 	}
 }

@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/armon/go-radix v1.0.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/hashicorp/go-hclog v0.9.2
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191205220236-47cffd09f972
