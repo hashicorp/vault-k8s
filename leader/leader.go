@@ -3,7 +3,9 @@ package leader
 import (
 	"context"
 	"sync/atomic"
+	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	operator_leader "github.com/operator-framework/operator-lib/leader"
 	"k8s.io/client-go/kubernetes"
@@ -29,10 +31,19 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 		// become the leader when the current leader replica stops running, and
 		// the Kubernetes garbage collector deletes the vault-k8s-leader
 		// ConfigMap.
-		err := operator_leader.Become(ctx, "vault-k8s-leader")
-		if err != nil {
-			logger.Error("trouble becoming leader:", "error", err)
-			return
+
+		// New exponential backoff with unlimited retries
+		bo := backoff.NewExponentialBackOff()
+		bo.MaxInterval = time.Second * 30
+		bo.MaxElapsedTime = 0
+		ticker := backoff.NewTicker(bo)
+
+		for range ticker.C {
+			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
+				logger.Error("trouble becoming leader, will retry", "error", err)
+				continue
+			}
+			break
 		}
 		le.isLeader.Store(true)
 	}()
