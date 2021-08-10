@@ -11,13 +11,12 @@ require (
 	github.com/kr/text v0.2.0
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/mitchellh/cli v1.0.0
-	github.com/operator-framework/operator-lib v0.4.1
+	github.com/operator-framework/operator-lib v0.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.1 // indirect
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/radovskyb/watcher v1.0.7
-	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
+	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
