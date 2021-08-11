@@ -537,7 +537,7 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 	}
 }
 
-func TestSecretCommandAnnotations(t *testing.T) {
+func TestSecretPermissionAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations        map[string]string
 		expectedKey        string
@@ -586,7 +586,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 	}
 }
 
-func TestSecretPErmissionAnnotations(t *testing.T) {
+func TestSecretCommandAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations     map[string]string
 		expectedKey     string
