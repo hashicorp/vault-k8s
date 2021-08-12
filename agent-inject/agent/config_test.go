@@ -253,8 +253,8 @@ func TestFilePermission(t *testing.T) {
 		{
 			"just secret",
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foo":          "db/creds/foo",
-				"vault.hashicorp.com/agent-inject-file-permission-foo": "0600",
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
 			},
 			"0600",
 		},
@@ -268,9 +268,9 @@ func TestFilePermission(t *testing.T) {
 		{
 			"with relative file path",
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foo":          "db/creds/foo",
-				"vault.hashicorp.com/agent-inject-file-foo":            "nested/foofile",
-				"vault.hashicorp.com/agent-inject-file-permission-foo": "0600",
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
 			},
 			"0600",
 		},
@@ -285,9 +285,9 @@ func TestFilePermission(t *testing.T) {
 		{
 			"with absolute file path",
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foo":          "db/creds/foo",
-				"vault.hashicorp.com/agent-inject-file-foo":            "/special/volume/foofile",
-				"vault.hashicorp.com/agent-inject-file-permission-foo": "0600",
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
 			},
 			"0600",
 		},

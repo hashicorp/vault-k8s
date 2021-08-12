@@ -39,11 +39,11 @@ const (
 
 	// AnnotationAgentInjectFilePermission is the key of the annotation that contains the
 	// permission of the file to create on disk. The name of the
-	// secret is the string after "vault.hashicorp.com/agent-inject-file-permission-", and
+	// secret is the string after "vault.hashicorp.com/agent-inject-perms-", and
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". The value is the value of the permission, for
 	// example "0644"
-	AnnotationAgentInjectFilePermission = "vault.hashicorp.com/agent-inject-file-permission"
+	AnnotationAgentInjectFilePermission = "vault.hashicorp.com/agent-inject-perms"
 
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name

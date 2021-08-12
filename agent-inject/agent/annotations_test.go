@@ -545,14 +545,14 @@ func TestSecretPermissionAnnotations(t *testing.T) {
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":          "test1",
-				"vault.hashicorp.com/agent-inject-file-permission-foobar": "0600",
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test1",
+				"vault.hashicorp.com/agent-inject-perms-foobar":  "0600",
 			}, "foobar", "0600",
 		},
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":           "test2",
-				"vault.hashicorp.com/agent-inject-file-permission-foobar2": "0600",
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test2",
+				"vault.hashicorp.com/agent-inject-perms-foobar2": "0600",
 			}, "foobar", "",
 		},
 	}
