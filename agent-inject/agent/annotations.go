@@ -409,7 +409,7 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
 	}
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = DefaultTemplateConfigStaticSecretRenderInterval
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
 	}
 
 	return nil
@@ -607,15 +607,6 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
-}
-
-func (a *Agent) templateConfigStaticSecretRenderInterval() (string, error) {
-	raw, ok := a.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]
-	if !ok {
-		return DefaultTemplateConfigStaticSecretRenderInterval, nil
-	}
-
-	return raw, nil
 }
 
 func (a *Agent) cachePersist(cacheEnabled bool) bool {

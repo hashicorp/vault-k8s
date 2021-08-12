@@ -104,7 +104,7 @@ type CachePersist struct {
 // TemplateConfig defines the configuration for template_config in Vault Agent
 type TemplateConfig struct {
 	ExitOnRetryFailure         bool   `json:"exit_on_retry_failure"`
-	StaticSecretRenderInterval string `json:"static_secret_render_interval"`
+	StaticSecretRenderInterval string `json:"static_secret_render_interval,omitempty"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {

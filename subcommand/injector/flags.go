@@ -111,8 +111,8 @@ func (c *Command) init() {
 		`Supported log formats: "standard", "json".`)
 	c.flagSet.BoolVar(&c.flagExitOnRetryFailure, "template-config-exit-on-retry-failure", agent.DefaultTemplateConfigExitOnRetryFailure,
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
-	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", agent.DefaultTemplateConfigStaticSecretRenderInterval,
-		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %s.", agent.DefaultTemplateConfigStaticSecretRenderInterval))
+	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", "",
+		"Value for Agent's template_config.exit_on_retry_failure.")
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",

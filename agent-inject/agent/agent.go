@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/mattbaird/jsonpatch"
-	corev1 "k8s.io/api/core/v1"
 	"strconv"
 	"strings"
+
+	"github.com/mattbaird/jsonpatch"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
@@ -30,7 +31,6 @@ const (
 	DefaultAgentUseLeaderElector                    = false
 	DefaultAgentInjectToken                         = false
 	DefaultTemplateConfigExitOnRetryFailure         = true
-	DefaultTemplateConfigStaticSecretRenderInterval = "5m"
 )
 
 // Agent is the top level structure holding all the
@@ -416,14 +416,10 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	if err != nil {
 		return nil, err
 	}
-	staticSecretRenderInterval, err := agent.templateConfigStaticSecretRenderInterval()
-	if err != nil {
-		return nil, err
-	}
 
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
 		ExitOnRetryFailure:         exitOnRetryFailure,
-		StaticSecretRenderInterval: staticSecretRenderInterval,
+		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
 	}
 
 	return agent, nil
