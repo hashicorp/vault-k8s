@@ -560,7 +560,14 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{ExitOnRetryFailure: false},
 		},
 		{
-			"exit_on_retry_failure absent",
+			"static_secret_render_interval 10s",
+			map[string]string{
+				AnnotationTemplateConfigStaticSecretRenderInterval: "10s",
+			},
+			&TemplateConfig{ExitOnRetryFailure: true, StaticSecretRenderInterval: "10s"},
+		},
+		{
+			"template_config_empty",
 			map[string]string{},
 			&TemplateConfig{ExitOnRetryFailure: true},
 		},

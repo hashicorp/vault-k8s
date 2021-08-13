@@ -273,6 +273,10 @@ type VaultAgentTemplateConfig struct {
 	// ExitOnRetryFailure configures whether agent should exit after failing
 	// all its retry attempts when rendering templates
 	ExitOnRetryFailure bool
+
+	// StaticSecretRenderInterval If specified, configures how often
+	// Vault Agent Template should render non-leased secrets such as KV v2
+	StaticSecretRenderInterval string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -417,7 +421,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
-		ExitOnRetryFailure: exitOnRetryFailure,
+		ExitOnRetryFailure:         exitOnRetryFailure,
+		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
 	}
 
 	return agent, nil
