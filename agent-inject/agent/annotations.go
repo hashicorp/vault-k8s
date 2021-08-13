@@ -37,6 +37,14 @@ const (
 	// secret-volume-path annotation.
 	AnnotationAgentInjectFile = "vault.hashicorp.com/agent-inject-file"
 
+	// AnnotationAgentInjectFilePermission is the key of the annotation that contains the
+	// permission of the file to create on disk. The name of the
+	// secret is the string after "vault.hashicorp.com/agent-inject-perms-", and
+	// should map to the same unique value provided in
+	// "vault.hashicorp.com/agent-inject-secret-". The value is the value of the permission, for
+	// example "0644"
+	AnnotationAgentInjectFilePermission = "vault.hashicorp.com/agent-inject-perms"
+
 	// AnnotationAgentInjectTemplate is the key annotation that configures Vault
 	// Agent what template to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-inject-template-",
@@ -458,6 +466,11 @@ func (a *Agent) secrets() []*Secret {
 			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
 			if val, ok := a.Annotations[file]; ok {
 				s.FilePathAndName = val
+			}
+
+			filePerm := fmt.Sprintf("%s-%s", AnnotationAgentInjectFilePermission, raw)
+			if val, ok := a.Annotations[filePerm]; ok {
+				s.FilePermission = val
 			}
 
 			secrets = append(secrets, s)

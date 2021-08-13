@@ -77,6 +77,7 @@ type Template struct {
 	RightDelim     string `json:"right_delimiter,omitempty"`
 	Command        string `json:"command,omitempty"`
 	Source         string `json:"source,omitempty"`
+	Perms          string `json:"perms,omitempty"`
 }
 
 // Listener defines the configuration for Vault Agent Cache Listener
@@ -135,6 +136,9 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			LeftDelim:   "{{",
 			RightDelim:  "}}",
 			Command:     secret.Command,
+		}
+		if secret.FilePermission != "" {
+			tmpl.Perms = secret.FilePermission
 		}
 		templates = append(templates, tmpl)
 	}
