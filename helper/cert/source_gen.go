@@ -214,7 +214,7 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, bundle Bundle) {
 		select {
 		case <-ticker.C:
 			if err := s.updateSecret(ctx, bundle); err != nil {
-				s.Log.Error(fmt.Sprintf("attempt to update Secret %q failed: %s", certSecretName, err))
+				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
 			} else {
 				s.Log.Trace(fmt.Sprintf("updated secret %q, quitting update thread", certSecretName))
 				return
