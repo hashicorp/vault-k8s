@@ -146,10 +146,12 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 	result.Key = []byte(key)
 
 	if s.LeaderElector != nil {
-		s.retryUpdateSecret(ctx, leaderCh, result)
+		if err := s.retryUpdateSecret(ctx, leaderCh, result); err != nil {
+			return result, err
+		}
 	}
 
-	return result, err
+	return result, nil
 }
 
 func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
@@ -182,30 +184,38 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 	}
 }
 
-func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, bundle Bundle) {
-	// New exponential backoff
+func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, bundle Bundle) error {
+	// New exponential backoff, with a max elapsed time of 90% of the newly
+	// created cert expiration, since that's the point where it would be renewed
+	// by the calling function
 	bo := backoff.NewExponentialBackOff()
 	bo.MaxInterval = 30 * time.Second
-	bo.MaxElapsedTime = 30 * time.Minute
+	bo.MaxElapsedTime = time.Duration(float64(s.expiry()) * 0.90)
 	ticker := backoff.NewTicker(bo)
 	defer ticker.Stop()
-	for {
+
+	for range ticker.C {
+		if err := s.updateSecret(ctx, bundle); err != nil {
+			s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
+		} else {
+			s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
+			return nil
+		}
+
+		// Also check for external exit conditions before continuing
 		select {
-		case <-ticker.C:
-			if err := s.updateSecret(ctx, bundle); err != nil {
-				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
-			} else {
-				s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
-				return
-			}
 		case <-ctx.Done():
 			s.Log.Trace("quitting update cert retries due to done context")
-			return
+			return nil
 		case <-leaderCh:
 			s.Log.Trace("quitting update cert retries due to leadership change")
-			return
+			return nil
+		default:
+			// try again
 		}
 	}
+
+	return fmt.Errorf("timed out attempting to update cert secret")
 }
 
 func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
