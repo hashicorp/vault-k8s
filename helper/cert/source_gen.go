@@ -188,7 +188,7 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, b
 	bo.MaxInterval = 30 * time.Second
 	bo.MaxElapsedTime = 30 * time.Minute
 	ticker := backoff.NewTicker(bo)
-
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
