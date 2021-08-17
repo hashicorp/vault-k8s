@@ -62,12 +62,6 @@ type GenSource struct {
 	SecretsCache  informerv1.SecretInformer
 	LeaderElector *leader.LeaderElector
 
-	// UpdateCancel and StopUpdate are used to control and sync the goroutine
-	// that continuously attempts to update the K8s Secret with the new
-	// certificate
-	UpdateCancel context.CancelFunc
-	StopUpdate   chan struct{}
-
 	Log hclog.Logger
 }
 
@@ -145,25 +139,14 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 
 	// Generate cert, set it on the result, and return
 	cert, key, err := s.generateCert()
-	if err == nil {
-		result.Cert = []byte(cert)
-		result.Key = []byte(key)
+	if err != nil {
+		return result, err
+	}
+	result.Cert = []byte(cert)
+	result.Key = []byte(key)
 
-		if s.LeaderElector != nil {
-			// Cancel and wait for the previous retryUpdateSecret to quit
-			if s.UpdateCancel != nil && s.StopUpdate != nil {
-				s.Log.Trace("cancelling cert secret update context")
-				s.UpdateCancel()
-				<-s.StopUpdate
-			}
-			// Start a new update goroutine
-			var updateCtx context.Context
-			updateCtx, s.UpdateCancel = context.WithCancel(ctx)
-			if s.StopUpdate == nil {
-				s.StopUpdate = make(chan struct{})
-			}
-			go s.retryUpdateSecret(updateCtx, result)
-		}
+	if s.LeaderElector != nil {
+		s.retryUpdateSecret(ctx, leaderCh, result)
 	}
 
 	return result, err
@@ -199,15 +182,11 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 	}
 }
 
-func (s *GenSource) retryUpdateSecret(ctx context.Context, bundle Bundle) {
-	defer func() {
-		s.StopUpdate <- struct{}{}
-	}()
-
-	// New exponential backoff with unlimited retries
+func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, bundle Bundle) {
+	// New exponential backoff
 	bo := backoff.NewExponentialBackOff()
-	bo.MaxInterval = time.Second * 30
-	bo.MaxElapsedTime = 0
+	bo.MaxInterval = 30 * time.Second
+	bo.MaxElapsedTime = 30 * time.Minute
 	ticker := backoff.NewTicker(bo)
 
 	for {
@@ -216,11 +195,14 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, bundle Bundle) {
 			if err := s.updateSecret(ctx, bundle); err != nil {
 				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
 			} else {
-				s.Log.Trace(fmt.Sprintf("updated secret %q, quitting update thread", certSecretName))
+				s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
 				return
 			}
 		case <-ctx.Done():
-			s.Log.Trace("quitting update thread")
+			s.Log.Trace("quitting update cert retries due to done context")
+			return
+		case <-leaderCh:
+			s.Log.Trace("quitting update cert retries due to leadership change")
 			return
 		}
 	}
