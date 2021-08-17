@@ -35,25 +35,26 @@ var (
 type Handler struct {
 	// RequireAnnotation means that the annotation must be given to inject.
 	// If this is false, injection is default.
-	RequireAnnotation  bool
-	VaultAddress       string
-	VaultAuthType      string
-	VaultAuthPath      string
-	ProxyAddress       string
-	ImageVault         string
-	Clientset          *kubernetes.Clientset
-	Log                hclog.Logger
-	RevokeOnShutdown   bool
-	UserID             string
-	GroupID            string
-	SameID             bool
-	SetSecurityContext bool
-	DefaultTemplate    string
-	ResourceRequestCPU string
-	ResourceRequestMem string
-	ResourceLimitCPU   string
-	ResourceLimitMem   string
-	ExitOnRetryFailure bool
+	RequireAnnotation          bool
+	VaultAddress               string
+	VaultAuthType              string
+	VaultAuthPath              string
+	ProxyAddress               string
+	ImageVault                 string
+	Clientset                  *kubernetes.Clientset
+	Log                        hclog.Logger
+	RevokeOnShutdown           bool
+	UserID                     string
+	GroupID                    string
+	SameID                     bool
+	SetSecurityContext         bool
+	DefaultTemplate            string
+	ResourceRequestCPU         string
+	ResourceRequestMem         string
+	ResourceLimitCPU           string
+	ResourceLimitMem           string
+	ExitOnRetryFailure         bool
+	StaticSecretRenderInterval string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -149,23 +150,24 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
 	cfg := agent.AgentConfig{
-		Image:              h.ImageVault,
-		Address:            h.VaultAddress,
-		AuthType:           h.VaultAuthType,
-		AuthPath:           h.VaultAuthPath,
-		ProxyAddress:       h.ProxyAddress,
-		Namespace:          req.Namespace,
-		RevokeOnShutdown:   h.RevokeOnShutdown,
-		UserID:             h.UserID,
-		GroupID:            h.GroupID,
-		SameID:             h.SameID,
-		SetSecurityContext: h.SetSecurityContext,
-		DefaultTemplate:    h.DefaultTemplate,
-		ResourceRequestCPU: h.ResourceRequestCPU,
-		ResourceRequestMem: h.ResourceRequestMem,
-		ResourceLimitCPU:   h.ResourceLimitCPU,
-		ResourceLimitMem:   h.ResourceLimitMem,
-		ExitOnRetryFailure: h.ExitOnRetryFailure,
+		Image:                      h.ImageVault,
+		Address:                    h.VaultAddress,
+		AuthType:                   h.VaultAuthType,
+		AuthPath:                   h.VaultAuthPath,
+		ProxyAddress:               h.ProxyAddress,
+		Namespace:                  req.Namespace,
+		RevokeOnShutdown:           h.RevokeOnShutdown,
+		UserID:                     h.UserID,
+		GroupID:                    h.GroupID,
+		SameID:                     h.SameID,
+		SetSecurityContext:         h.SetSecurityContext,
+		DefaultTemplate:            h.DefaultTemplate,
+		ResourceRequestCPU:         h.ResourceRequestCPU,
+		ResourceRequestMem:         h.ResourceRequestMem,
+		ResourceLimitCPU:           h.ResourceLimitCPU,
+		ResourceLimitMem:           h.ResourceLimitMem,
+		ExitOnRetryFailure:         h.ExitOnRetryFailure,
+		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {
