@@ -1,4 +1,4 @@
-## Unreleased
+## 0.12.0 (August 18, 2021)
 
 Features:
 * New annotation to allow the user to set the rendered file permission: [GH-277](https://github.com/hashicorp/vault-k8s/pull/277)
