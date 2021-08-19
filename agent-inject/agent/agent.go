@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.7.3"
+	DefaultVaultImage                       = "hashicorp/vault:1.8.1"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
@@ -182,6 +182,9 @@ type Secret struct {
 
 	// FilePathAndName is the optional file path and name for the rendered secret file.
 	FilePathAndName string
+
+	// FilePermission is the optional file permission for the rendered secret file
+	FilePermission string
 }
 
 type Vault struct {
@@ -270,6 +273,10 @@ type VaultAgentTemplateConfig struct {
 	// ExitOnRetryFailure configures whether agent should exit after failing
 	// all its retry attempts when rendering templates
 	ExitOnRetryFailure bool
+
+	// StaticSecretRenderInterval If specified, configures how often
+	// Vault Agent Template should render non-leased secrets such as KV v2
+	StaticSecretRenderInterval string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -414,7 +421,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	}
 
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
-		ExitOnRetryFailure: exitOnRetryFailure,
+		ExitOnRetryFailure:         exitOnRetryFailure,
+		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
 	}
 
 	return agent, nil

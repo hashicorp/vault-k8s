@@ -1,4 +1,13 @@
-## Unreleased
+## 0.12.0 (August 18, 2021)
+
+Features:
+* New annotation to allow the user to set the rendered file permission: [GH-277](https://github.com/hashicorp/vault-k8s/pull/277)
+* Adds flag and annotation to configure template config `static_secret_render_interval`: [GH-276](https://github.com/hashicorp/vault-k8s/pull/276)
+
+## 0.11.0 (July 28, 2021)
+
+Features:
+* Added exit_on_retry_failure flag and annotation: [GH-267](https://github.com/hashicorp/vault-k8s/pull/267)
 
 Improvements:
 * Switch the default vault image to come from the hashicorp docker hub org: [GH-270](https://github.com/hashicorp/vault-k8s/pull/270)
