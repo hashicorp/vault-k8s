@@ -37,6 +37,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 		bo.MaxInterval = time.Second * 30
 		bo.MaxElapsedTime = 0
 		ticker := backoff.NewTicker(bo)
+		defer ticker.Stop()
 
 		for range ticker.C {
 			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
