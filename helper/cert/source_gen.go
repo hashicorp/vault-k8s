@@ -194,28 +194,27 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, b
 	ticker := backoff.NewTicker(bo)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		if err := s.updateSecret(ctx, bundle); err != nil {
-			s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
-		} else {
-			s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
-			return nil
-		}
-
-		// Also check for external exit conditions before continuing
+	var err error
+	for {
 		select {
+		case _, ok := <-ticker.C:
+			if !ok {
+				return fmt.Errorf("timed out attempting to update cert secret: %w", err)
+			}
+			if err = s.updateSecret(ctx, bundle); err != nil {
+				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
+			} else {
+				s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
+				return nil
+			}
 		case <-ctx.Done():
 			s.Log.Trace("quitting update cert retries due to done context")
 			return nil
 		case <-leaderCh:
 			s.Log.Trace("quitting update cert retries due to leadership change")
 			return nil
-		default:
-			// try again
 		}
 	}
-
-	return fmt.Errorf("timed out attempting to update cert secret")
 }
 
 func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
