@@ -1,3 +1,8 @@
+## Unreleased
+
+Improvements:
+* Continuously retry updating the cert secret: [GH-280](https://github.com/hashicorp/vault-k8s/pull/280)
+
 ## 0.12.0 (August 18, 2021)
 
 Features:
