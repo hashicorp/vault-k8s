@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
 	v1 "k8s.io/api/core/v1"
@@ -138,18 +139,19 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 
 	// Generate cert, set it on the result, and return
 	cert, key, err := s.generateCert()
-	if err == nil {
-		result.Cert = []byte(cert)
-		result.Key = []byte(key)
+	if err != nil {
+		return result, err
+	}
+	result.Cert = []byte(cert)
+	result.Key = []byte(key)
 
-		if s.LeaderElector != nil {
-			if err := s.updateSecret(ctx, result); err != nil {
-				return result, fmt.Errorf("failed to update Secret: %s", err)
-			}
+	if s.LeaderElector != nil {
+		if err := s.retryUpdateSecret(ctx, leaderCh, result); err != nil {
+			return result, err
 		}
 	}
 
-	return result, err
+	return result, nil
 }
 
 func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
@@ -178,6 +180,39 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 				s.Log.Named("checkLeader").Trace("got done")
 				return
 			}
+		}
+	}
+}
+
+func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, bundle Bundle) error {
+	// New exponential backoff, with a max elapsed time of 90% of the newly
+	// created cert expiration, since that's the point where it would be renewed
+	// by the calling function
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxInterval = 30 * time.Second
+	bo.MaxElapsedTime = time.Duration(float64(s.expiry()) * 0.90)
+	ticker := backoff.NewTicker(bo)
+	defer ticker.Stop()
+
+	var err error
+	for {
+		select {
+		case _, ok := <-ticker.C:
+			if !ok {
+				return fmt.Errorf("timed out attempting to update cert secret: %w", err)
+			}
+			if err = s.updateSecret(ctx, bundle); err != nil {
+				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
+			} else {
+				s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
+				return nil
+			}
+		case <-ctx.Done():
+			s.Log.Trace("quitting update cert retries due to done context")
+			return nil
+		case <-leaderCh:
+			s.Log.Trace("quitting update cert retries due to leadership change")
+			return nil
 		}
 	}
 }
