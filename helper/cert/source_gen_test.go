@@ -14,7 +14,10 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
@@ -236,4 +239,133 @@ func testGetHostname(t *testing.T) string {
 		t.Fatalf("failed to get hostname for test leader service: %s", err)
 	}
 	return host
+}
+
+func TestGensource_appendCert(t *testing.T) {
+	// Construct caBundle's (old and new) to use in the test cases
+	s1 := testGenSource()
+	newBundle, err := s1.Certificate(context.Background(), nil)
+	require.NoError(t, err)
+
+	s2 := testGenSource()
+	oldBundle1, err := s2.Certificate(context.Background(), nil)
+	require.NoError(t, err)
+	s3 := testGenSource()
+	oldBundle2, err := s3.Certificate(context.Background(), nil)
+	require.NoError(t, err)
+
+	tests := map[string]struct {
+		oldCAs   []byte
+		expected []byte
+	}{
+		"no old CAs": {
+			oldCAs:   nil,
+			expected: newBundle.CACert,
+		},
+		"one old CA": {
+			oldCAs:   oldBundle1.CACert,
+			expected: append(oldBundle1.CACert, newBundle.CACert...),
+		},
+		"two old CAs": {
+			oldCAs:   append(oldBundle1.CACert, oldBundle2.CACert...),
+			expected: append(oldBundle2.CACert, newBundle.CACert...),
+		},
+		"invalid old CAs": {
+			oldCAs:   []byte("not a cert"),
+			expected: newBundle.CACert,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			result, err := appendCert(tc.oldCAs, newBundle.CACert)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestGensource_getExistingCA(t *testing.T) {
+	tests := map[string]struct {
+		existingBundle []byte
+		expectBundle   []byte
+	}{
+		"no existing CA": {
+			existingBundle: nil,
+			expectBundle:   nil,
+		},
+		"one existing CA": {
+			existingBundle: []byte("exists"),
+			expectBundle:   []byte("exists"),
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			s := testGenSource()
+			s.WebhookName = "test"
+
+			betaCfg := &adminv1beta.MutatingWebhookConfiguration{
+				ObjectMeta: metav1.ObjectMeta{Name: s.WebhookName},
+				Webhooks: []adminv1beta.MutatingWebhook{
+					{
+						ClientConfig: adminv1beta.WebhookClientConfig{
+							CABundle: tc.existingBundle,
+						},
+					},
+				},
+			}
+			v1Cfg := &adminv1.MutatingWebhookConfiguration{
+				ObjectMeta: metav1.ObjectMeta{Name: s.WebhookName},
+				Webhooks: []adminv1.MutatingWebhook{
+					{
+						ClientConfig: adminv1.WebhookClientConfig{
+							CABundle: tc.existingBundle,
+						},
+					},
+				},
+			}
+			t.Run("v1", func(t *testing.T) {
+				s.AdminAPIVersion = adminv1.SchemeGroupVersion.Version
+				s.K8sClient = fake.NewSimpleClientset(v1Cfg)
+				result := s.getExistingCA(context.Background())
+				assert.Equal(t, tc.expectBundle, result)
+			})
+			t.Run("v1beta1", func(t *testing.T) {
+				s.AdminAPIVersion = adminv1beta.SchemeGroupVersion.Version
+				s.K8sClient = fake.NewSimpleClientset(betaCfg)
+				result := s.getExistingCA(context.Background())
+				assert.Equal(t, tc.expectBundle, result)
+			})
+		})
+	}
+
+	t.Run("unknown admin API version", func(t *testing.T) {
+		s := testGenSource()
+		s.AdminAPIVersion = "invalid"
+		s.K8sClient = fake.NewSimpleClientset()
+		result := s.getExistingCA(context.Background())
+		assert.Empty(t, result)
+	})
+	t.Run("no caBundle v1", func(t *testing.T) {
+		s := testGenSource()
+		s.WebhookName = "test"
+		s.AdminAPIVersion = adminv1.SchemeGroupVersion.Version
+		s.K8sClient = fake.NewSimpleClientset(&adminv1.MutatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{Name: s.WebhookName},
+		})
+		result := s.getExistingCA(context.Background())
+		assert.Empty(t, result)
+	})
+	t.Run("no caBundle v1beta1", func(t *testing.T) {
+		s := testGenSource()
+		s.WebhookName = "test"
+		s.AdminAPIVersion = adminv1beta.SchemeGroupVersion.Version
+		s.K8sClient = fake.NewSimpleClientset(&adminv1beta.MutatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{Name: s.WebhookName},
+		})
+		result := s.getExistingCA(context.Background())
+		assert.Empty(t, result)
+	})
+
 }

@@ -8,6 +8,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -20,6 +21,8 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,10 +59,12 @@ type GenSource struct {
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
 
-	K8sClient     kubernetes.Interface
-	Namespace     string
-	SecretsCache  informerv1.SecretInformer
-	LeaderElector *leader.LeaderElector
+	K8sClient       kubernetes.Interface
+	Namespace       string
+	SecretsCache    informerv1.SecretInformer
+	LeaderElector   *leader.LeaderElector
+	WebhookName     string
+	AdminAPIVersion string
 
 	Log hclog.Logger
 }
@@ -101,6 +106,19 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		last = nil
 
 		s.Log.Info("Generated CA")
+
+		// Check if there's an existing caBundle on the webhook config
+		oldCAs := s.getExistingCA(ctx)
+		if len(oldCAs) > 0 {
+			bothCerts, err := appendCert(oldCAs, s.caCert)
+			if err != nil {
+				// If there's an error, don't set s.caCert; just log a warning
+				// and continue on, so that the caCert will be replaced
+				s.Log.Warn("failed to append previous CA cert to new CA cert", "err", err)
+			} else {
+				s.caCert = bothCerts
+			}
+		}
 	}
 
 	// Set the CA cert
@@ -215,6 +233,40 @@ func (s *GenSource) getBundleFromSecret() (Bundle, error) {
 	bundle.Key = secret.Data["key"]
 
 	return bundle, nil
+}
+
+func (s *GenSource) getExistingCA(ctx context.Context) []byte {
+	var caBundle []byte
+
+	switch s.AdminAPIVersion {
+	case adminv1.SchemeGroupVersion.Version:
+		cfg, err := s.K8sClient.AdmissionregistrationV1().
+			MutatingWebhookConfigurations().
+			Get(ctx, s.WebhookName, metav1.GetOptions{})
+		if err != nil {
+			s.Log.Warn("failed to fetch v1 mutating webhook config", "WebhookName", s.WebhookName, "err", err)
+			return []byte{}
+		}
+		if len(cfg.Webhooks) > 0 {
+			caBundle = cfg.Webhooks[0].ClientConfig.CABundle
+		}
+	case adminv1beta.SchemeGroupVersion.Version:
+		cfg, err := s.K8sClient.AdmissionregistrationV1beta1().
+			MutatingWebhookConfigurations().
+			Get(ctx, s.WebhookName, metav1.GetOptions{})
+		if err != nil {
+			s.Log.Warn("failed to fetch v1beta mutating webhook config", "WebhookName", s.WebhookName, "err", err)
+			return []byte{}
+		}
+		if len(cfg.Webhooks) > 0 {
+			caBundle = cfg.Webhooks[0].ClientConfig.CABundle
+		}
+	default:
+		// unknown Admin API version, so don't even try to fetch caBundle
+		return []byte{}
+	}
+
+	return caBundle
 }
 
 func (s *GenSource) expiry() time.Duration {
@@ -392,4 +444,42 @@ func parseCert(pemValue []byte) (*x509.Certificate, error) {
 	}
 
 	return x509.ParseCertificate(block.Bytes)
+}
+
+// decodeCerts decodes a caBundle ([]byte) into a list of certs ([][]byte)
+func decodeCerts(caBundle []byte) tls.Certificate {
+	certs := tls.Certificate{}
+	remainder := caBundle
+	var next *pem.Block
+	for {
+		next, remainder = pem.Decode(remainder)
+		if next == nil {
+			break
+		}
+		if next.Type == "CERTIFICATE" {
+			certs.Certificate = append(certs.Certificate, next.Bytes)
+		}
+	}
+	return certs
+}
+
+// appendCert returns a new CA bundle:
+// [0] last CA cert from oldCABundle
+// [1] newCACert
+func appendCert(oldCABundle, newCACert []byte) ([]byte, error) {
+	// Decode the certs from the old CA bundle
+	oldCerts := decodeCerts(oldCABundle)
+	// Append the old CA if it exists
+	newBundle := []byte{}
+	if len(oldCerts.Certificate) > 0 {
+		last := oldCerts.Certificate[len(oldCerts.Certificate)-1]
+		var buf bytes.Buffer
+		if err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: last}); err != nil {
+			return nil, fmt.Errorf("failed to encode old CA cert: %w", err)
+		}
+		newBundle = append(newBundle, buf.Bytes()...)
+	}
+	// Then append the new CA
+	newBundle = append(newBundle, newCACert...)
+	return newBundle, nil
 }
