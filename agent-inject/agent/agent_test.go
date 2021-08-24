@@ -3,8 +3,10 @@ package agent
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func testPod(annotations map[string]string) *corev1.Pod {
@@ -67,7 +69,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -79,7 +81,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -96,7 +98,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -108,7 +110,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -120,7 +122,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "",
 					TokenPath: "foobar",
@@ -132,7 +134,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "",
@@ -144,7 +146,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -156,7 +158,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -172,7 +174,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -188,7 +190,7 @@ func TestValidate(t *testing.T) {
 		{
 			Agent{
 				Namespace: "test",
-				ServiceAccountTokenVolume: ServiceAccountTokenVolume{
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
 					Name:      "foobar",
 					MountPath: "foobar",
 					TokenPath: "foobar",
@@ -204,10 +206,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			Agent{
-				Namespace:          "test",
-				ServiceAccountPath: "foobar",
-				ServiceAccountName: "foobar",
-				ImageName:          "test",
+				Namespace: "test",
+				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
+					Name:      "foobar",
+					MountPath: "foobar",
+					TokenPath: "",
+				},
+				ImageName: "test",
 				Vault: Vault{
 					Role:     "test",
 					Address:  "https://foobar.com:8200",
@@ -228,5 +233,192 @@ func TestValidate(t *testing.T) {
 		if err == nil && !tt.valid {
 			t.Error("got no error, should have")
 		}
+	}
+}
+
+func Test_serviceaccount(t *testing.T) {
+	tests := map[string]struct {
+		pod           *corev1.Pod
+		expected      *ServiceAccountTokenVolume
+		expectedError string
+	}{
+		"no service accounts": {
+			expected:      nil,
+			expectedError: "failed to find service account volume mount",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{},
+			},
+		},
+		"token volume doesn't exist": {
+			expected:      nil,
+			expectedError: `failed to find service account volume "projected-token"`,
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+			},
+		},
+		"regular service account": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "internal-app-token-n4pjn",
+				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+				TokenPath: "token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "internal-app-token-n4pjn",
+									MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "internal-app-token-n4pjn",
+							VolumeSource: corev1.VolumeSource{
+								Secret: &corev1.SecretVolumeSource{
+									SecretName: "internal-app-token-n4pjn",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"projected default service account": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "kube-api-access-4bfzq",
+				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+				TokenPath: "token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "kube-api-access-4bfzq",
+									MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "kube-api-access-4bfzq",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"projected service account with annotation": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "projected-token",
+				MountPath: "/var/run/secrets/special/serviceaccount",
+				TokenPath: "vault-token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "projected-token",
+									MountPath: "/var/run/secrets/special/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "projected-token",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "vault-token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"projected service account with annotation but not mounted": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "projected-token",
+				MountPath: "/var/run/secrets/vault.hashicorp.com/serviceaccount",
+				TokenPath: "vault-token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "projected-token",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "vault-token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			result, err := serviceaccount(tc.pod)
+			if len(tc.expectedError) > 0 {
+				assert.EqualError(t, err, tc.expectedError)
+			}
+			assert.Equal(t, tc.expected, result)
+		})
 	}
 }
