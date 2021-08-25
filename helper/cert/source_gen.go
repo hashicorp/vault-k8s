@@ -110,7 +110,7 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		// Check if there's an existing caBundle on the webhook config
 		oldCAs := s.getExistingCA(ctx)
 		if len(oldCAs) > 0 {
-			bothCerts, err := appendCert(oldCAs, s.caCert)
+			bothCerts, err := prependLastCA(s.caCert, oldCAs)
 			if err != nil {
 				// If there's an error, don't set s.caCert; just log a warning
 				// and continue on, so that the caCert will be replaced
@@ -250,6 +250,7 @@ func (s *GenSource) getExistingCA(ctx context.Context) []byte {
 		if len(cfg.Webhooks) > 0 {
 			caBundle = cfg.Webhooks[0].ClientConfig.CABundle
 		}
+		return caBundle
 	case adminv1beta.SchemeGroupVersion.Version:
 		cfg, err := s.K8sClient.AdmissionregistrationV1beta1().
 			MutatingWebhookConfigurations().
@@ -261,12 +262,11 @@ func (s *GenSource) getExistingCA(ctx context.Context) []byte {
 		if len(cfg.Webhooks) > 0 {
 			caBundle = cfg.Webhooks[0].ClientConfig.CABundle
 		}
+		return caBundle
 	default:
 		// unknown Admin API version, so don't even try to fetch caBundle
 		return []byte{}
 	}
-
-	return caBundle
 }
 
 func (s *GenSource) expiry() time.Duration {
@@ -463,10 +463,10 @@ func decodeCerts(caBundle []byte) tls.Certificate {
 	return certs
 }
 
-// appendCert returns a new CA bundle:
+// prependLastCA returns a new CA bundle:
 // [0] last CA cert from oldCABundle
 // [1] newCACert
-func appendCert(oldCABundle, newCACert []byte) ([]byte, error) {
+func prependLastCA(newCACert, oldCABundle []byte) ([]byte, error) {
 	// Decode the certs from the old CA bundle
 	oldCerts := decodeCerts(oldCABundle)
 	// Append the old CA if it exists

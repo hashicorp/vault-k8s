@@ -241,17 +241,20 @@ func testGetHostname(t *testing.T) string {
 	return host
 }
 
-func TestGensource_appendCert(t *testing.T) {
+func TestGensource_prependLastCA(t *testing.T) {
 	// Construct caBundle's (old and new) to use in the test cases
-	s1 := testGenSource()
-	newBundle, err := s1.Certificate(context.Background(), nil)
+	new1 := testGenSource()
+	newBundle1, err := new1.Certificate(context.Background(), nil)
+	require.NoError(t, err)
+	new2 := testGenSource()
+	newBundle2, err := new2.Certificate(context.Background(), nil)
 	require.NoError(t, err)
 
-	s2 := testGenSource()
-	oldBundle1, err := s2.Certificate(context.Background(), nil)
+	old1 := testGenSource()
+	oldBundle1, err := old1.Certificate(context.Background(), nil)
 	require.NoError(t, err)
-	s3 := testGenSource()
-	oldBundle2, err := s3.Certificate(context.Background(), nil)
+	old2 := testGenSource()
+	oldBundle2, err := old2.Certificate(context.Background(), nil)
 	require.NoError(t, err)
 
 	tests := map[string]struct {
@@ -260,27 +263,32 @@ func TestGensource_appendCert(t *testing.T) {
 	}{
 		"no old CAs": {
 			oldCAs:   nil,
-			expected: newBundle.CACert,
+			expected: newBundle1.CACert,
 		},
 		"one old CA": {
 			oldCAs:   oldBundle1.CACert,
-			expected: append(oldBundle1.CACert, newBundle.CACert...),
+			expected: append(oldBundle1.CACert, newBundle1.CACert...),
 		},
 		"two old CAs": {
 			oldCAs:   append(oldBundle1.CACert, oldBundle2.CACert...),
-			expected: append(oldBundle2.CACert, newBundle.CACert...),
+			expected: append(oldBundle2.CACert, newBundle1.CACert...),
 		},
 		"invalid old CAs": {
 			oldCAs:   []byte("not a cert"),
-			expected: newBundle.CACert,
+			expected: newBundle1.CACert,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			result, err := appendCert(tc.oldCAs, newBundle.CACert)
+			result, err := prependLastCA(newBundle1.CACert, tc.oldCAs)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
+
+			// Run again with the output from previous
+			result2, err := prependLastCA(newBundle2.CACert, result)
+			require.NoError(t, err)
+			assert.Equal(t, append(newBundle1.CACert, newBundle2.CACert...), result2)
 		})
 	}
 }
