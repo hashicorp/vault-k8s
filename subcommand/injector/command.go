@@ -21,6 +21,8 @@ import (
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -135,15 +137,22 @@ func (c *Command) Run(args []string) int {
 		leaderElector = leader.New(ctx, logger, clientset)
 	}
 
+	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
+	if err != nil {
+		logger.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
+	}
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
-		Name:          "Agent Inject",
-		Hosts:         strings.Split(c.flagAutoHosts, ","),
-		K8sClient:     clientset,
-		Namespace:     namespace,
-		SecretsCache:  secrets,
-		LeaderElector: leaderElector,
-		Log:           logger.Named("auto-tls"),
+		Name:            "Agent Inject",
+		Hosts:           strings.Split(c.flagAutoHosts, ","),
+		K8sClient:       clientset,
+		Namespace:       namespace,
+		SecretsCache:    secrets,
+		LeaderElector:   leaderElector,
+		WebhookName:     c.flagAutoName,
+		AdminAPIVersion: adminAPIVersion,
+		Log:             logger.Named("auto-tls"),
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -157,7 +166,7 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -255,22 +264,18 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 }
 
 func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
-	adminAPIVersion := "v1"
+	adminAPIVersion := adminv1.SchemeGroupVersion.Version
 	_, err := clientset.AdmissionregistrationV1().
 		MutatingWebhookConfigurations().
 		List(ctx, metav1.ListOptions{})
 	if k8sErrors.IsNotFound(err) {
-		adminAPIVersion = "v1beta1"
+		adminAPIVersion = adminv1beta.SchemeGroupVersion.Version
 	}
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
-	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
-	if err != nil {
-		log.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
-	}
 
 	for {
 		select {
