@@ -8,6 +8,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -18,8 +19,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/leader"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,10 +60,12 @@ type GenSource struct {
 	caCertTemplate *x509.Certificate
 	caSigner       crypto.Signer
 
-	K8sClient     kubernetes.Interface
-	Namespace     string
-	SecretsCache  informerv1.SecretInformer
-	LeaderElector *leader.LeaderElector
+	K8sClient       kubernetes.Interface
+	Namespace       string
+	SecretsCache    informerv1.SecretInformer
+	LeaderElector   *leader.LeaderElector
+	WebhookName     string
+	AdminAPIVersion string
 
 	Log hclog.Logger
 }
@@ -101,6 +107,19 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 		last = nil
 
 		s.Log.Info("Generated CA")
+
+		// Check if there's an existing caBundle on the webhook config
+		oldCAs := s.getExistingCA(ctx)
+		if len(oldCAs) > 0 {
+			bothCerts, err := prependLastCA(s.caCert, oldCAs, s.Log)
+			if err != nil {
+				// If there's an error, don't set s.caCert; just log a warning
+				// and continue on, so that the caCert will be replaced
+				s.Log.Warn("failed to append previous CA cert to new CA cert", "err", err)
+			} else {
+				s.caCert = bothCerts
+			}
+		}
 	}
 
 	// Set the CA cert
@@ -138,18 +157,19 @@ func (s *GenSource) Certificate(ctx context.Context, last *Bundle) (Bundle, erro
 
 	// Generate cert, set it on the result, and return
 	cert, key, err := s.generateCert()
-	if err == nil {
-		result.Cert = []byte(cert)
-		result.Key = []byte(key)
+	if err != nil {
+		return result, err
+	}
+	result.Cert = []byte(cert)
+	result.Key = []byte(key)
 
-		if s.LeaderElector != nil {
-			if err := s.updateSecret(result); err != nil {
-				return result, fmt.Errorf("failed to update Secret: %s", err)
-			}
+	if s.LeaderElector != nil {
+		if err := s.retryUpdateSecret(ctx, leaderCh, result); err != nil {
+			return result, err
 		}
 	}
 
-	return result, err
+	return result, nil
 }
 
 func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
@@ -182,7 +202,40 @@ func (s *GenSource) checkLeader(ctx context.Context, changed chan<- bool) {
 	}
 }
 
-func (s *GenSource) updateSecret(bundle Bundle) error {
+func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, bundle Bundle) error {
+	// New exponential backoff, with a max elapsed time of 90% of the newly
+	// created cert expiration, since that's the point where it would be renewed
+	// by the calling function
+	bo := backoff.NewExponentialBackOff()
+	bo.MaxInterval = 30 * time.Second
+	bo.MaxElapsedTime = time.Duration(float64(s.expiry()) * 0.90)
+	ticker := backoff.NewTicker(bo)
+	defer ticker.Stop()
+
+	var err error
+	for {
+		select {
+		case _, ok := <-ticker.C:
+			if !ok {
+				return fmt.Errorf("timed out attempting to update cert secret: %w", err)
+			}
+			if err = s.updateSecret(ctx, bundle); err != nil {
+				s.Log.Error("attempt to update cert secret failed", "certSecretName", certSecretName, "err", err)
+			} else {
+				s.Log.Trace("updated cert secret, quitting update thread", "certSecretName", certSecretName)
+				return nil
+			}
+		case <-ctx.Done():
+			s.Log.Trace("quitting update cert retries due to done context")
+			return nil
+		case <-leaderCh:
+			s.Log.Trace("quitting update cert retries due to leadership change")
+			return nil
+		}
+	}
+}
+
+func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: certSecretName,
@@ -194,9 +247,9 @@ func (s *GenSource) updateSecret(bundle Bundle) error {
 	}
 	// Attempt updating the Secret first, and if it doesn't exist, fallback to
 	// create
-	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(secret)
+	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
 	if errors.IsNotFound(err) {
-		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(secret)
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	}
 	if err != nil {
 		return err
@@ -215,6 +268,37 @@ func (s *GenSource) getBundleFromSecret() (Bundle, error) {
 	bundle.Key = secret.Data["key"]
 
 	return bundle, nil
+}
+
+func (s *GenSource) getExistingCA(ctx context.Context) []byte {
+	switch s.AdminAPIVersion {
+	case adminv1.SchemeGroupVersion.Version:
+		cfg, err := s.K8sClient.AdmissionregistrationV1().
+			MutatingWebhookConfigurations().
+			Get(ctx, s.WebhookName, metav1.GetOptions{})
+		if err != nil {
+			s.Log.Warn("failed to fetch v1 mutating webhook config", "WebhookName", s.WebhookName, "err", err)
+			return []byte{}
+		}
+		if len(cfg.Webhooks) > 0 {
+			return cfg.Webhooks[0].ClientConfig.CABundle
+		}
+	case adminv1beta.SchemeGroupVersion.Version:
+		cfg, err := s.K8sClient.AdmissionregistrationV1beta1().
+			MutatingWebhookConfigurations().
+			Get(ctx, s.WebhookName, metav1.GetOptions{})
+		if err != nil {
+			s.Log.Warn("failed to fetch v1beta mutating webhook config", "WebhookName", s.WebhookName, "err", err)
+			return []byte{}
+		}
+		if len(cfg.Webhooks) > 0 {
+			return cfg.Webhooks[0].ClientConfig.CABundle
+		}
+	}
+
+	// At this point either the AdminAPIVersion was unknown, or the CABundle was
+	// empty, so just return an empty slice
+	return []byte{}
 }
 
 func (s *GenSource) expiry() time.Duration {
@@ -392,4 +476,44 @@ func parseCert(pemValue []byte) (*x509.Certificate, error) {
 	}
 
 	return x509.ParseCertificate(block.Bytes)
+}
+
+// decodeCerts decodes a caBundle ([]byte) into a list of certs ([][]byte)
+func decodeCerts(caBundle []byte, log hclog.Logger) tls.Certificate {
+	certs := tls.Certificate{}
+	remainder := caBundle
+	var next *pem.Block
+	for {
+		next, remainder = pem.Decode(remainder)
+		if next == nil {
+			break
+		}
+		if next.Type == "CERTIFICATE" {
+			certs.Certificate = append(certs.Certificate, next.Bytes)
+		} else {
+			log.Warn("unexpected pem block type in caBundle, ignoring", "type", next.Type)
+		}
+	}
+	return certs
+}
+
+// prependLastCA returns a new CA bundle:
+// [0] last CA cert from oldCABundle
+// [1] newCACert
+func prependLastCA(newCACert, oldCABundle []byte, log hclog.Logger) ([]byte, error) {
+	// Decode the certs from the old CA bundle
+	oldCerts := decodeCerts(oldCABundle, log)
+	// Append the old CA if it exists
+	newBundle := []byte{}
+	if len(oldCerts.Certificate) > 0 {
+		last := oldCerts.Certificate[len(oldCerts.Certificate)-1]
+		var buf bytes.Buffer
+		if err := pem.Encode(&buf, &pem.Block{Type: "CERTIFICATE", Bytes: last}); err != nil {
+			return nil, fmt.Errorf("failed to encode old CA cert: %w", err)
+		}
+		newBundle = append(newBundle, buf.Bytes()...)
+	}
+	// Then append the new CA
+	newBundle = append(newBundle, newCACert...)
+	return newBundle, nil
 }

@@ -19,7 +19,7 @@ func TestNotify(t *testing.T) {
 
 	// Create notifier
 	ch := make(chan Bundle)
-	n := NewNotify(context.Background(), ch, source)
+	n := NewNotify(context.Background(), ch, source, hclog.NewNullLogger())
 	go n.Run()
 
 	// We should receive an update almost immediately
@@ -68,7 +68,7 @@ func TestNotifyRace(t *testing.T) {
 			Hosts: []string{"some", "hosts"},
 			Log:   hclog.Default(),
 		}
-		n := NewNotify(ctx, certCh, certSource)
+		n := NewNotify(ctx, certCh, certSource, hclog.NewNullLogger())
 
 		go func() {
 			<-start

@@ -1,9 +1,45 @@
 ## Unreleased
 
+Improvements:
+* Continuously retry updating the cert secret: [GH-280](https://github.com/hashicorp/vault-k8s/pull/280)
+* Keep the last CA when creating a new one: [GH-287](https://github.com/hashicorp/vault-k8s/pull/287)
+
+## 0.12.0 (August 18, 2021)
+
+Features:
+* New annotation to allow the user to set the rendered file permission: [GH-277](https://github.com/hashicorp/vault-k8s/pull/277)
+* Adds flag and annotation to configure template config `static_secret_render_interval`: [GH-276](https://github.com/hashicorp/vault-k8s/pull/276)
+
+## 0.11.0 (July 28, 2021)
+
+Features:
+* Added exit_on_retry_failure flag and annotation: [GH-267](https://github.com/hashicorp/vault-k8s/pull/267)
+
+Improvements:
+* Switch the default vault image to come from the hashicorp docker hub org: [GH-270](https://github.com/hashicorp/vault-k8s/pull/270)
+* Better support for setting the region when auth type is AWS: [GH-268](https://github.com/hashicorp/vault-k8s/pull/268)
+* Added support for K8s v1 Admission API: [GH-273](https://github.com/hashicorp/vault-k8s/pull/273)
+
+## 0.10.2 (June 16, 2021)
+
+Improvements:
+* Dependency update: [GH-265](https://github.com/hashicorp/vault-k8s/pull/265)
+
+## 0.10.1 (May 25, 2021)
+
+Bugs:
+* Fix agent-inject-token when caching enabled: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+* Remove new line from injected token: [GH-290](https://github.com/hashicorp/vault-k8s/pull/250)
+
+## 0.10.0 (April 14, 2021)
+
 Features:
 * Added flags/envs to change default resources for all injected containers: [GH-235](https://github.com/hashicorp/vault-k8s/pull/235)
 * Added an annotation to use template path on disk: [GH-222](https://github.com/hashicorp/vault-k8s/pull/222)
 * Added an annotation and global flag to change default template from map to json: [GH-242](https://github.com/hashicorp/vault-k8s/pull/242)
+
+Improvements:
+* Better support for IRSA on AWS/EKS: [GH-169](https://github.com/hashicorp/vault-k8s/pull/169)
 
 ## 0.9.0 (March 18, 2021)
 

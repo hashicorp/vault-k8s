@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/require"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,14 +61,14 @@ func TestHandlerHandle(t *testing.T) {
 	cases := []struct {
 		Name    string
 		Handler Handler
-		Req     v1beta1.AdmissionRequest
+		Req     admissionv1.AdmissionRequest
 		Err     string // expected error string, not exact
 		Patches []jsonpatch.JsonPatchOperation
 	}{
 		{
 			"kube-system namespace",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: metav1.NamespaceSystem,
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -87,7 +87,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"already injected",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
@@ -105,7 +105,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"no injection by default",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Object: encodeRaw(t, &corev1.Pod{
 					Spec: basicSpec,
 				}),
@@ -117,7 +117,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"injection disabled",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -136,7 +136,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"basic pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -188,7 +188,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"init first ",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -249,7 +249,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"configmap pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -305,7 +305,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"tls pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -366,7 +366,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"tls no configmap pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -423,7 +423,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"tls no configmap no init pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -469,7 +469,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"tls no configmap init only pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -519,7 +519,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"copy volume mounts pod injection",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "test",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -571,7 +571,7 @@ func TestHandlerHandle(t *testing.T) {
 		{
 			"invalid default template",
 			basicHandler(),
-			v1beta1.AdmissionRequest{
+			admissionv1.AdmissionRequest{
 				Namespace: "foo",
 				Object: encodeRaw(t, &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{

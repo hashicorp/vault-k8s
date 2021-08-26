@@ -32,6 +32,7 @@ func basicAgentConfig() AgentConfig {
 		ResourceRequestMem: DefaultResourceRequestMem,
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 }
 
@@ -411,73 +412,6 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 	}
 }
 
-func TestTemplateShortcuts(t *testing.T) {
-	tests := []struct {
-		name            string
-		annotations     map[string]string
-		expectedSecrets map[string]Secret
-	}{
-		{
-			"valid inject-token",
-			map[string]string{
-				AnnotationAgentInjectToken: "true",
-			},
-			map[string]Secret{
-				"token": Secret{
-					Name:      "token",
-					Path:      TokenSecret,
-					Template:  TokenTemplate,
-					MountPath: secretVolumePath,
-				},
-			},
-		},
-		{
-			"invalid inject-token",
-			map[string]string{
-				"vault.hashicorp.com/agent-inject-token-invalid": "true",
-			},
-			map[string]Secret{},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			pod := testPod(tt.annotations)
-			agentConfig := basicAgentConfig()
-			err := Init(pod, agentConfig)
-			if err != nil {
-				t.Errorf("got error, shouldn't have: %s", err)
-			}
-
-			var patches []*jsonpatch.JsonPatchOperation
-
-			agent, err := New(pod, patches)
-			if err != nil {
-				t.Errorf("got error, shouldn't have: %s", err)
-			}
-
-			if len(agent.Secrets) != len(tt.expectedSecrets) {
-				t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecrets))
-			}
-
-			for _, s := range agent.Secrets {
-				if s == nil {
-					t.Error("Got a nil agent Secret")
-					t.FailNow()
-				}
-				expectedSecret, found := tt.expectedSecrets[s.Name]
-				if !found {
-					t.Errorf("Unexpected agent secret name %q", s.Name)
-					t.FailNow()
-				}
-				if !reflect.DeepEqual(expectedSecret, *s) {
-					t.Errorf("expected secret %+v, got agent secret %+v", expectedSecret, *s)
-				}
-			}
-		})
-	}
-}
-
 func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations     map[string]string
@@ -600,6 +534,55 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 			t.Errorf("expected template file path %s, got %s", tt.expectedTemplateFile, agent.Secrets[0].TemplateFile)
 		}
 
+	}
+}
+
+func TestSecretPermissionAnnotations(t *testing.T) {
+	tests := []struct {
+		annotations        map[string]string
+		expectedKey        string
+		expectedPermission string
+	}{
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test1",
+				"vault.hashicorp.com/agent-inject-perms-foobar":  "0600",
+			}, "foobar", "0600",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test2",
+				"vault.hashicorp.com/agent-inject-perms-foobar2": "0600",
+			}, "foobar", "",
+		},
+	}
+
+	for _, tt := range tests {
+		pod := testPod(tt.annotations)
+		agentConfig := basicAgentConfig()
+		err := Init(pod, agentConfig)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		var patches []*jsonpatch.JsonPatchOperation
+
+		agent, err := New(pod, patches)
+		if err != nil {
+			t.Errorf("got error, shouldn't have: %s", err)
+		}
+
+		if len(agent.Secrets) == 0 {
+			t.Error("Secrets length was zero, it shouldn't have been")
+		}
+
+		if agent.Secrets[0].Name != tt.expectedKey {
+			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
+		}
+
+		if agent.Secrets[0].FilePermission != tt.expectedPermission {
+			t.Errorf("expected permission %s, got %s", tt.expectedPermission, agent.Secrets[0].Command)
+		}
 	}
 }
 

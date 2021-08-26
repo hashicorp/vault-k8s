@@ -21,6 +21,10 @@ import (
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	adminv1 "k8s.io/api/admissionregistration/v1"
+	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
@@ -32,30 +36,32 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen             string // Address of Vault Server
-	flagLogLevel           string // Log verbosity
-	flagLogFormat          string // Log format
-	flagCertFile           string // TLS Certificate to serve
-	flagKeyFile            string // TLS private key to serve
-	flagAutoName           string // MutatingWebhookConfiguration for updating
-	flagAutoHosts          string // SANs for the auto-generated TLS cert.
-	flagVaultService       string // Name of the Vault service
-	flagProxyAddress       string // HTTP proxy address used to talk to the Vault service
-	flagVaultImage         string // Name of the Vault Image to use
-	flagVaultAuthType      string // Type of Vault Auth Method to use
-	flagVaultAuthPath      string // Mount path of the Vault Auth Method
-	flagRevokeOnShutdown   bool   // Revoke Vault Token on pod shutdown
-	flagRunAsUser          string // User (uid) to run Vault agent as
-	flagRunAsGroup         string // Group (gid) to run Vault agent as
-	flagRunAsSameUser      bool   // Run Vault agent as the User (uid) of the first application container
-	flagSetSecurityContext bool   // Set SecurityContext in injected containers
-	flagTelemetryPath      string // Path under which to expose metrics
-	flagUseLeaderElector   bool   // Use leader elector code
-	flagDefaultTemplate    string // Toggles which default template to use
-	flagResourceRequestCPU string // Set CPU request in the injected containers
-	flagResourceRequestMem string // Set Memory request in the injected containers
-	flagResourceLimitCPU   string // Set CPU limit in the injected containers
-	flagResourceLimitMem   string // Set Memory limit in the injected containers
+	flagListen                     string // Address of Vault Server
+	flagLogLevel                   string // Log verbosity
+	flagLogFormat                  string // Log format
+	flagCertFile                   string // TLS Certificate to serve
+	flagKeyFile                    string // TLS private key to serve
+	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
+	flagStaticSecretRenderInterval string // Set template_config.static_secret_render_interval on agent
+	flagAutoName                   string // MutatingWebhookConfiguration for updating
+	flagAutoHosts                  string // SANs for the auto-generated TLS cert.
+	flagVaultService               string // Name of the Vault service
+	flagProxyAddress               string // HTTP proxy address used to talk to the Vault service
+	flagVaultImage                 string // Name of the Vault Image to use
+	flagVaultAuthType              string // Type of Vault Auth Method to use
+	flagVaultAuthPath              string // Mount path of the Vault Auth Method
+	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
+	flagRunAsUser                  string // User (uid) to run Vault agent as
+	flagRunAsGroup                 string // Group (gid) to run Vault agent as
+	flagRunAsSameUser              bool   // Run Vault agent as the User (uid) of the first application container
+	flagSetSecurityContext         bool   // Set SecurityContext in injected containers
+	flagTelemetryPath              string // Path under which to expose metrics
+	flagUseLeaderElector           bool   // Use leader elector code
+	flagDefaultTemplate            string // Toggles which default template to use
+	flagResourceRequestCPU         string // Set CPU request in the injected containers
+	flagResourceRequestMem         string // Set Memory request in the injected containers
+	flagResourceLimitCPU           string // Set CPU limit in the injected containers
+	flagResourceLimitMem           string // Set Memory limit in the injected containers
 
 	flagSet *flag.FlagSet
 
@@ -131,15 +137,22 @@ func (c *Command) Run(args []string) int {
 		Level:      level,
 		JSONFormat: (c.flagLogFormat == "json")})
 
+	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
+	if err != nil {
+		logger.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
+	}
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
-		Name:          "Agent Inject",
-		Hosts:         strings.Split(c.flagAutoHosts, ","),
-		K8sClient:     clientset,
-		Namespace:     namespace,
-		SecretsCache:  secrets,
-		LeaderElector: leaderElector,
-		Log:           logger.Named("auto-tls"),
+		Name:            "Agent Inject",
+		Hosts:           strings.Split(c.flagAutoHosts, ","),
+		K8sClient:       clientset,
+		Namespace:       namespace,
+		SecretsCache:    secrets,
+		LeaderElector:   leaderElector,
+		WebhookName:     c.flagAutoName,
+		AdminAPIVersion: adminAPIVersion,
+		Log:             logger.Named("auto-tls"),
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
@@ -151,30 +164,32 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(ctx, certCh, certSource)
+	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, adminAPIVersion, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
-		VaultAddress:       c.flagVaultService,
-		VaultAuthType:      c.flagVaultAuthType,
-		VaultAuthPath:      c.flagVaultAuthPath,
-		ProxyAddress:       c.flagProxyAddress,
-		ImageVault:         c.flagVaultImage,
-		Clientset:          clientset,
-		RequireAnnotation:  true,
-		Log:                logger,
-		RevokeOnShutdown:   c.flagRevokeOnShutdown,
-		UserID:             c.flagRunAsUser,
-		GroupID:            c.flagRunAsGroup,
-		SameID:             c.flagRunAsSameUser,
-		SetSecurityContext: c.flagSetSecurityContext,
-		DefaultTemplate:    c.flagDefaultTemplate,
-		ResourceRequestCPU: c.flagResourceRequestCPU,
-		ResourceRequestMem: c.flagResourceRequestMem,
-		ResourceLimitCPU:   c.flagResourceLimitCPU,
-		ResourceLimitMem:   c.flagResourceLimitMem,
+		VaultAddress:               c.flagVaultService,
+		VaultAuthType:              c.flagVaultAuthType,
+		VaultAuthPath:              c.flagVaultAuthPath,
+		ProxyAddress:               c.flagProxyAddress,
+		ImageVault:                 c.flagVaultImage,
+		Clientset:                  clientset,
+		RequireAnnotation:          true,
+		Log:                        logger,
+		RevokeOnShutdown:           c.flagRevokeOnShutdown,
+		UserID:                     c.flagRunAsUser,
+		GroupID:                    c.flagRunAsGroup,
+		SameID:                     c.flagRunAsSameUser,
+		SetSecurityContext:         c.flagSetSecurityContext,
+		DefaultTemplate:            c.flagDefaultTemplate,
+		ResourceRequestCPU:         c.flagResourceRequestCPU,
+		ResourceRequestMem:         c.flagResourceRequestMem,
+		ResourceLimitCPU:           c.flagResourceLimitCPU,
+		ResourceLimitMem:           c.flagResourceLimitMem,
+		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
+		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 	}
 
 	mux := http.NewServeMux()
@@ -192,6 +207,7 @@ func (c *Command) Run(args []string) int {
 		Addr:      c.flagListen,
 		Handler:   handler,
 		TLSConfig: &tls.Config{GetCertificate: c.getCertificate},
+		ErrorLog:  logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
 	}
 
 	trap := make(chan os.Signal, 1)
@@ -247,8 +263,20 @@ func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 	return certRaw.(*tls.Certificate), nil
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, log hclog.Logger) {
+func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (string, error) {
+	adminAPIVersion := adminv1.SchemeGroupVersion.Version
+	_, err := clientset.AdmissionregistrationV1().
+		MutatingWebhookConfigurations().
+		List(ctx, metav1.ListOptions{})
+	if k8sErrors.IsNotFound(err) {
+		adminAPIVersion = adminv1beta.SchemeGroupVersion.Version
+	}
+	return adminAPIVersion, err
+}
+
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
+
 	for {
 		select {
 		case bundle = <-ch:
@@ -288,15 +316,30 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// The CA Bundle value must be base64 encoded
 			value := base64.StdEncoding.EncodeToString(bundle.CACert)
+			payload := []byte(fmt.Sprintf(
+				`[{
+					"op": "add",
+					"path": "/webhooks/0/clientConfig/caBundle",
+					"value": %q
+				}]`, value))
 
-			_, err := clientset.AdmissionregistrationV1beta1().
-				MutatingWebhookConfigurations().
-				Patch(c.flagAutoName, types.JSONPatchType, []byte(fmt.Sprintf(
-					`[{
-						"op": "add",
-						"path": "/webhooks/0/clientConfig/caBundle",
-						"value": %q
-					}]`, value)))
+			var err error
+			switch adminAPIVersion {
+			// AdmissionregistrationV1 is valid in k8s 1.16+
+			case "v1":
+				_, err = clientset.AdmissionregistrationV1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
+			case "v1beta1":
+				_, err = clientset.AdmissionregistrationV1beta1().
+					MutatingWebhookConfigurations().
+					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+						metav1.PatchOptions{})
+			default:
+				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+			}
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
 					"Error updating MutatingWebhookConfiguration: %s",

@@ -2,22 +2,25 @@ package cert
 
 import (
 	"context"
-	"log"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
 )
 
-func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source) *Notify {
+func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source, logger hclog.Logger) *Notify {
 	return &Notify{
 		ctx:    ctx,
 		ch:     newBundle,
 		source: source,
+		logger: logger,
 	}
 }
 
 // Notify sends an update on a channel whenever a source has an updated
 // cert bundle. This struct maintains state, performs backoffs, etc.
 type Notify struct {
-	ctx context.Context
+	ctx    context.Context
+	logger hclog.Logger
 
 	// ch is where the notifications for new bundles are sent. If this
 	// blocks then the notify loop will also be blocked, so downstream
@@ -51,7 +54,7 @@ func (n *Notify) Run() {
 
 		next, err := n.source.Certificate(n.ctx, last)
 		if err != nil {
-			log.Printf("[ERROR] helper/cert: error loading next cert: %s", err)
+			n.logger.Warn("error loading next cert", "error", err.Error())
 			continue
 		}
 

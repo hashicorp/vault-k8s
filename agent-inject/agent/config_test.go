@@ -224,6 +224,9 @@ func TestFilePathAndName(t *testing.T) {
 			}
 
 			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error creating agent, shouldn't have: %s", err)
+			}
 			cfg, err := agent.newConfig(true)
 			if err != nil {
 				t.Errorf("got error creating Vault config, shouldn't have: %s", err)
@@ -235,6 +238,95 @@ func TestFilePathAndName(t *testing.T) {
 			}
 			if config.Templates[0].Destination != tt.destination {
 				t.Errorf("wrong destination: %s != %s", config.Templates[0].Destination, tt.destination)
+			}
+		})
+	}
+}
+
+func TestFilePermission(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		permission  string
+	}{
+		{
+			"just secret",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
+			},
+			"0600",
+		},
+		{
+			"just secret without permission",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+			},
+			"",
+		},
+		{
+			"with relative file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
+			},
+			"0600",
+		},
+		{
+			"with relative file path without permission",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "nested/foofile",
+			},
+			"",
+		},
+		{
+			"with absolute file path",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+				"vault.hashicorp.com/agent-inject-perms-foo":  "0600",
+			},
+			"0600",
+		},
+		{
+			"with absolute file path without permission",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+				"vault.hashicorp.com/agent-inject-file-foo":   "/special/volume/foofile",
+			},
+			"",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error initialising pod, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod, patches)
+			if err != nil {
+				t.Errorf("got error creating agent, shouldn't have: %s", err)
+			}
+			cfg, err := agent.newConfig(true)
+			if err != nil {
+				t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+			}
+
+			config := &Config{}
+			if err := json.Unmarshal(cfg, config); err != nil {
+				t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+			}
+			if config.Templates[0].Perms != tt.permission {
+				t.Errorf("wrong permission: %s != %s", config.Templates[0].Perms, tt.permission)
 			}
 		})
 	}
@@ -445,4 +537,136 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 		})
 	}
 
+}
+
+func TestConfigVaultAgentTemplateConfig(t *testing.T) {
+	tests := []struct {
+		name                   string
+		annotations            map[string]string
+		expectedTemplateConfig *TemplateConfig
+	}{
+		{
+			"exit_on_retry_failure true",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "true",
+			},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+		{
+			"exit_on_retry_failure false",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure: "false",
+			},
+			&TemplateConfig{ExitOnRetryFailure: false},
+		},
+		{
+			"static_secret_render_interval 10s",
+			map[string]string{
+				AnnotationTemplateConfigStaticSecretRenderInterval: "10s",
+			},
+			&TemplateConfig{ExitOnRetryFailure: true, StaticSecretRenderInterval: "10s"},
+		},
+		{
+			"template_config_empty",
+			map[string]string{},
+			&TemplateConfig{ExitOnRetryFailure: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedTemplateConfig, config.TemplateConfig)
+		})
+	}
+}
+
+func TestInjectTokenSink(t *testing.T) {
+
+	tokenHelperSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": TokenFile,
+		},
+	}
+	injectTokenSink := &Sink{
+		Type: "file",
+		Config: map[string]interface{}{
+			"path": secretVolumePath + "/token",
+		},
+	}
+
+	tests := []struct {
+		name          string
+		annotations   map[string]string
+		expectedSinks []*Sink
+	}{
+		{
+			"token true",
+			map[string]string{
+				AnnotationAgentInjectToken: "true",
+			},
+			[]*Sink{tokenHelperSink, injectTokenSink},
+		},
+		{
+			"token false",
+			map[string]string{
+				AnnotationAgentInjectToken: "false",
+			},
+			[]*Sink{tokenHelperSink},
+		},
+		{
+			"custom secret volume path",
+			map[string]string{
+				AnnotationAgentInjectToken:      "true",
+				AnnotationVaultSecretVolumePath: "/new/secrets",
+			},
+			[]*Sink{
+				tokenHelperSink,
+				{
+					Type: "file",
+					Config: map[string]interface{}{
+						"path": "/new/secrets/token",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedSinks, config.AutoAuth.Sinks)
+		})
+	}
 }

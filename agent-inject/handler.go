@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
-	"k8s.io/api/admission/v1beta1"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,24 +35,26 @@ var (
 type Handler struct {
 	// RequireAnnotation means that the annotation must be given to inject.
 	// If this is false, injection is default.
-	RequireAnnotation  bool
-	VaultAddress       string
-	VaultAuthType      string
-	VaultAuthPath      string
-	ProxyAddress       string
-	ImageVault         string
-	Clientset          *kubernetes.Clientset
-	Log                hclog.Logger
-	RevokeOnShutdown   bool
-	UserID             string
-	GroupID            string
-	SameID             bool
-	SetSecurityContext bool
-	DefaultTemplate    string
-	ResourceRequestCPU string
-	ResourceRequestMem string
-	ResourceLimitCPU   string
-	ResourceLimitMem   string
+	RequireAnnotation          bool
+	VaultAddress               string
+	VaultAuthType              string
+	VaultAuthPath              string
+	ProxyAddress               string
+	ImageVault                 string
+	Clientset                  *kubernetes.Clientset
+	Log                        hclog.Logger
+	RevokeOnShutdown           bool
+	UserID                     string
+	GroupID                    string
+	SameID                     bool
+	SetSecurityContext         bool
+	DefaultTemplate            string
+	ResourceRequestCPU         string
+	ResourceRequestMem         string
+	ResourceLimitCPU           string
+	ResourceLimitMem           string
+	ExitOnRetryFailure         bool
+	StaticSecretRenderInterval string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -85,8 +87,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admReq v1beta1.AdmissionReview
-	var admResp v1beta1.AdmissionReview
+	var admReq admissionv1.AdmissionReview
+	var admResp admissionv1.AdmissionReview
 	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
 		msg := fmt.Sprintf("error decoding admission request: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
@@ -111,13 +113,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 
 // Mutate takes an admission request and performs mutation if necessary,
 // returning the final API response.
-func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	// Decode the pod from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
 		h.Log.Debug("%s", req.Object.Raw)
-		return &v1beta1.AdmissionResponse{
+		return &admissionv1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -125,7 +127,7 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	// Build the basic response
-	resp := &v1beta1.AdmissionResponse{
+	resp := &admissionv1.AdmissionResponse{
 		Allowed: true,
 		UID:     req.UID,
 	}
@@ -148,22 +150,24 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	h.Log.Debug("setting default annotations..")
 	var patches []*jsonpatch.JsonPatchOperation
 	cfg := agent.AgentConfig{
-		Image:              h.ImageVault,
-		Address:            h.VaultAddress,
-		AuthType:           h.VaultAuthType,
-		AuthPath:           h.VaultAuthPath,
-		ProxyAddress:       h.ProxyAddress,
-		Namespace:          req.Namespace,
-		RevokeOnShutdown:   h.RevokeOnShutdown,
-		UserID:             h.UserID,
-		GroupID:            h.GroupID,
-		SameID:             h.SameID,
-		SetSecurityContext: h.SetSecurityContext,
-		DefaultTemplate:    h.DefaultTemplate,
-		ResourceRequestCPU: h.ResourceRequestCPU,
-		ResourceRequestMem: h.ResourceRequestMem,
-		ResourceLimitCPU:   h.ResourceLimitCPU,
-		ResourceLimitMem:   h.ResourceLimitMem,
+		Image:                      h.ImageVault,
+		Address:                    h.VaultAddress,
+		AuthType:                   h.VaultAuthType,
+		AuthPath:                   h.VaultAuthPath,
+		ProxyAddress:               h.ProxyAddress,
+		Namespace:                  req.Namespace,
+		RevokeOnShutdown:           h.RevokeOnShutdown,
+		UserID:                     h.UserID,
+		GroupID:                    h.GroupID,
+		SameID:                     h.SameID,
+		SetSecurityContext:         h.SetSecurityContext,
+		DefaultTemplate:            h.DefaultTemplate,
+		ResourceRequestCPU:         h.ResourceRequestCPU,
+		ResourceRequestMem:         h.ResourceRequestMem,
+		ResourceLimitCPU:           h.ResourceLimitCPU,
+		ResourceLimitMem:           h.ResourceLimitMem,
+		ExitOnRetryFailure:         h.ExitOnRetryFailure,
+		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {
@@ -193,14 +197,14 @@ func (h *Handler) Mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespon
 	}
 
 	resp.Patch = patch
-	patchType := v1beta1.PatchTypeJSONPatch
+	patchType := admissionv1.PatchTypeJSONPatch
 	resp.PatchType = &patchType
 
 	return resp
 }
 
-func admissionError(err error) *v1beta1.AdmissionResponse {
-	return &v1beta1.AdmissionResponse{
+func admissionError(err error) *admissionv1.AdmissionResponse {
+	return &admissionv1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},
