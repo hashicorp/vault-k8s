@@ -281,12 +281,12 @@ func TestGensource_prependLastCA(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			result, err := prependLastCA(newBundle1.CACert, tc.oldCAs)
+			result, err := prependLastCA(newBundle1.CACert, tc.oldCAs, hclog.Default())
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, result)
 
 			// Run again with the output from previous
-			result2, err := prependLastCA(newBundle2.CACert, result)
+			result2, err := prependLastCA(newBundle2.CACert, result, hclog.Default())
 			require.NoError(t, err)
 			assert.Equal(t, append(newBundle1.CACert, newBundle2.CACert...), result2)
 		})
