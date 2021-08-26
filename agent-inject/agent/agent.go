@@ -96,9 +96,9 @@ type Agent struct {
 	//found, and the unique name of the secret which will be used for the filename.
 	Secrets []*Secret
 
-	// ServiceAccountTokenVolume holds details of a volume mount for a Kubernetes service account
-	// token for the pod. This is used when we mount the service account to the  Vault Agent
-	// container(s).
+	// ServiceAccountTokenVolume holds details of a volume mount for a
+	// Kubernetes service account token for the pod. This is used when we mount
+	// the service account to the Vault Agent container(s).
 	ServiceAccountTokenVolume *ServiceAccountTokenVolume
 
 	// Status is the current injection status.  The only status considered is "injected",
