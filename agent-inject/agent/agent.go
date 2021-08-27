@@ -157,13 +157,13 @@ type Agent struct {
 }
 
 type ServiceAccountTokenVolume struct {
-	// The name of the volume
+	// Name of the volume
 	Name string
 
-	// The mount path of the volume within vault agent containers
+	// MountPath of the volume within vault agent containers
 	MountPath string
 
-	// The path to the JWT token within the volume
+	// TokenPath to the JWT token within the volume
 	TokenPath string
 }
 
