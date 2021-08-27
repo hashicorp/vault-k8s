@@ -27,7 +27,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 
 	go func() {
 		// This function blocks until this replica becomes the "leader", which
-		// means it creates a ConfigMap with an ownerref. Another replica can
+		// means it creates a ConfigMap with an OwnerReference. Another replica can
 		// become the leader when the current leader replica stops running, and
 		// the Kubernetes garbage collector deletes the vault-k8s-leader
 		// ConfigMap.
