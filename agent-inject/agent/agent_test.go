@@ -280,13 +280,59 @@ func Test_serviceaccount(t *testing.T) {
 				Spec: corev1.PodSpec{},
 			},
 		},
-		"token volume doesn't exist": {
+		"missing token volume": {
 			expected:      nil,
 			expectedError: `failed to find service account volume "projected-token"`,
 			pod: &corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
 					Annotations: map[string]string{
 						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+			},
+		},
+		"missing tokenPath for volume that's mounted": {
+			expected:      nil,
+			expectedError: `failed to find tokenPath for service account volume mount "projected-token"`,
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "projected-token",
+									MountPath: "/var/run/secrets/special/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "projected-token",
+						},
+					},
+				},
+			},
+		},
+		"missing tokenPath in volume": {
+			expected:      nil,
+			expectedError: `failed to find tokenPath for service account volume "projected-token"`,
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "projected-token",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name: "projected-token",
+						},
 					},
 				},
 			},
@@ -418,11 +464,6 @@ func Test_serviceaccount(t *testing.T) {
 					},
 				},
 				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							VolumeMounts: []corev1.VolumeMount{},
-						},
-					},
 					Volumes: []corev1.Volume{
 						{
 							Name: "projected-token",

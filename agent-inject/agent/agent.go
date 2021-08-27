@@ -646,10 +646,14 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 		for _, container := range pod.Spec.Containers {
 			for _, volumeMount := range container.VolumeMounts {
 				if volumeMount.Name == volumeName {
+					tokenPath := getProjectedTokenPath(pod, volumeName)
+					if len(tokenPath) == 0 {
+						return nil, fmt.Errorf("failed to find tokenPath for service account volume mount %q", volumeName)
+					}
 					return &ServiceAccountTokenVolume{
 						Name:      volumeMount.Name,
 						MountPath: volumeMount.MountPath,
-						TokenPath: getTokenPath(pod, volumeName),
+						TokenPath: tokenPath,
 					}, nil
 				}
 			}
@@ -658,10 +662,14 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 		// Otherwise, check the volume exists and fallback to `DefaultServiceAccountMount`
 		for _, volume := range pod.Spec.Volumes {
 			if volume.Name == volumeName {
+				tokenPath := getTokenPathFromProjectedVolume(volume)
+				if len(tokenPath) == 0 {
+					return nil, fmt.Errorf("failed to find tokenPath for service account volume %q", volumeName)
+				}
 				return &ServiceAccountTokenVolume{
 					Name:      volume.Name,
 					MountPath: DefaultServiceAccountMount,
-					TokenPath: getTokenPathFromVolume(volume),
+					TokenPath: tokenPath,
 				}, nil
 			}
 		}
@@ -685,16 +693,16 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 	return nil, fmt.Errorf("failed to find service account volume mount")
 }
 
-func getTokenPath(pod *corev1.Pod, volumeName string) string {
+func getProjectedTokenPath(pod *corev1.Pod, volumeName string) string {
 	for _, volume := range pod.Spec.Volumes {
 		if volume.Name == volumeName {
-			return getTokenPathFromVolume(volume)
+			return getTokenPathFromProjectedVolume(volume)
 		}
 	}
 	return ""
 }
 
-func getTokenPathFromVolume(volume corev1.Volume) string {
+func getTokenPathFromProjectedVolume(volume corev1.Volume) string {
 	if volume.Projected != nil {
 		for _, source := range volume.Projected.Sources {
 			if source.ServiceAccountToken != nil {
@@ -702,7 +710,7 @@ func getTokenPathFromVolume(volume corev1.Volume) string {
 			}
 		}
 	}
-	return "token"
+	return ""
 }
 
 // IRSA support - get aws_iam_token volume mount details to inject to vault containers
