@@ -31,6 +31,8 @@ const (
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
+	DefaultAgentInitContainerName           = "vault-agent-init"
+	DefaultAgentSidecarContainerName        = "vault-agent"
 )
 
 // Agent is the top level structure holding all the
@@ -157,6 +159,12 @@ type Agent struct {
 	// InjectToken controls whether the auto-auth token is injected into the
 	// secrets volume (e.g. /vault/secrets/token)
 	InjectToken bool
+
+	// InitContainerName sets the name of the Vault Agent init container.
+	InitContainerName string
+
+	// SidecarContainerName sets the name of the Vault Agent sidecar container.
+	SidecarContainerName string
 }
 
 type Secret struct {
@@ -306,6 +314,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		CopyVolumeMounts:       pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName: iamName,
 		AwsIamTokenAccountPath: iamPath,
+		InitContainerName:      pod.Annotations[AnnotationAgentInitContainerName],
+		SidecarContainerName:   pod.Annotations[AnnotationAgentSidecarContainerName],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
@@ -555,7 +565,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 		//Add Volume Mounts
 		for i, container := range containers {
-			if container.Name == "vault-agent-init" {
+			if container.Name == a.InitContainerName {
 				continue
 			}
 			a.Patches = append(a.Patches, addVolumeMounts(

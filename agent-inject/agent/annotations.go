@@ -244,6 +244,12 @@ const (
 	// If specified, configures how often Vault Agent Template should render non-leased secrets such as KV v2.
 	// Defaults to 5 minutes.
 	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-static-secret-render-interval"
+
+	// AnnotationAgentInitContainerName sets the name of the Vault Agent init container.
+	AnnotationAgentInitContainerName = "vault.hashicorp.com/agent-init-container-name"
+
+	// AnnotationAgentSidecarContainerName sets the name of the Vault Agent sidecar container.
+	AnnotationAgentSidecarContainerName = "vault.hashicorp.com/agent-sidecar-container-name"
 )
 
 type AgentConfig struct {
@@ -265,6 +271,8 @@ type AgentConfig struct {
 	ResourceLimitMem           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	InitContainerName          string
+	SidecarContainerName       string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -416,8 +424,17 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigExitOnRetryFailure] = strconv.FormatBool(cfg.ExitOnRetryFailure)
 	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInitContainerName]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentInitContainerName] = cfg.InitContainerName
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentSidecarContainerName]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentSidecarContainerName] = cfg.SidecarContainerName
 	}
 
 	return nil

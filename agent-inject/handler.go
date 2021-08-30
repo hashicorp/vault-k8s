@@ -55,6 +55,8 @@ type Handler struct {
 	ResourceLimitMem           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	InitContainerName          string
+	SidecarContainerName       string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -168,6 +170,8 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		ResourceLimitMem:           h.ResourceLimitMem,
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
+		InitContainerName:          h.InitContainerName,
+		SidecarContainerName:       h.SidecarContainerName,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

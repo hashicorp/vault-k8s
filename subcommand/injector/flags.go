@@ -100,6 +100,12 @@ type Specification struct {
 
 	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
 	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
+
+	// InitContainerName is the AGENT_INJECT_INIT_CONTAINER_NAME environment variable.
+	InitContainerName string `split_words:"true"`
+
+	// SidecarContainerName is the AGENT_INJECT_SIDECAR_CONTAINER_NAME environment variable.
+	SidecarContainerName string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -149,16 +155,18 @@ func (c *Command) init() {
 		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
 	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
 		"Sets the default template type (map or json). Defaults to map.")
-
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
 	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
 		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
-
 	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+	c.flagSet.StringVar(&c.flagInitContainerName, "init-container-name", agent.DefaultAgentInitContainerName,
+		fmt.Sprintf("Name of the Vault Agent init container. Defaults to %s", agent.DefaultAgentInitContainerName))
+	c.flagSet.StringVar(&c.flagSidecarContainerName, "sidecar-container-name", agent.DefaultAgentSidecarContainerName,
+		fmt.Sprintf("Name of the Vault Agent sidecar container. Defaults to %s", agent.DefaultAgentSidecarContainerName))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -309,6 +317,14 @@ func (c *Command) parseEnvs() error {
 
 	if envs.ResourceLimitMem != "" {
 		c.flagResourceLimitMem = envs.ResourceLimitMem
+	}
+
+	if envs.InitContainerName != "" {
+		c.flagInitContainerName = envs.InitContainerName
+	}
+
+	if envs.SidecarContainerName != "" {
+		c.flagSidecarContainerName = envs.SidecarContainerName
 	}
 
 	return nil

@@ -62,6 +62,8 @@ type Command struct {
 	flagResourceRequestMem         string // Set Memory request in the injected containers
 	flagResourceLimitCPU           string // Set CPU limit in the injected containers
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagInitContainerName          string // Name of the Vault Agent init container
+	flagSidecarContainerName       string // Name of the Vault Agent sidecar container
 
 	flagSet *flag.FlagSet
 
@@ -190,6 +192,8 @@ func (c *Command) Run(args []string) int {
 		ResourceLimitMem:           c.flagResourceLimitMem,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
+		InitContainerName:          c.flagInitContainerName,
+		SidecarContainerName:       c.flagSidecarContainerName,
 	}
 
 	mux := http.NewServeMux()
