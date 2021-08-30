@@ -587,6 +587,60 @@ func TestHandlerHandle(t *testing.T) {
 			"invalid default template type",
 			nil,
 		},
+
+		{
+			"custom agent container names",
+			basicHandler(),
+			admissionv1.AdmissionRequest{
+				Namespace: "test",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject:               "true",
+							agent.AnnotationVaultRole:                 "demo",
+							agent.AnnotationAgentInitContainerName:    "non-default-init",
+							agent.AnnotationAgentSidecarContainerName: "non-default-sidecar",
+						},
+					},
+					Spec: basicSpec,
+				}),
+			},
+			"",
+			[]jsonpatch.JsonPatchOperation{
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/volumes/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/volumes",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/containers/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
+				},
+			},
+		},
 	}
 
 	for _, tt := range cases {

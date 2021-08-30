@@ -131,6 +131,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_CPU_LIMIT", value: "1000m", cmdPtr: &cmd.flagResourceLimitCPU},
 		{env: "AGENT_INJECT_MEM_LIMIT", value: "256m", cmdPtr: &cmd.flagResourceLimitMem},
 		{env: "AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL", value: "12s", cmdPtr: &cmd.flagStaticSecretRenderInterval},
+		{env: "AGENT_INJECT_INIT_CONTAINER_NAME", value: "vault-agent-init", cmdPtr: &cmd.flagInitContainerName},
+		{env: "AGENT_INJECT_SIDECAR_CONTAINER_NAME", value: "vault-agent", cmdPtr: &cmd.flagSidecarContainerName},
 	}
 
 	for _, tt := range tests {

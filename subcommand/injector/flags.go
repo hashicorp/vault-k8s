@@ -164,9 +164,9 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
 	c.flagSet.StringVar(&c.flagInitContainerName, "init-container-name", agent.DefaultAgentInitContainerName,
-		fmt.Sprintf("Name of the Vault Agent init container. Defaults to %s", agent.DefaultAgentInitContainerName))
+		fmt.Sprintf("Name of the Vault Agent init container. Defaults to %q.", agent.DefaultAgentInitContainerName))
 	c.flagSet.StringVar(&c.flagSidecarContainerName, "sidecar-container-name", agent.DefaultAgentSidecarContainerName,
-		fmt.Sprintf("Name of the Vault Agent sidecar container. Defaults to %s", agent.DefaultAgentSidecarContainerName))
+		fmt.Sprintf("Name of the Vault Agent sidecar container. Defaults to %q.", agent.DefaultAgentSidecarContainerName))
 
 	c.help = flags.Usage(help, c.flagSet)
 }

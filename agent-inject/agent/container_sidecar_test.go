@@ -213,22 +213,23 @@ func TestContainerSidecar(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		Image:              "foobar-image",
-		Address:            "http://foobar:1234",
-		AuthType:           DefaultVaultAuthType,
-		AuthPath:           "test",
-		Namespace:          "test",
-		UserID:             "1000",
-		GroupID:            "100",
-		SameID:             DefaultAgentRunAsSameUser,
-		SetSecurityContext: DefaultAgentSetSecurityContext,
-		ProxyAddress:       "https://proxy:3128",
-		DefaultTemplate:    "map",
-		ResourceRequestCPU: DefaultResourceRequestCPU,
-		ResourceRequestMem: DefaultResourceRequestMem,
-		ResourceLimitCPU:   DefaultResourceLimitCPU,
-		ResourceLimitMem:   DefaultResourceLimitMem,
-		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+		Image:                "foobar-image",
+		Address:              "http://foobar:1234",
+		AuthType:             DefaultVaultAuthType,
+		AuthPath:             "test",
+		Namespace:            "test",
+		UserID:               "1000",
+		GroupID:              "100",
+		SameID:               DefaultAgentRunAsSameUser,
+		SetSecurityContext:   DefaultAgentSetSecurityContext,
+		ProxyAddress:         "https://proxy:3128",
+		DefaultTemplate:      "map",
+		ResourceRequestCPU:   DefaultResourceRequestCPU,
+		ResourceRequestMem:   DefaultResourceRequestMem,
+		ResourceLimitCPU:     DefaultResourceLimitCPU,
+		ResourceLimitMem:     DefaultResourceLimitMem,
+		ExitOnRetryFailure:   DefaultTemplateConfigExitOnRetryFailure,
+		SidecarContainerName: DefaultAgentSidecarContainerName,
 	}
 
 	err := Init(pod, agentConfig)
@@ -301,6 +302,10 @@ func TestContainerSidecar(t *testing.T) {
 
 	if container.Resources.Requests.Memory().String() != DefaultResourceRequestMem {
 		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Requests.Memory().String())
+	}
+
+	if container.Name != DefaultAgentSidecarContainerName {
+		t.Errorf("container name wrong, should have been %s, got %s", DefaultAgentSidecarContainerName, container.Name)
 	}
 
 	for _, volumeMount := range container.VolumeMounts {
