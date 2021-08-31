@@ -2,10 +2,7 @@ package cert
 
 import (
 	"context"
-	"encoding/json"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -13,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -141,10 +137,8 @@ func TestGenSource_leader(t *testing.T) {
 	// Generate the bundle
 	source := testGenSource()
 
-	// Setup test leader service returning this host as the leader
-	ts := testLeaderServer(t, testGetHostname(t))
-	defer ts.Close()
-	source.LeaderElector = leader.NewWithURL(ts.URL)
+	// Pretend this host is the leader
+	source.LeaderElector = newFakeLeader(true)
 
 	source.Namespace = "default"
 	source.K8sClient = fake.NewSimpleClientset()
@@ -173,11 +167,8 @@ func TestGenSource_follower(t *testing.T) {
 	// Generate the bundle
 	source := testGenSource()
 
-	// Setup a leader elector service that returns a different hostname, so it
-	// thinks we're the follower
-	ts := testLeaderServer(t, testGetHostname(t)+"not it")
-	defer ts.Close()
-	source.LeaderElector = leader.NewWithURL(ts.URL)
+	// Pretend this host is the follower
+	source.LeaderElector = newFakeLeader(false)
 
 	// Setup the k8s client with a Secret for a follower to pick up
 	source.Namespace = "default"
@@ -214,31 +205,16 @@ func TestGenSource_follower(t *testing.T) {
 	)
 }
 
-func testLeaderServer(t *testing.T, hostname string) *httptest.Server {
-	t.Helper()
-
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		lResp := leader.LeaderResponse{
-			Name: hostname,
-		}
-		body, err := json.Marshal(lResp)
-		if err != nil {
-			t.Fatalf("failed to marshal leader response: %s", err)
-		}
-		w.WriteHeader(200)
-		w.Write(body)
-	}))
-	return ts
+type FakeLeader struct {
+	leader bool
 }
 
-func testGetHostname(t *testing.T) string {
-	t.Helper()
+func newFakeLeader(isLeader bool) *FakeLeader {
+	return &FakeLeader{leader: isLeader}
+}
 
-	host, err := os.Hostname()
-	if err != nil {
-		t.Fatalf("failed to get hostname for test leader service: %s", err)
-	}
-	return host
+func (fl *FakeLeader) IsLeader() (bool, error) {
+	return fl.leader, nil
 }
 
 func TestGensource_prependLastCA(t *testing.T) {
