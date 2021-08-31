@@ -21,31 +21,37 @@ type LeaderForLife struct {
 }
 
 // New returns a Elector that uses the operator-sdk's leader for life elector
-func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface) *LeaderForLife {
+func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface, exitOnError chan interface{}) *LeaderForLife {
 	le := &LeaderForLife{}
 	le.isLeader.Store(false)
 
 	go func() {
-		// This function blocks until this replica becomes the "leader", which
-		// means it creates a ConfigMap with an OwnerReference. Another replica can
+		// The Become() function blocks until this replica becomes the "leader",
+		// by creating a ConfigMap with an OwnerReference. Another replica can
 		// become the leader when the current leader replica stops running, and
 		// the Kubernetes garbage collector deletes the vault-k8s-leader
 		// ConfigMap.
 
-		// New exponential backoff with unlimited retries
-		bo := backoff.NewExponentialBackOff()
-		bo.MaxInterval = time.Second * 30
-		bo.MaxElapsedTime = 0
-		ticker := backoff.NewTicker(bo)
-		defer ticker.Stop()
+		// New exponential backoff with 10 retries
+		expBo := backoff.NewExponentialBackOff()
+		expBo.MaxInterval = time.Second * 30
+		bo := backoff.WithMaxRetries(expBo, 10)
 
-		for range ticker.C {
+		err := backoff.Retry(func() error {
 			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
-				logger.Error("trouble becoming leader, will retry", "error", err)
-				continue
+				logger.Error("trouble becoming leader", "error", err)
+				return err
 			}
-			break
+			return nil
+		}, bo)
+
+		if err != nil {
+			// Signal the caller to shutdown the injector server, since Become()
+			// failed all the retries
+			exitOnError <- true
+			return
 		}
+
 		le.isLeader.Store(true)
 	}()
 

@@ -125,6 +125,9 @@ func (c *Command) Run(args []string) int {
 	namespace := getNamespace()
 	var secrets informerv1.SecretInformer
 	var leaderElector leader.Elector
+	// The exitOnError channel will be used for signaling an injector shutdown
+	// from the leader goroutine
+	exitOnError := make(chan interface{})
 	if c.flagUseLeaderElector {
 		c.UI.Info("Using leader elector logic")
 		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
@@ -134,7 +137,7 @@ func (c *Command) Run(args []string) int {
 			c.UI.Error("timeout syncing Secrets informer")
 			return 1
 		}
-		leaderElector = leader.New(ctx, logger, clientset)
+		leaderElector = leader.New(ctx, logger, clientset, exitOnError)
 	}
 
 	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
@@ -218,11 +221,12 @@ func (c *Command) Run(args []string) int {
 	}()
 	go func() {
 		select {
+		case <-exitOnError:
+			logger.Error("shutting down due to errors")
+			c.shutdownHandler(ctx, server, cancelFunc)
 		case <-trap:
-			if err := server.Shutdown(ctx); err != nil {
-				c.UI.Error(fmt.Sprintf("Error shutting down handler: %s", err))
-			}
-			cancelFunc()
+			logger.Info("caught signal, shutting down")
+			c.shutdownHandler(ctx, server, cancelFunc)
 		case <-ctx.Done():
 		}
 	}()
@@ -236,6 +240,13 @@ func (c *Command) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func (c *Command) shutdownHandler(ctx context.Context, server *http.Server, cancelFunc context.CancelFunc) {
+	if err := server.Shutdown(ctx); err != nil {
+		c.UI.Error(fmt.Sprintf("Error shutting down handler: %s", err))
+	}
+	cancelFunc()
 }
 
 func getNamespace() string {
