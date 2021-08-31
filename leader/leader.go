@@ -21,7 +21,7 @@ type LeaderForLife struct {
 }
 
 // New returns a Elector that uses the operator-sdk's leader for life elector
-func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface, exitOnError chan interface{}) *LeaderForLife {
+func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface, exitOnError chan error) *LeaderForLife {
 	le := &LeaderForLife{}
 	le.isLeader.Store(false)
 
@@ -39,7 +39,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 
 		err := backoff.Retry(func() error {
 			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
-				logger.Error("trouble becoming leader", "error", err)
+				logger.Error("Trouble becoming leader", "error", err)
 				return err
 			}
 			return nil
@@ -48,7 +48,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 		if err != nil {
 			// Signal the caller to shutdown the injector server, since Become()
 			// failed all the retries
-			exitOnError <- true
+			exitOnError <- err
 			return
 		}
 
