@@ -1,59 +1,65 @@
 package leader
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"os"
+	"context"
+	"sync/atomic"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
+	"github.com/hashicorp/go-hclog"
+	operator_leader "github.com/operator-framework/operator-lib/leader"
+	"k8s.io/client-go/kubernetes"
 )
 
-const defaultURL = "http://localhost:4040/"
-
-type LeaderElector struct {
-	URL string
+type Elector interface {
+	// IsLeader returns whether this host is the leader
+	IsLeader() (bool, error)
 }
 
-type LeaderResponse struct {
-	Name string `json:"name"`
+type LeaderForLife struct {
+	isLeader atomic.Value
 }
 
-// New returns a LeaderElector with the default service endpoint
-func New() *LeaderElector {
-	return &LeaderElector{
-		URL: defaultURL,
-	}
-}
+// New returns a Elector that uses the operator-sdk's leader for life elector
+func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interface, exitOnError chan error) *LeaderForLife {
+	le := &LeaderForLife{}
+	le.isLeader.Store(false)
 
-// NewWithURL returns a LeaderElector with a custom service endpoint URL
-func NewWithURL(URL string) *LeaderElector {
-	return &LeaderElector{
-		URL: URL,
-	}
+	go func() {
+		// The Become() function blocks until this replica becomes the "leader",
+		// by creating a ConfigMap with an OwnerReference. Another replica can
+		// become the leader when the current leader replica stops running, and
+		// the Kubernetes garbage collector deletes the vault-k8s-leader
+		// ConfigMap.
+
+		// New exponential backoff with 10 retries
+		expBo := backoff.NewExponentialBackOff()
+		expBo.MaxInterval = time.Second * 30
+		bo := backoff.WithMaxRetries(expBo, 10)
+
+		err := backoff.Retry(func() error {
+			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
+				logger.Error("Trouble becoming leader", "error", err)
+				return err
+			}
+			return nil
+		}, bo)
+
+		if err != nil {
+			// Signal the caller to shutdown the injector server, since Become()
+			// failed all the retries
+			exitOnError <- err
+			return
+		}
+
+		le.isLeader.Store(true)
+	}()
+
+	return le
 }
 
 // IsLeader returns whether this host is the leader
-func (le *LeaderElector) IsLeader() (bool, error) {
-	resp, err := http.Get(le.URL)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
-	leaderResp := &LeaderResponse{}
-	err = json.Unmarshal(body, leaderResp)
-	if err != nil {
-		return false, err
-	}
-	hostname, err := os.Hostname()
-	if err != nil {
-		return false, err
-	}
-	if leaderResp.Name == hostname {
-		return true, nil
-	}
-
-	return false, nil
+func (le *LeaderForLife) IsLeader() (bool, error) {
+	leaderStatus := le.isLeader.Load().(bool)
+	return leaderStatus, nil
 }

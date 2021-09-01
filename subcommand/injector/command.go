@@ -111,21 +111,6 @@ func (c *Command) Run(args []string) int {
 		return 1
 	}
 
-	namespace := getNamespace()
-	var secrets informerv1.SecretInformer
-	var leaderElector *leader.LeaderElector
-	if c.flagUseLeaderElector {
-		c.UI.Info("Using leader elector logic")
-		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
-		secrets = factory.Core().V1().Secrets()
-		go secrets.Informer().Run(ctx.Done())
-		if !cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced) {
-			c.UI.Error("timeout syncing Secrets informer")
-			return 1
-		}
-		leaderElector = leader.New()
-	}
-
 	level, err := c.logLevel()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error setting log level: %s", err))
@@ -136,6 +121,24 @@ func (c *Command) Run(args []string) int {
 		Name:       "handler",
 		Level:      level,
 		JSONFormat: (c.flagLogFormat == "json")})
+
+	namespace := getNamespace()
+	var secrets informerv1.SecretInformer
+	var leaderElector leader.Elector
+	// The exitOnError channel will be used for signaling an injector shutdown
+	// from the leader goroutine
+	exitOnError := make(chan error)
+	if c.flagUseLeaderElector {
+		c.UI.Info("Using leader elector logic")
+		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
+		secrets = factory.Core().V1().Secrets()
+		go secrets.Informer().Run(ctx.Done())
+		if !cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced) {
+			c.UI.Error("timeout syncing Secrets informer")
+			return 1
+		}
+		leaderElector = leader.New(ctx, logger, clientset, exitOnError)
+	}
 
 	adminAPIVersion, err := getAdminAPIVersion(ctx, clientset)
 	if err != nil {
@@ -166,7 +169,7 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, adminAPIVersion, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -218,11 +221,12 @@ func (c *Command) Run(args []string) int {
 	}()
 	go func() {
 		select {
-		case <-trap:
-			if err := server.Shutdown(ctx); err != nil {
-				c.UI.Error(fmt.Sprintf("Error shutting down handler: %s", err))
-			}
-			cancelFunc()
+		case err := <-exitOnError:
+			logger.Error("Shutting down due to error", "error", err)
+			c.shutdownHandler(ctx, server, cancelFunc)
+		case sig := <-trap:
+			logger.Info("Caught signal, shutting down", "signal", sig)
+			c.shutdownHandler(ctx, server, cancelFunc)
 		case <-ctx.Done():
 		}
 	}()
@@ -236,6 +240,13 @@ func (c *Command) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func (c *Command) shutdownHandler(ctx context.Context, server *http.Server, cancelFunc context.CancelFunc) {
+	if err := server.Shutdown(ctx); err != nil {
+		c.UI.Error(fmt.Sprintf("Error shutting down handler: %s", err))
+	}
+	cancelFunc()
 }
 
 func getNamespace() string {
@@ -274,7 +285,7 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, adminAPIVersion string, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
 
 	for {
@@ -296,7 +307,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
-			log.Error(fmt.Sprintf("Error loading TLS keypair: %s", err))
+			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
 			continue
 		}
 
@@ -304,10 +315,9 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		if c.flagUseLeaderElector {
 			// Only the leader should do the caBundle patching in k8s API
 			var err error
-			le := leader.New()
-			isLeader, err = le.IsLeader()
+			isLeader, err = leaderElector.IsLeader()
 			if err != nil {
-				log.Error(fmt.Sprintf("error checking leader: %s", err))
+				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
 				continue
 			}
 		}
