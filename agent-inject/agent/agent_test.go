@@ -236,6 +236,7 @@ func TestValidate(t *testing.T) {
 			}, false,
 		},
 		{
+			// Missing ServiceAccountTokenVolume.TokenPath
 			Agent{
 				Namespace: "test",
 				ServiceAccountTokenVolume: &ServiceAccountTokenVolume{
@@ -243,6 +244,19 @@ func TestValidate(t *testing.T) {
 					MountPath: "foobar",
 					TokenPath: "",
 				},
+				ImageName: "test",
+				Vault: Vault{
+					Role:     "test",
+					Address:  "https://foobar.com:8200",
+					AuthPath: "test",
+					AuthType: "",
+				},
+			}, false,
+		},
+		{
+			// Missing ServiceAccountTokenVolume
+			Agent{
+				Namespace: "test",
 				ImageName: "test",
 				Vault: Vault{
 					Role:     "test",
@@ -291,9 +305,49 @@ func Test_serviceaccount(t *testing.T) {
 				},
 			},
 		},
+		"token volume name mount missing from volumes": {
+			expected:      nil,
+			expectedError: `failed to find volume "missing" in Pod "test-pod" volumes`,
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "test-pod",
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name": "missing",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "missing",
+									MountPath: "/not/a/projected/token/volume",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "projected-token",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 		"missing tokenPath for volume that's mounted": {
 			expected:      nil,
-			expectedError: `failed to find tokenPath for service account volume mount "projected-token"`,
+			expectedError: `failed to find tokenPath for projected volume "projected-token"`,
 			pod: &corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
 					Annotations: map[string]string{
@@ -321,7 +375,7 @@ func Test_serviceaccount(t *testing.T) {
 		},
 		"missing tokenPath in volume": {
 			expected:      nil,
-			expectedError: `failed to find tokenPath for service account volume "projected-token"`,
+			expectedError: `failed to find tokenPath for projected volume "projected-token"`,
 			pod: &corev1.Pod{
 				ObjectMeta: v1.ObjectMeta{
 					Annotations: map[string]string{
@@ -337,7 +391,7 @@ func Test_serviceaccount(t *testing.T) {
 				},
 			},
 		},
-		"regular service account": {
+		"regular service account (not projected)": {
 			expected: &ServiceAccountTokenVolume{
 				Name:      "internal-app-token-n4pjn",
 				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",

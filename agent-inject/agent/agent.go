@@ -609,7 +609,8 @@ func (a *Agent) Validate() error {
 		return errors.New("namespace missing from request")
 	}
 
-	if a.ServiceAccountTokenVolume.Name == "" ||
+	if a.ServiceAccountTokenVolume == nil ||
+		a.ServiceAccountTokenVolume.Name == "" ||
 		a.ServiceAccountTokenVolume.MountPath == "" ||
 		a.ServiceAccountTokenVolume.TokenPath == "" {
 		return errors.New("no service account token volume name, mount path or token path found")
@@ -646,9 +647,9 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 		for _, container := range pod.Spec.Containers {
 			for _, volumeMount := range container.VolumeMounts {
 				if volumeMount.Name == volumeName {
-					tokenPath := getProjectedTokenPath(pod, volumeName)
-					if len(tokenPath) == 0 {
-						return nil, fmt.Errorf("failed to find tokenPath for service account volume mount %q", volumeName)
+					tokenPath, err := getProjectedTokenPath(pod, volumeName)
+					if err != nil {
+						return nil, err
 					}
 					return &ServiceAccountTokenVolume{
 						Name:      volumeMount.Name,
@@ -662,9 +663,9 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 		// Otherwise, check the volume exists and fallback to `DefaultServiceAccountMount`
 		for _, volume := range pod.Spec.Volumes {
 			if volume.Name == volumeName {
-				tokenPath := getTokenPathFromProjectedVolume(volume)
-				if len(tokenPath) == 0 {
-					return nil, fmt.Errorf("failed to find tokenPath for service account volume %q", volumeName)
+				tokenPath, err := getTokenPathFromProjectedVolume(volume)
+				if err != nil {
+					return nil, err
 				}
 				return &ServiceAccountTokenVolume{
 					Name:      volume.Name,
@@ -693,24 +694,26 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 	return nil, fmt.Errorf("failed to find service account volume mount")
 }
 
-func getProjectedTokenPath(pod *corev1.Pod, volumeName string) string {
+// getProjectedTokenPath searches through a Pod's Volumes for volumeName, and
+// attempts to retrieve the projected token path from that volume
+func getProjectedTokenPath(pod *corev1.Pod, volumeName string) (string, error) {
 	for _, volume := range pod.Spec.Volumes {
 		if volume.Name == volumeName {
 			return getTokenPathFromProjectedVolume(volume)
 		}
 	}
-	return ""
+	return "", fmt.Errorf("failed to find volume %q in Pod %q volumes", volumeName, pod.Name)
 }
 
-func getTokenPathFromProjectedVolume(volume corev1.Volume) string {
+func getTokenPathFromProjectedVolume(volume corev1.Volume) (string, error) {
 	if volume.Projected != nil {
 		for _, source := range volume.Projected.Sources {
-			if source.ServiceAccountToken != nil {
-				return source.ServiceAccountToken.Path
+			if source.ServiceAccountToken != nil && source.ServiceAccountToken.Path != "" {
+				return source.ServiceAccountToken.Path, nil
 			}
 		}
 	}
-	return ""
+	return "", fmt.Errorf("failed to find tokenPath for projected volume %q", volume.Name)
 }
 
 // IRSA support - get aws_iam_token volume mount details to inject to vault containers
