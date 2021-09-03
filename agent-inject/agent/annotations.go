@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"path"
 	"strconv"
 	"strings"
 
@@ -145,6 +146,10 @@ const (
 	// AnnotationAgentSetSecurityContext controls whether a SecurityContext (uid
 	// and gid) is set on the injected Vault Agent containers
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
+
+	// AnnotationAgentServiceAccountTokenVolumeName is the optional name of a volume containing a
+	// service account token
+	AnnotationAgentServiceAccountTokenVolumeName = "vault.hashicorp.com/agent-service-account-token-volume-name"
 
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
@@ -360,6 +365,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName] = ""
 	}
 
 	if _, securityContextIsSet = pod.ObjectMeta.Annotations[AnnotationAgentSetSecurityContext]; !securityContextIsSet {
@@ -659,6 +668,10 @@ func (a *Agent) authConfig() map[string]interface{} {
 	}
 	if a.Vault.Role != "" {
 		authConfig["role"] = a.Vault.Role
+	}
+
+	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
+		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
 
 	return authConfig
