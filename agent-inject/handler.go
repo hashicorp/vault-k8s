@@ -12,16 +12,20 @@ import (
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 )
 
 var (
-	deserializer = func() runtime.Decoder {
-		codecs := serializer.NewCodecFactory(runtime.NewScheme())
+	admissionScheme = runtime.NewScheme()
+	deserializer    = func() runtime.Decoder {
+		codecs := serializer.NewCodecFactory(admissionScheme)
 		return codecs.UniversalDeserializer()
 	}
 
@@ -30,6 +34,11 @@ var (
 		metav1.NamespacePublic,
 	}
 )
+
+func init() {
+	utilruntime.Must(admissionv1.AddToScheme(admissionScheme))
+	utilruntime.Must(v1beta1.AddToScheme(admissionScheme))
+}
 
 // Handler is the HTTP handler for admission webhooks.
 type Handler struct {
@@ -87,15 +96,32 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admReq admissionv1.AdmissionReview
 	var admResp admissionv1.AdmissionReview
-	if _, _, err := deserializer().Decode(body, nil, &admReq); err != nil {
+
+	// Both v1 and v1beta1 AdmissionReview types are exactly the same, so the v1beta1 type can
+	// be decoded into the v1 type. However the runtime codec's decoder guesses which type to
+	// decode into by type name if an Object's TypeMeta isn't set. By setting TypeMeta of an
+	// unregistered type to the v1 GVK, the decoder will coerce a v1beta1 AdmissionReview to v1.
+	// The actual AdmissionReview GVK will be used to write a typed response in case the
+	// webhook config permits multiple versions, otherwise this response will fail.
+	admReq := unversionedAdmissionReview{}
+	admReq.SetGroupVersionKind(admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"))
+	_, actualAdmRevGVK, err := deserializer().Decode(body, nil, &admReq)
+	if err != nil {
 		msg := fmt.Sprintf("error decoding admission request: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		return
 	} else {
 		admResp.Response = h.Mutate(admReq.Request)
+	}
+
+	// Default to a v1 AdmissionReview, otherwise the API server may not recognize the request
+	// if multiple AdmissionReview versions are permitted by the webhook config.
+	if actualAdmRevGVK == nil || *actualAdmRevGVK == (schema.GroupVersionKind{}) {
+		admResp.SetGroupVersionKind(admissionv1.SchemeGroupVersion.WithKind("AdmissionReview"))
+	} else {
+		admResp.SetGroupVersionKind(*actualAdmRevGVK)
 	}
 
 	resp, err := json.Marshal(&admResp)
@@ -210,3 +236,10 @@ func admissionError(err error) *admissionv1.AdmissionResponse {
 		},
 	}
 }
+
+// unversionedAdmissionReview is used to decode both v1 and v1beta1 AdmissionReview types.
+type unversionedAdmissionReview struct {
+	admissionv1.AdmissionReview
+}
+
+var _ runtime.Object = &unversionedAdmissionReview{}

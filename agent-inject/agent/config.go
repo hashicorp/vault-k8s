@@ -177,7 +177,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		Templates: a.newTemplateConfigs(),
 		TemplateConfig: &TemplateConfig{
-			ExitOnRetryFailure: a.VaultAgentTemplateConfig.ExitOnRetryFailure,
+			ExitOnRetryFailure:         a.VaultAgentTemplateConfig.ExitOnRetryFailure,
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
 		},
 	}
