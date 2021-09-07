@@ -903,7 +903,8 @@ func TestAuthConfigAnnotations(t *testing.T) {
 				"vault.hashicorp.com/role": "backwardscompat",
 			},
 			map[string]interface{}{
-				"role": "backwardscompat",
+				"role":       "backwardscompat",
+				"token_path": "serviceaccount/somewhere/token",
 			},
 		},
 		{
@@ -912,7 +913,8 @@ func TestAuthConfigAnnotations(t *testing.T) {
 				"vault.hashicorp.com/auth-config-role": "lowerprio",
 			},
 			map[string]interface{}{
-				"role": "backwardscompat",
+				"role":       "backwardscompat",
+				"token_path": "serviceaccount/somewhere/token",
 			},
 		},
 		{
@@ -929,6 +931,7 @@ func TestAuthConfigAnnotations(t *testing.T) {
 				"client_cert":                         "baz",
 				"credential_poll_interval":            "1",     // string->int conversion left up to consuming app HCL parser
 				"remove_secret_id_file_after_reading": "false", // string->bool, same as above
+				"token_path":                          "serviceaccount/somewhere/token",
 			},
 		},
 	}

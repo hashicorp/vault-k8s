@@ -63,7 +63,7 @@ type GenSource struct {
 	K8sClient       kubernetes.Interface
 	Namespace       string
 	SecretsCache    informerv1.SecretInformer
-	LeaderElector   *leader.LeaderElector
+	LeaderElector   leader.Elector
 	WebhookName     string
 	AdminAPIVersion string
 

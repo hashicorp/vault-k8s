@@ -19,8 +19,8 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			ReadOnly:  false,
 		},
 		{
-			Name:      a.ServiceAccountName,
-			MountPath: a.ServiceAccountPath,
+			Name:      a.ServiceAccountTokenVolume.Name,
+			MountPath: a.ServiceAccountTokenVolume.MountPath,
 			ReadOnly:  true,
 		},
 	}

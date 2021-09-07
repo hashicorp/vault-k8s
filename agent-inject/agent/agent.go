@@ -31,7 +31,8 @@ const (
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
-	DefaultAgentInitContainerName           = "vault-agent-init"
+	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
+  DefaultAgentInitContainerName           = "vault-agent-init"
 	DefaultAgentSidecarContainerName        = "vault-agent"
 )
 
@@ -97,14 +98,10 @@ type Agent struct {
 	//found, and the unique name of the secret which will be used for the filename.
 	Secrets []*Secret
 
-	// ServiceAccountName is the Kubernetes service account name for the pod.
-	// This is used when we mount the service account to the  Vault Agent container(s).
-	ServiceAccountName string
-
-	// ServiceAccountPath is the path on disk where the service account JWT
-	// can be located.  This is used when we mount the service account to the
-	// Vault Agent container(s).
-	ServiceAccountPath string
+	// ServiceAccountTokenVolume holds details of a volume mount for a
+	// Kubernetes service account token for the pod. This is used when we mount
+	// the service account to the Vault Agent container(s).
+	ServiceAccountTokenVolume *ServiceAccountTokenVolume
 
 	// Status is the current injection status.  The only status considered is "injected",
 	// which prevents further mutations.  A user can patch this annotation to force a new
@@ -165,6 +162,17 @@ type Agent struct {
 
 	// SidecarContainerName sets the name of the Vault Agent sidecar container.
 	SidecarContainerName string
+}
+
+type ServiceAccountTokenVolume struct {
+	// Name of the volume
+	Name string
+
+	// MountPath of the volume within vault agent containers
+	MountPath string
+
+	// TokenPath to the JWT token within the volume
+	TokenPath string
 }
 
 type Secret struct {
@@ -289,32 +297,34 @@ type VaultAgentTemplateConfig struct {
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
-	saName, saPath := serviceaccount(pod)
+	sa, err := serviceaccount(pod)
+	if err != nil {
+		return nil, err
+	}
 	var iamName, iamPath string
 	if pod.Annotations[AnnotationVaultAuthType] == "aws" {
 		iamName, iamPath = getAwsIamTokenVolume(pod)
 	}
 
 	agent := &Agent{
-		Annotations:            pod.Annotations,
-		ConfigMapName:          pod.Annotations[AnnotationAgentConfigMap],
-		ImageName:              pod.Annotations[AnnotationAgentImage],
-		DefaultTemplate:        pod.Annotations[AnnotationAgentInjectDefaultTemplate],
-		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
-		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
-		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:                patches,
-		Pod:                    pod,
-		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
-		RequestsMem:            pod.Annotations[AnnotationAgentRequestsMem],
-		ServiceAccountName:     saName,
-		ServiceAccountPath:     saPath,
-		Status:                 pod.Annotations[AnnotationAgentStatus],
-		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
-		CopyVolumeMounts:       pod.Annotations[AnnotationAgentCopyVolumeMounts],
-		AwsIamTokenAccountName: iamName,
-		AwsIamTokenAccountPath: iamPath,
-		InitContainerName:      pod.Annotations[AnnotationAgentInitContainerName],
+		Annotations:               pod.Annotations,
+		ConfigMapName:             pod.Annotations[AnnotationAgentConfigMap],
+		ImageName:                 pod.Annotations[AnnotationAgentImage],
+		DefaultTemplate:           pod.Annotations[AnnotationAgentInjectDefaultTemplate],
+		LimitsCPU:                 pod.Annotations[AnnotationAgentLimitsCPU],
+		LimitsMem:                 pod.Annotations[AnnotationAgentLimitsMem],
+		Namespace:                 pod.Annotations[AnnotationAgentRequestNamespace],
+		Patches:                   patches,
+		Pod:                       pod,
+		RequestsCPU:               pod.Annotations[AnnotationAgentRequestsCPU],
+		RequestsMem:               pod.Annotations[AnnotationAgentRequestsMem],
+		ServiceAccountTokenVolume: sa,
+		Status:                    pod.Annotations[AnnotationAgentStatus],
+		ExtraSecret:               pod.Annotations[AnnotationAgentExtraSecret],
+		CopyVolumeMounts:          pod.Annotations[AnnotationAgentCopyVolumeMounts],
+		AwsIamTokenAccountName:    iamName,
+		AwsIamTokenAccountPath:    iamPath,
+    InitContainerName:      pod.Annotations[AnnotationAgentInitContainerName],
 		SidecarContainerName:   pod.Annotations[AnnotationAgentSidecarContainerName],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
@@ -336,7 +346,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		},
 	}
 
-	var err error
 	agent.Secrets = agent.secrets()
 	agent.Vault.AuthConfig = agent.authConfig()
 	agent.Inject, err = agent.inject()
@@ -610,8 +619,11 @@ func (a *Agent) Validate() error {
 		return errors.New("namespace missing from request")
 	}
 
-	if a.ServiceAccountName == "" || a.ServiceAccountPath == "" {
-		return errors.New("no service account name or path found")
+	if a.ServiceAccountTokenVolume == nil ||
+		a.ServiceAccountTokenVolume.Name == "" ||
+		a.ServiceAccountTokenVolume.MountPath == "" ||
+		a.ServiceAccountTokenVolume.TokenPath == "" {
+		return errors.New("no service account token volume name, mount path or token path found")
 	}
 
 	if a.ImageName == "" {
@@ -639,16 +651,79 @@ func (a *Agent) Validate() error {
 	return nil
 }
 
-func serviceaccount(pod *corev1.Pod) (string, string) {
-	var serviceAccountName, serviceAccountPath string
+func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
+	if volumeName := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; volumeName != "" {
+		// Attempt to find existing mount point of named volume and copy mount path
+		for _, container := range pod.Spec.Containers {
+			for _, volumeMount := range container.VolumeMounts {
+				if volumeMount.Name == volumeName {
+					tokenPath, err := getProjectedTokenPath(pod, volumeName)
+					if err != nil {
+						return nil, err
+					}
+					return &ServiceAccountTokenVolume{
+						Name:      volumeMount.Name,
+						MountPath: volumeMount.MountPath,
+						TokenPath: tokenPath,
+					}, nil
+				}
+			}
+		}
+
+		// Otherwise, check the volume exists and fallback to `DefaultServiceAccountMount`
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Name == volumeName {
+				tokenPath, err := getTokenPathFromProjectedVolume(volume)
+				if err != nil {
+					return nil, err
+				}
+				return &ServiceAccountTokenVolume{
+					Name:      volume.Name,
+					MountPath: DefaultServiceAccountMount,
+					TokenPath: tokenPath,
+				}, nil
+			}
+		}
+
+		return nil, fmt.Errorf("failed to find service account volume %q", volumeName)
+	}
+
+	// Fallback to searching for normal service account token
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
 			if strings.Contains(volumes.MountPath, "serviceaccount") {
-				return volumes.Name, volumes.MountPath
+				return &ServiceAccountTokenVolume{
+					Name:      volumes.Name,
+					MountPath: volumes.MountPath,
+					TokenPath: "token",
+				}, nil
 			}
 		}
 	}
-	return serviceAccountName, serviceAccountPath
+
+	return nil, fmt.Errorf("failed to find service account volume mount")
+}
+
+// getProjectedTokenPath searches through a Pod's Volumes for volumeName, and
+// attempts to retrieve the projected token path from that volume
+func getProjectedTokenPath(pod *corev1.Pod, volumeName string) (string, error) {
+	for _, volume := range pod.Spec.Volumes {
+		if volume.Name == volumeName {
+			return getTokenPathFromProjectedVolume(volume)
+		}
+	}
+	return "", fmt.Errorf("failed to find volume %q in Pod %q volumes", volumeName, pod.Name)
+}
+
+func getTokenPathFromProjectedVolume(volume corev1.Volume) (string, error) {
+	if volume.Projected != nil {
+		for _, source := range volume.Projected.Sources {
+			if source.ServiceAccountToken != nil && source.ServiceAccountToken.Path != "" {
+				return source.ServiceAccountToken.Path, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("failed to find tokenPath for projected volume %q", volume.Name)
 }
 
 // IRSA support - get aws_iam_token volume mount details to inject to vault containers

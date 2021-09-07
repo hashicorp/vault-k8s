@@ -3,6 +3,8 @@
 Improvements:
 * Continuously retry updating the cert secret: [GH-280](https://github.com/hashicorp/vault-k8s/pull/280)
 * Keep the last CA when creating a new one: [GH-287](https://github.com/hashicorp/vault-k8s/pull/287)
+* Moved leader election inside vault-k8s: [GH-271](https://github.com/hashicorp/vault-k8s/pull/271)
+* Add projected service account support [GH-288](https://github.com/hashicorp/vault-k8s/pull/288)
 
 ## 0.12.0 (August 18, 2021)
 

@@ -78,8 +78,8 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			{
-				Name:      agent.ServiceAccountName,
-				MountPath: agent.ServiceAccountPath,
+				Name:      agent.ServiceAccountTokenVolume.Name,
+				MountPath: agent.ServiceAccountTokenVolume.MountPath,
 				ReadOnly:  true,
 			},
 			{
@@ -175,8 +175,8 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		t,
 		[]corev1.VolumeMount{
 			{
-				Name:      agent.ServiceAccountName,
-				MountPath: agent.ServiceAccountPath,
+				Name:      agent.ServiceAccountTokenVolume.Name,
+				MountPath: agent.ServiceAccountTokenVolume.MountPath,
 				ReadOnly:  true,
 			},
 			{

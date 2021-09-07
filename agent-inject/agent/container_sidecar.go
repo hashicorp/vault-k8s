@@ -26,8 +26,8 @@ const (
 func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
-			Name:      a.ServiceAccountName,
-			MountPath: a.ServiceAccountPath,
+			Name:      a.ServiceAccountTokenVolume.Name,
+			MountPath: a.ServiceAccountTokenVolume.MountPath,
 			ReadOnly:  true,
 		},
 		{
