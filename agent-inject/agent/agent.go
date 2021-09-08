@@ -32,7 +32,7 @@ const (
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
-  DefaultAgentInitContainerName           = "vault-agent-init"
+	DefaultAgentInitContainerName           = "vault-agent-init"
 	DefaultAgentSidecarContainerName        = "vault-agent"
 )
 
@@ -324,7 +324,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		CopyVolumeMounts:          pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName:    iamName,
 		AwsIamTokenAccountPath:    iamPath,
-    InitContainerName:      pod.Annotations[AnnotationAgentInitContainerName],
+		InitContainerName:      pod.Annotations[AnnotationAgentInitContainerName],
 		SidecarContainerName:   pod.Annotations[AnnotationAgentSidecarContainerName],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
