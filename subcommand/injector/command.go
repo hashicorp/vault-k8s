@@ -129,7 +129,7 @@ func (c *Command) Run(args []string) int {
 	// from the leader goroutine
 	exitOnError := make(chan error)
 	if c.flagUseLeaderElector {
-		c.UI.Info("Using leader elector logic")
+		c.UI.Info("Using internal leader elector logic for webhook certificate management")
 		factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
 		secrets = factory.Core().V1().Secrets()
 		go secrets.Informer().Run(ctx.Done())
