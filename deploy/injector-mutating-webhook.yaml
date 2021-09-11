@@ -11,7 +11,7 @@ webhooks:
     sideEffects: None
     admissionReviewVersions:
       - "v1"
-      - "v1beta"
+      - "v1beta1"
     clientConfig:
       service:
         name: vault-agent-injector-svc
