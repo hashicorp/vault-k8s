@@ -6,6 +6,10 @@ Improvements:
 * Moved leader election inside vault-k8s: [GH-271](https://github.com/hashicorp/vault-k8s/pull/271)
 * Add projected service account support [GH-288](https://github.com/hashicorp/vault-k8s/pull/288)
 
+Bugs:
+* Set GVK on AdmissionReview responses in webhook [GH-296](https://github.com/hashicorp/vault-k8s/pull/296)
+* Fix a typo in deploy/injector-mutating-webhook.yaml manifest [GH-296](https://github.com/hashicorp/vault-k8s/pull/296)
+
 ## 0.12.0 (August 18, 2021)
 
 Features:
