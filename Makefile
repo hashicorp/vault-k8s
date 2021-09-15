@@ -1,6 +1,6 @@
 REGISTRY_NAME?=docker.io/hashicorp
 IMAGE_NAME=vault-k8s
-VERSION?=0.12.0
+VERSION?=0.13.0
 IMAGE_TAG?=$(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
 PUBLISH_LOCATION?=https://releases.hashicorp.com
 DOCKER_DIR=./build/docker
