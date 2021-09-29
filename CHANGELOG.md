@@ -1,3 +1,10 @@
+## Unreleased
+
+## 0.13.1 (September 29, 2021)
+
+Changes:
+* Bump the default Vault image to v1.8.3
+
 ## 0.13.0 (September 15, 2021)
 
 Improvements:
