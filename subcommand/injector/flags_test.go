@@ -131,6 +131,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_CPU_LIMIT", value: "1000m", cmdPtr: &cmd.flagResourceLimitCPU},
 		{env: "AGENT_INJECT_MEM_LIMIT", value: "256m", cmdPtr: &cmd.flagResourceLimitMem},
 		{env: "AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL", value: "12s", cmdPtr: &cmd.flagStaticSecretRenderInterval},
+		{env: "AGENT_INJECT_TLS_MIN_VERSION", value: "tls13", cmdPtr: &cmd.flagTLSMinVersion},
+		{env: "AGENT_INJECT_TLS_CIPHER_SUITES", value: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", cmdPtr: &cmd.flagTLSCipherSuites},
 	}
 
 	for _, tt := range tests {
@@ -168,6 +170,8 @@ func TestCommandEnvBools(t *testing.T) {
 		{env: "AGENT_INJECT_USE_LEADER_ELECTOR", value: false, cmdPtr: &cmd.flagUseLeaderElector},
 		{env: "AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE", value: true, cmdPtr: &cmd.flagExitOnRetryFailure},
 		{env: "AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE", value: false, cmdPtr: &cmd.flagExitOnRetryFailure},
+		{env: "AGENT_INJECT_TLS_PREFER_SERVER_CIPHER_SUITES", value: true, cmdPtr: &cmd.flagTLSPreferServerCipherSuites},
+		{env: "AGENT_INJECT_TLS_PREFER_SERVER_CIPHER_SUITES", value: false, cmdPtr: &cmd.flagTLSPreferServerCipherSuites},
 	}
 
 	for _, tt := range tests {

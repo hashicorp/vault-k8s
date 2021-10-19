@@ -6,6 +6,7 @@ require (
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/hashicorp/go-hclog v0.9.2
+	github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.1
 	github.com/hashicorp/vault/sdk v0.1.14-0.20191205220236-47cffd09f972
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/text v0.2.0
