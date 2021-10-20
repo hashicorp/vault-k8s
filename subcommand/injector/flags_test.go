@@ -170,8 +170,6 @@ func TestCommandEnvBools(t *testing.T) {
 		{env: "AGENT_INJECT_USE_LEADER_ELECTOR", value: false, cmdPtr: &cmd.flagUseLeaderElector},
 		{env: "AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE", value: true, cmdPtr: &cmd.flagExitOnRetryFailure},
 		{env: "AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE", value: false, cmdPtr: &cmd.flagExitOnRetryFailure},
-		{env: "AGENT_INJECT_TLS_PREFER_SERVER_CIPHER_SUITES", value: true, cmdPtr: &cmd.flagTLSPreferServerCipherSuites},
-		{env: "AGENT_INJECT_TLS_PREFER_SERVER_CIPHER_SUITES", value: false, cmdPtr: &cmd.flagTLSPreferServerCipherSuites},
 	}
 
 	for _, tt := range tests {

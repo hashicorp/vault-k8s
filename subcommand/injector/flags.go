@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	DefaultLogLevel                    = "info"
-	DefaultLogFormat                   = "standard"
-	defaultTLSMinVersion               = "tls12"
-	defaultTLSPreferServerCipherSuites = true
+	DefaultLogLevel      = "info"
+	DefaultLogFormat     = "standard"
+	defaultTLSMinVersion = "tls12"
 )
 
 // Specification are the supported environment variables, prefixed with
@@ -108,9 +107,6 @@ type Specification struct {
 
 	// TLSCipherSuites is the AGENT_INJECT_TLS_CIPHER_SUITES environment variable
 	TLSCipherSuites string `envconfig:"tls_cipher_suites"`
-
-	// TLSPreferServerCipherSuites is the AGENT_INJECT_TLS_PREFER_SERVER_CIPHER_SUITES environment variable
-	TLSPreferServerCipherSuites string `envconfig:"tls_prefer_server_cipher_suites"`
 }
 
 func (c *Command) init() {
@@ -175,8 +171,6 @@ func (c *Command) init() {
 		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are "tls10", "tls11", "tls12" or "tls13"`, defaultTLSMinVersion))
 	c.flagSet.StringVar(&c.flagTLSCipherSuites, "tls-cipher-suites", "",
 		"Comma-separated list of supported cipher suites")
-	c.flagSet.BoolVar(&c.flagTLSPreferServerCipherSuites, "tls-prefer-server-cipher-suites", defaultTLSPreferServerCipherSuites,
-		fmt.Sprintf("Prefer the server's cipher suites over the client cipher suites. Defaults to %v", defaultTLSPreferServerCipherSuites))
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -335,13 +329,6 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TLSCipherSuites != "" {
 		c.flagTLSCipherSuites = envs.TLSCipherSuites
-	}
-
-	if envs.TLSPreferServerCipherSuites != "" {
-		c.flagTLSPreferServerCipherSuites, err = strconv.ParseBool(envs.TLSPreferServerCipherSuites)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

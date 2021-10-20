@@ -37,35 +37,34 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen                      string // Address of Vault Server
-	flagLogLevel                    string // Log verbosity
-	flagLogFormat                   string // Log format
-	flagCertFile                    string // TLS Certificate to serve
-	flagKeyFile                     string // TLS private key to serve
-	flagExitOnRetryFailure          bool   // Set template_config.exit_on_retry_failure on agent
-	flagStaticSecretRenderInterval  string // Set template_config.static_secret_render_interval on agent
-	flagAutoName                    string // MutatingWebhookConfiguration for updating
-	flagAutoHosts                   string // SANs for the auto-generated TLS cert.
-	flagVaultService                string // Name of the Vault service
-	flagProxyAddress                string // HTTP proxy address used to talk to the Vault service
-	flagVaultImage                  string // Name of the Vault Image to use
-	flagVaultAuthType               string // Type of Vault Auth Method to use
-	flagVaultAuthPath               string // Mount path of the Vault Auth Method
-	flagRevokeOnShutdown            bool   // Revoke Vault Token on pod shutdown
-	flagRunAsUser                   string // User (uid) to run Vault agent as
-	flagRunAsGroup                  string // Group (gid) to run Vault agent as
-	flagRunAsSameUser               bool   // Run Vault agent as the User (uid) of the first application container
-	flagSetSecurityContext          bool   // Set SecurityContext in injected containers
-	flagTelemetryPath               string // Path under which to expose metrics
-	flagUseLeaderElector            bool   // Use leader elector code
-	flagDefaultTemplate             string // Toggles which default template to use
-	flagResourceRequestCPU          string // Set CPU request in the injected containers
-	flagResourceRequestMem          string // Set Memory request in the injected containers
-	flagResourceLimitCPU            string // Set CPU limit in the injected containers
-	flagResourceLimitMem            string // Set Memory limit in the injected containers
-	flagTLSMinVersion               string // Minimum TLS version supported by the webhook server
-	flagTLSCipherSuites             string // Comma-separated list of supported cipher suites
-	flagTLSPreferServerCipherSuites bool   // Prefer this server's cipher suites over the client cipher suites
+	flagListen                     string // Address of Vault Server
+	flagLogLevel                   string // Log verbosity
+	flagLogFormat                  string // Log format
+	flagCertFile                   string // TLS Certificate to serve
+	flagKeyFile                    string // TLS private key to serve
+	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
+	flagStaticSecretRenderInterval string // Set template_config.static_secret_render_interval on agent
+	flagAutoName                   string // MutatingWebhookConfiguration for updating
+	flagAutoHosts                  string // SANs for the auto-generated TLS cert.
+	flagVaultService               string // Name of the Vault service
+	flagProxyAddress               string // HTTP proxy address used to talk to the Vault service
+	flagVaultImage                 string // Name of the Vault Image to use
+	flagVaultAuthType              string // Type of Vault Auth Method to use
+	flagVaultAuthPath              string // Mount path of the Vault Auth Method
+	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
+	flagRunAsUser                  string // User (uid) to run Vault agent as
+	flagRunAsGroup                 string // Group (gid) to run Vault agent as
+	flagRunAsSameUser              bool   // Run Vault agent as the User (uid) of the first application container
+	flagSetSecurityContext         bool   // Set SecurityContext in injected containers
+	flagTelemetryPath              string // Path under which to expose metrics
+	flagUseLeaderElector           bool   // Use leader elector code
+	flagDefaultTemplate            string // Toggles which default template to use
+	flagResourceRequestCPU         string // Set CPU request in the injected containers
+	flagResourceRequestMem         string // Set Memory request in the injected containers
+	flagResourceLimitCPU           string // Set CPU limit in the injected containers
+	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
+	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 
 	flagSet *flag.FlagSet
 
@@ -287,9 +286,8 @@ func (c *Command) makeTLSConfig() (*tls.Config, error) {
 	}
 
 	tlsConfig := &tls.Config{
-		GetCertificate:           c.getCertificate,
-		MinVersion:               minTLSVersion,
-		PreferServerCipherSuites: c.flagTLSPreferServerCipherSuites,
+		GetCertificate: c.getCertificate,
+		MinVersion:     minTLSVersion,
 	}
 	if len(ciphers) > 0 {
 		tlsConfig.CipherSuites = ciphers
