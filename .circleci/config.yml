@@ -3,7 +3,6 @@ jobs:
   build:
     docker:
     - image: docker.mirror.hashicorp.services/cimg/go:1.17
-    working_directory: /go/src/github.com/hashicorp/vault-k8s
     steps:
     - checkout
     - run:
