@@ -211,28 +211,16 @@ func (c *Command) Run(args []string) int {
 	}
 
 	var handler http.Handler = mux
-	minTLSVersion, ok := tlsutil.TLSLookup[c.flagTLSMinVersion]
-	if !ok {
-		c.UI.Error(fmt.Sprintf("Failed to parse minimum TLS version %q", c.flagTLSMinVersion))
-		return 1
-	}
-	ciphers, err := tlsutil.ParseCiphers(c.flagTLSCipherSuites)
+	tlsConfig, err := c.makeTLSConfig()
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to parse TLS cipher suites list %q: %s", c.flagTLSCipherSuites, err))
+		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
 		return 1
 	}
 	server := &http.Server{
-		Addr:    c.flagListen,
-		Handler: handler,
-		TLSConfig: &tls.Config{
-			GetCertificate:           c.getCertificate,
-			MinVersion:               minTLSVersion,
-			PreferServerCipherSuites: c.flagTLSPreferServerCipherSuites,
-		},
-		ErrorLog: logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
-	}
-	if len(ciphers) > 0 {
-		server.TLSConfig.CipherSuites = ciphers
+		Addr:      c.flagListen,
+		Handler:   handler,
+		TLSConfig: tlsConfig,
+		ErrorLog:  logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
 	}
 
 	trap := make(chan os.Signal, 1)
@@ -285,6 +273,29 @@ func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 	// there is a TLS certificate. If we reached this point it means we
 	// served a TLS certificate.
 	rw.WriteHeader(204)
+}
+
+func (c *Command) makeTLSConfig() (*tls.Config, error) {
+	minTLSVersion, ok := tlsutil.TLSLookup[c.flagTLSMinVersion]
+	if !ok {
+		return nil, fmt.Errorf("invalid or unsupported TLS version %q", c.flagTLSMinVersion)
+	}
+
+	ciphers, err := tlsutil.ParseCiphers(c.flagTLSCipherSuites)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse TLS cipher suites list %q: %s", c.flagTLSCipherSuites, err)
+	}
+
+	tlsConfig := &tls.Config{
+		GetCertificate:           c.getCertificate,
+		MinVersion:               minTLSVersion,
+		PreferServerCipherSuites: c.flagTLSPreferServerCipherSuites,
+	}
+	if len(ciphers) > 0 {
+		tlsConfig.CipherSuites = ciphers
+	}
+
+	return tlsConfig, nil
 }
 
 func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
