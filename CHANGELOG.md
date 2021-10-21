@@ -1,5 +1,8 @@
 ## Unreleased
 
+Improvements:
+* Added options for setting the TLS minimum version (default 1.2) and supported cipher suites: [GH-302](https://github.com/hashicorp/vault-k8s/pull/302)
+
 ## 0.13.1 (September 29, 2021)
 
 Changes:

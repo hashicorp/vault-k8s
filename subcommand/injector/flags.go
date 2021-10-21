@@ -3,18 +3,21 @@ package injector
 import (
 	"flag"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/flags"
 	"github.com/kelseyhightower/envconfig"
 )
 
 const (
-	DefaultLogLevel  = "info"
-	DefaultLogFormat = "standard"
+	DefaultLogLevel      = "info"
+	DefaultLogFormat     = "standard"
+	defaultTLSMinVersion = "tls12"
 )
 
 // Specification are the supported environment variables, prefixed with
@@ -100,6 +103,12 @@ type Specification struct {
 
 	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
 	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
+
+	// TLSMinVersion is the AGENT_INJECT_TLS_MIN_VERSION environment variable
+	TLSMinVersion string `envconfig:"tls_min_version"`
+
+	// TLSCipherSuites is the AGENT_INJECT_TLS_CIPHER_SUITES environment variable
+	TLSCipherSuites string `envconfig:"tls_cipher_suites"`
 }
 
 func (c *Command) init() {
@@ -159,6 +168,17 @@ func (c *Command) init() {
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+
+	tlsVersions := []string{}
+	for v := range tlsutil.TLSLookup {
+		tlsVersions = append(tlsVersions, v)
+	}
+	sort.Strings(tlsVersions)
+	tlsStr := strings.Join(tlsVersions, ", ")
+	c.flagSet.StringVar(&c.flagTLSMinVersion, "tls-min-version", defaultTLSMinVersion,
+		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are %s.`, defaultTLSMinVersion, tlsStr))
+	c.flagSet.StringVar(&c.flagTLSCipherSuites, "tls-cipher-suites", "",
+		"Comma-separated list of supported cipher suites for TLS 1.0-1.2")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -309,6 +329,14 @@ func (c *Command) parseEnvs() error {
 
 	if envs.ResourceLimitMem != "" {
 		c.flagResourceLimitMem = envs.ResourceLimitMem
+	}
+
+	if envs.TLSMinVersion != "" {
+		c.flagTLSMinVersion = envs.TLSMinVersion
+	}
+
+	if envs.TLSCipherSuites != "" {
+		c.flagTLSCipherSuites = envs.TLSCipherSuites
 	}
 
 	return nil

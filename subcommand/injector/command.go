@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/hashicorp/vault-k8s/leader"
@@ -62,6 +63,8 @@ type Command struct {
 	flagResourceRequestMem         string // Set Memory request in the injected containers
 	flagResourceLimitCPU           string // Set CPU limit in the injected containers
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
+	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 
 	flagSet *flag.FlagSet
 
@@ -120,7 +123,8 @@ func (c *Command) Run(args []string) int {
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:       "handler",
 		Level:      level,
-		JSONFormat: (c.flagLogFormat == "json")})
+		JSONFormat: (c.flagLogFormat == "json"),
+	})
 
 	namespace := getNamespace()
 	var secrets informerv1.SecretInformer
@@ -206,10 +210,15 @@ func (c *Command) Run(args []string) int {
 	}
 
 	var handler http.Handler = mux
+	tlsConfig, err := c.makeTLSConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
+		return 1
+	}
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,
-		TLSConfig: &tls.Config{GetCertificate: c.getCertificate},
+		TLSConfig: tlsConfig,
 		ErrorLog:  logger.StandardLogger(&hclog.StandardLoggerOptions{ForceLevel: hclog.Error}),
 	}
 
@@ -263,6 +272,28 @@ func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 	// there is a TLS certificate. If we reached this point it means we
 	// served a TLS certificate.
 	rw.WriteHeader(204)
+}
+
+func (c *Command) makeTLSConfig() (*tls.Config, error) {
+	minTLSVersion, ok := tlsutil.TLSLookup[c.flagTLSMinVersion]
+	if !ok {
+		return nil, fmt.Errorf("invalid or unsupported TLS version %q", c.flagTLSMinVersion)
+	}
+
+	ciphers, err := tlsutil.ParseCiphers(c.flagTLSCipherSuites)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse TLS cipher suites list %q: %s", c.flagTLSCipherSuites, err)
+	}
+
+	tlsConfig := &tls.Config{
+		GetCertificate: c.getCertificate,
+		MinVersion:     minTLSVersion,
+	}
+	if len(ciphers) > 0 {
+		tlsConfig.CipherSuites = ciphers
+	}
+
+	return tlsConfig, nil
 }
 
 func (c *Command) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
@@ -369,8 +400,10 @@ func (c *Command) Help() string {
 	return c.help
 }
 
-const synopsis = "Vault Agent injector service"
-const help = `
+const (
+	synopsis = "Vault Agent injector service"
+	help     = `
 Usage: vault-k8s agent-inject [options]
   Run the Admission Webhook server for injecting Vault Agent containers into pods.
 `
+)
