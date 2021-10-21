@@ -178,7 +178,7 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagTLSMinVersion, "tls-min-version", defaultTLSMinVersion,
 		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are %s.`, defaultTLSMinVersion, tlsStr))
 	c.flagSet.StringVar(&c.flagTLSCipherSuites, "tls-cipher-suites", "",
-		"Comma-separated list of supported cipher suites")
+		"Comma-separated list of supported cipher suites for TLS 1.0-1.2")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
