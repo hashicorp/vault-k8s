@@ -3,10 +3,12 @@ package injector
 import (
 	"flag"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/flags"
 	"github.com/kelseyhightower/envconfig"
@@ -167,8 +169,14 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
 
+	tlsVersions := []string{}
+	for v := range tlsutil.TLSLookup {
+		tlsVersions = append(tlsVersions, v)
+	}
+	sort.Strings(tlsVersions)
+	tlsStr := strings.Join(tlsVersions, ", ")
 	c.flagSet.StringVar(&c.flagTLSMinVersion, "tls-min-version", defaultTLSMinVersion,
-		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are "tls10", "tls11", "tls12" or "tls13"`, defaultTLSMinVersion))
+		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are %s.`, defaultTLSMinVersion, tlsStr))
 	c.flagSet.StringVar(&c.flagTLSCipherSuites, "tls-cipher-suites", "",
 		"Comma-separated list of supported cipher suites")
 
