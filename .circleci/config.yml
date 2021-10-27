@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-    - image: docker.mirror.hashicorp.services/cimg/go:1.17
+    - image: docker.mirror.hashicorp.services/cimg/go:1.17.2
     steps:
     - checkout
     - run:
