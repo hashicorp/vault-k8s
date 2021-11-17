@@ -1,3 +1,13 @@
+## Unreleased
+
+## 0.14.1 (November 17, 2021)
+
+Changes:
+* Bump the default Vault image to v1.9.0
+
+Improvements:
+* Dependency update [GH-304](https://github.com/hashicorp/vault-k8s/pull/304)
+
 ## 0.14.0 (October 21, 2021)
 
 Improvements:
