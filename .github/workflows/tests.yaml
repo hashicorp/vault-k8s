@@ -1,11 +1,10 @@
 name: Tests
 
-on:
-  push: {}
-  workflow_dispatch: {}
+# Run this workflow on pushes and manually
+on: [push, workflow_dispatch]
 
 jobs:
-  test-and-build:
+  unit-tests-and-build:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
