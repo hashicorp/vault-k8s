@@ -46,7 +46,7 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 	}{
 		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE"},
+			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"},
 		},
 	}
 	for _, tt := range envTests {
