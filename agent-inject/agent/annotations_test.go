@@ -970,16 +970,16 @@ func TestAuthConfigAnnotations(t *testing.T) {
 	}
 }
 
-func TestInjectContainers(t *testing.T){
-	tests := []struct{
-		name 			string
-		annotations 	map[string]string
-		expectedValue   string
-		ExpectedPatch 	[]jsonpatch.JsonPatchOperation
+func TestInjectContainers(t *testing.T) {
+	tests := []struct {
+		name          string
+		annotations   map[string]string
+		expectedValue string
+		ExpectedPatch []jsonpatch.JsonPatchOperation
 	}{
 		{
-			name: "No InjectionContainers annotations",
-			annotations: map[string]string{},
+			name:          "No InjectionContainers annotations",
+			annotations:   map[string]string{},
 			expectedValue: "foobar,foo1,foo2",
 			ExpectedPatch: []jsonpatch.JsonPatchOperation{
 				{Operation: "add", Path: "/spec/volumes"},
@@ -991,13 +991,11 @@ func TestInjectContainers(t *testing.T){
 				{Operation: "add", Path: "/spec/initContainers"},
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
-
-
 			},
 		},
 		{
-			name: "InjectionContainers annotation with container name",
-			annotations: map[string]string{AnnotationAgentInjectContainers: "foo1"},
+			name:          "InjectionContainers annotation with container name",
+			annotations:   map[string]string{AnnotationAgentInjectContainers: "foo1"},
 			expectedValue: "foo1",
 			ExpectedPatch: []jsonpatch.JsonPatchOperation{
 				{Operation: "add", Path: "/spec/volumes"},
@@ -1007,12 +1005,11 @@ func TestInjectContainers(t *testing.T){
 				{Operation: "add", Path: "/spec/initContainers"},
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
-
 			},
 		},
 		{
-			name: "InjectionContainer annotations with multiple containers names",
-			annotations: map[string]string{AnnotationAgentInjectContainers: "foo1,foo2"},
+			name:          "InjectionContainer annotations with multiple containers names",
+			annotations:   map[string]string{AnnotationAgentInjectContainers: "foo1,foo2"},
 			expectedValue: "foo1,foo2",
 			ExpectedPatch: []jsonpatch.JsonPatchOperation{
 				{Operation: "add", Path: "/spec/volumes"},
@@ -1024,11 +1021,10 @@ func TestInjectContainers(t *testing.T){
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
 			},
-
 		},
 	}
 
-	for _, tt := range tests{
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
 			var patches []*jsonpatch.JsonPatchOperation

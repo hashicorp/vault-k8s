@@ -48,7 +48,7 @@ type Agent struct {
 	ImageName string
 
 	//Containers determine which containers should be injected
-	Containers  []string
+	Containers []string
 
 	// Inject is the flag used to determine if a container should be requested
 	// in a pod request.
@@ -275,7 +275,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		LimitsCPU:              pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:              pod.Annotations[AnnotationAgentLimitsMem],
 		Namespace:              pod.Annotations[AnnotationAgentRequestNamespace],
-    		Containers: 		[]string{pod.Annotations[AnnotationAgentInjectContainers]},
+		Containers:             []string{},
 		Patches:                patches,
 		Pod:                    pod,
 		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
@@ -374,6 +374,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	if err != nil {
 		return agent, err
 	}
+	agent.Containers = strings.Split(pod.Annotations[AnnotationAgentInjectContainers], ",")
 
 	agent.DefaultTemplate = strings.ToLower(agent.DefaultTemplate)
 	switch agent.DefaultTemplate {
@@ -479,14 +480,11 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	//Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
-		for _, k := range a.Containers {
-			name := strings.Split(k, ",")
-			if strutil.StrListContains(name, container.Name){
-				a.Patches = append(a.Patches, addVolumeMounts(
-					container.VolumeMounts,
-					a.ContainerVolumeMounts(),
-					fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
-			}
+		if strutil.StrListContains(a.Containers, container.Name) {
+			a.Patches = append(a.Patches, addVolumeMounts(
+				container.VolumeMounts,
+				a.ContainerVolumeMounts(),
+				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 		}
 
 	}
