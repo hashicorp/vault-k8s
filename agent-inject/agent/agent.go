@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -48,6 +49,9 @@ type Agent struct {
 	// ImageName is the name of the Vault image to use for the
 	// sidecar container.
 	ImageName string
+
+	//Containers determine which containers should be injected
+	Containers []string
 
 	// Inject is the flag used to determine if a container should be requested
 	// in a pod request.
@@ -308,6 +312,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Namespace:                 pod.Annotations[AnnotationAgentRequestNamespace],
 		Patches:                   patches,
 		Pod:                       pod,
+		Containers:                []string{},
 		RequestsCPU:               pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:               pod.Annotations[AnnotationAgentRequestsMem],
 		ServiceAccountTokenVolume: sa,
@@ -362,6 +367,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	if err != nil {
 		return agent, err
 	}
+
+	agent.Containers = strings.Split(pod.Annotations[AnnotationAgentInjectContainers], ",")
 
 	agent.RevokeGrace, err = agent.revokeGrace()
 	if err != nil {
@@ -526,6 +533,17 @@ func (a *Agent) Patch() ([]byte, error) {
 			container.VolumeMounts,
 			a.ContainerVolumeMounts(),
 			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
+	}
+
+	//Add Volume Mounts
+	for i, container := range a.Pod.Spec.Containers {
+		if strutil.StrListContains(a.Containers, container.Name) {
+			a.Patches = append(a.Patches, addVolumeMounts(
+				container.VolumeMounts,
+				a.ContainerVolumeMounts(),
+				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
+		}
+
 	}
 
 	// Init Container
