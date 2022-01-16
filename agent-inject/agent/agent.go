@@ -261,7 +261,7 @@ type VaultAgentCache struct {
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
 func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
-	saName, saPath := serviceaccount(pod)
+	sa, saPath := serviceaccount(pod)
 	var iamName, iamPath string
 	if pod.Annotations[AnnotationVaultAuthType] == "aws" {
 		iamName, iamPath = getAwsIamTokenVolume(pod)
@@ -280,7 +280,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		Pod:                    pod,
 		RequestsCPU:            pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:            pod.Annotations[AnnotationAgentRequestsMem],
-		ServiceAccountName:     saName,
+		ServiceAccountName:     sa,
 		ServiceAccountPath:     saPath,
 		Status:                 pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:            pod.Annotations[AnnotationAgentExtraSecret],
