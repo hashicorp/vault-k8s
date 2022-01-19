@@ -23,7 +23,7 @@ without forcing Vault users to do a full Vault upgrade.
 
   * [**Agent Inject**](https://www.vaultproject.io/docs/platform/k8s/injector/index.html):
     Agent Inject is a mutation webhook controller that injects Vault Agent containers 
-    into pods meeting specific annotation criteria.
+    into pods meeting specific annotation criteria. 
     _(Requires Vault 1.3.1+)_
 
 ## Installation
