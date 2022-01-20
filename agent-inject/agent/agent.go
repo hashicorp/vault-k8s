@@ -14,7 +14,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.9.0"
+	DefaultVaultImage                       = "hashicorp/vault:1.9.2"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100

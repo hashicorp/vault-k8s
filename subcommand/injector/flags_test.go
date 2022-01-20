@@ -115,7 +115,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_VAULT_ADDR", value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
 		{env: "AGENT_INJECT_PROXY_ADDR", value: "http://proxy:3128", cmdPtr: &cmd.flagProxyAddress},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
-		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.9.0", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.9.2", cmdPtr: &cmd.flagVaultImage},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
 		{env: "AGENT_INJECT_TLS_AUTO_HOSTS", value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},

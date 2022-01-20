@@ -1,4 +1,4 @@
-## Unreleased
+## 0.14.2 (January 20, 2022)
 
 ## 0.14.1 (November 17, 2021)
 
