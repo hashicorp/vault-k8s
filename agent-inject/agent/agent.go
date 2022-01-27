@@ -529,14 +529,6 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	//Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
-		a.Patches = append(a.Patches, addVolumeMounts(
-			container.VolumeMounts,
-			a.ContainerVolumeMounts(),
-			fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
-	}
-
-	//Add Volume Mounts
-	for i, container := range a.Pod.Spec.Containers {
 		if strutil.StrListContains(a.Containers, container.Name) {
 			a.Patches = append(a.Patches, addVolumeMounts(
 				container.VolumeMounts,
