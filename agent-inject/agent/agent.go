@@ -50,7 +50,7 @@ type Agent struct {
 	// sidecar container.
 	ImageName string
 
-	//Containers determine which containers should be injected
+	// Containers determine which containers should be injected
 	Containers []string
 
 	// Inject is the flag used to determine if a container should be requested
@@ -97,7 +97,7 @@ type Agent struct {
 	RequestsMem string
 
 	// Secrets are all the templates, the path in Vault where the secret can be
-	//found, and the unique name of the secret which will be used for the filename.
+	// found, and the unique name of the secret which will be used for the filename.
 	Secrets []*Secret
 
 	// ServiceAccountTokenVolume holds details of a volume mount for a
@@ -527,7 +527,7 @@ func (a *Agent) Patch() ([]byte, error) {
 			"/spec/volumes")...)
 	}
 
-	//Add Volume Mounts
+	// Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
 		if strutil.StrListContains(a.Containers, container.Name) {
 			a.Patches = append(a.Patches, addVolumeMounts(
@@ -535,7 +535,6 @@ func (a *Agent) Patch() ([]byte, error) {
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 		}
-
 	}
 
 	// Init Container
@@ -572,7 +571,7 @@ func (a *Agent) Patch() ([]byte, error) {
 				"/spec/initContainers")...)
 		}
 
-		//Add Volume Mounts
+		// Add Volume Mounts
 		for i, container := range containers {
 			if container.Name == "vault-agent-init" {
 				continue

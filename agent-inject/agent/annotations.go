@@ -575,7 +575,6 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 }
 
 func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
-
 	preserveSecretCaseAnnotationName := fmt.Sprintf("%s-%s", AnnotationPreserveSecretCase, secretName)
 
 	var raw string
