@@ -1,3 +1,8 @@
+## Unreleased
+
+Features:
+* Add agent-inject-containers annotation [GH-313](https://github.com/hashicorp/vault-k8s/pull/313)
+
 ## 0.14.2 (January 19, 2022)
 
 Changes:
