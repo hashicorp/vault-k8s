@@ -1,4 +1,8 @@
-## Unreleased
+## 0.14.2 (January 19, 2022)
+
+Changes:
+* Build with go 1.17.6
+* Default to Vault v1.9.2
 
 ## 0.14.1 (November 17, 2021)
 
