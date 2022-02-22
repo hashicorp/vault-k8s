@@ -172,8 +172,14 @@ func (c *Command) Run(args []string) int {
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
+	// Create a mutex to wait for certificate to be updated.
+	// Scoped to function as it is only used in the main function to wait
+	certWaitMutex := new(sync.Mutex)
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, certWaitMutex, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+
+	certWaitMutex.Lock()
+	c.UI.Info("Updated certificate.. continuining with starting handler")
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -316,7 +322,7 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitMutex *sync.Mutex, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
 
 	for {
@@ -390,7 +396,10 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		}
 
 		// Update the certificate
-		c.cert.Store(&crt)
+		// Check if previously no certificate was loaded in to prevent panic
+		if c.cert.Swap(&crt) == nil {
+			certWaitMutex.Unlock()
+		}
 	}
 }
 
