@@ -32,6 +32,7 @@ const (
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
+	DefaultServerWaitForTLSCert             = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 )
 

@@ -53,6 +53,9 @@ type Specification struct {
 	// TLSKeyFile is the AGENT_INJECT_TLS_KEY_FILE environment variable.
 	TLSKeyFile string `envconfig:"tls_key_file"`
 
+	// ServerWaitForTLSCert is the AGENT_INJECT_SERVER_WAIT_FOR_TLS_CERT
+	ServerWaitForTLSCert string `split_words:"true"`
+
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
 
@@ -130,6 +133,8 @@ func (c *Command) init() {
 		"PEM-encoded TLS certificate to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
+	c.flagSet.BoolVar(&c.flagServerWaitForTLSCert, "server-wait-for-tls-cert", agent.DefaultServerWaitForTLSCert,
+		fmt.Sprintf("Whether or not injector's HTTP server should wait for TLS certificate to be updated. Defaults to %t.", agent.DefaultServerWaitForTLSCert))
 	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
@@ -249,6 +254,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TLSKeyFile != "" {
 		c.flagKeyFile = envs.TLSKeyFile
+	}
+
+	if envs.ServerWaitForTLSCert != "" {
+		c.flagServerWaitForTLSCert, err = strconv.ParseBool(envs.ServerWaitForTLSCert)
+		if err != nil {
+			return err
+		}
 	}
 
 	if envs.VaultImage != "" {

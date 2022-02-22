@@ -42,6 +42,7 @@ type Command struct {
 	flagLogFormat                  string // Log format
 	flagCertFile                   string // TLS Certificate to serve
 	flagKeyFile                    string // TLS private key to serve
+	flagServerWaitForTLSCert       bool   // HTTP server waits for TLS cert to be updated before starting up
 	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
 	flagStaticSecretRenderInterval string // Set template_config.static_secret_render_interval on agent
 	flagAutoName                   string // MutatingWebhookConfiguration for updating
@@ -183,9 +184,10 @@ func (c *Command) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
 		return 1
 	}
-	certWaitMutex.Lock()
-	c.UI.Info("Updated certificate.. continuining with starting handler")
-
+	if c.flagServerWaitForTLSCert {
+		certWaitMutex.Lock()
+		c.UI.Info("Updated certificate.. continuining with starting handler")
+	}
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:               c.flagVaultService,
@@ -397,7 +399,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWa
 
 		// Update the certificate
 		// Check if previously no certificate was loaded in to prevent panic
-		if c.cert.Swap(&crt) == nil {
+		if c.cert.Swap(&crt) == nil && c.flagServerWaitForTLSCert {
 			certWaitMutex.Unlock()
 		}
 	}
