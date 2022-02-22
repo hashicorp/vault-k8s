@@ -54,7 +54,7 @@ type Specification struct {
 	TLSKeyFile string `envconfig:"tls_key_file"`
 
 	// ServerWaitForTLSCert is the AGENT_INJECT_SERVER_WAIT_FOR_TLS_CERT
-	ServerWaitForTLSCert string `split_words:"true"`
+	ServerWaitForTLSCert string `envconfig:"server_wait_for_tls_cert"`
 
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
