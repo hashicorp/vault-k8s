@@ -186,7 +186,7 @@ func (c *Command) Run(args []string) int {
 	}
 	if c.flagServerWaitForTLSCert {
 		certWaitMutex.Lock()
-		c.UI.Info("Updated certificate.. continuining with starting handler")
+		c.UI.Info("Updated TLS certificate.. continuing with starting handler")
 	}
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
