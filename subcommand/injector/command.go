@@ -178,6 +178,11 @@ func (c *Command) Run(args []string) int {
 	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, certWaitMutex, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
+	tlsConfig, err := c.makeTLSConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
+		return 1
+	}
 	certWaitMutex.Lock()
 	c.UI.Info("Updated certificate.. continuining with starting handler")
 
@@ -216,11 +221,6 @@ func (c *Command) Run(args []string) int {
 	}
 
 	var handler http.Handler = mux
-	tlsConfig, err := c.makeTLSConfig()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
-		return 1
-	}
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,
