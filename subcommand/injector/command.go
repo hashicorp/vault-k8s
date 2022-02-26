@@ -150,6 +150,12 @@ func (c *Command) Run(args []string) int {
 		logger.Warn(fmt.Sprintf("failed to determine Admissionregistration API version, defaulting to %s", adminAPIVersion), "error", err)
 	}
 
+	tlsConfig, err := c.makeTLSConfig()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
+		return 1
+	}
+
 	// Determine where to source the certificates from
 	var certSource cert.Source = &cert.GenSource{
 		Name:            "Agent Inject",
@@ -174,20 +180,20 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	// Create a mutex to wait for certificate to be updated.
-	// Scoped to function as it is only used in the main function to wait
-	certWaitMutex := new(sync.Mutex)
-	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, certWaitMutex, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+	certWaitCondition := sync.NewCond(&sync.Mutex{})
 
-	tlsConfig, err := c.makeTLSConfig()
-	if err != nil {
-		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
-		return 1
-	}
+	go certNotify.Run()
+	go c.certWatcher(ctx, certCh, certWaitCondition, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+
 	if c.flagServerWaitForTLSCert {
-		certWaitMutex.Lock()
+		certWaitCondition.L.Lock()
+		for c.cert.Load() == nil {
+			certWaitCondition.Wait()
+		}
 		c.UI.Info("Updated TLS certificate.. continuing with starting handler")
+		certWaitCondition.L.Unlock()
 	}
+
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:               c.flagVaultService,
@@ -324,7 +330,10 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitMutex *sync.Mutex, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitCondition *sync.Cond, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
+	if c.flagServerWaitForTLSCert {
+		certWaitCondition.L.Lock()
+	}
 	var bundle cert.Bundle
 
 	for {
@@ -400,7 +409,8 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWa
 		// Update the certificate
 		// Check if previously no certificate was loaded in to prevent panic
 		if c.cert.Swap(&crt) == nil && c.flagServerWaitForTLSCert {
-			certWaitMutex.Unlock()
+			certWaitCondition.Signal()
+			certWaitCondition.L.Unlock()
 		}
 	}
 }
