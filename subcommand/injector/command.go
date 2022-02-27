@@ -186,12 +186,7 @@ func (c *Command) Run(args []string) int {
 	go c.certWatcher(ctx, certCh, certWaitCondition, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
 	if c.flagServerWaitForTLSCert {
-		certWaitCondition.L.Lock()
-		for c.cert.Load() == nil {
-			certWaitCondition.Wait()
-		}
-		c.UI.Info("Updated TLS certificate.. continuing with starting handler")
-		certWaitCondition.L.Unlock()
+		c.waitForTLSCert(certWaitCondition)
 	}
 
 	// Build the HTTP handler and server
@@ -328,6 +323,16 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 		adminAPIVersion = adminv1beta.SchemeGroupVersion.Version
 	}
 	return adminAPIVersion, err
+}
+
+func (c *Command) waitForTLSCert(certWaitCondition *sync.Cond) {
+	c.UI.Info("Waiting for TLS certificate before continuing with starting handler")
+	certWaitCondition.L.Lock()
+	for c.cert.Load() == nil {
+		certWaitCondition.Wait()
+	}
+	c.UI.Info("Updated TLS certificate.. continuing with starting handler")
+	certWaitCondition.L.Unlock()
 }
 
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitCondition *sync.Cond, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
