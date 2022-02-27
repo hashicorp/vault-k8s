@@ -187,7 +187,7 @@ func (c *Command) Run(args []string) int {
 	go c.certWatcher(ctx, certCh, certWaitSemaphore, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
 	if c.flagServerWaitForTLSCert {
-		c.waitForTLSCert(certWaitSemaphore)
+		c.waitForTLSCert(ctx, certWaitSemaphore)
 	}
 
 	// Build the HTTP handler and server
@@ -331,7 +331,7 @@ func (c *Command) waitForTLSCert(ctx context.Context, certWaitSemaphore *semapho
 
 	err := certWaitSemaphore.Acquire(ctx, 1)
 	if err != nil {
-		return fmt.Errorf("Something went wrong while waiting for the TLS certificate: %s", err)
+		return fmt.Errorf("something went wrong while waiting for the TLS certificate: %s", err)
 	}
 
 	c.UI.Info("Updated TLS certificate.. continuing with starting handler")
