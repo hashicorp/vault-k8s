@@ -326,12 +326,12 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) waitForTLSCert(certWaitSemaphore *semaphore.Weighted) error {
+func (c *Command) waitForTLSCert(ctx context.Context, certWaitSemaphore *semaphore.Weighted) error {
 	c.UI.Info("Waiting for TLS certificate before continuing with starting handler")
 
-	err := certWaitSemaphore.Acquire(1)
+	err := certWaitSemaphore.Acquire(ctx, 1)
 	if err != nil {
-		return errors.New("Something went wrong while waiting for the TLS certificate: %s", err)
+		return fmt.Errorf("Something went wrong while waiting for the TLS certificate: %s", err)
 	}
 
 	c.UI.Info("Updated TLS certificate.. continuing with starting handler")
