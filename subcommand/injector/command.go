@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/sync/semaphore"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	adminv1beta "k8s.io/api/admissionregistration/v1beta1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -180,13 +181,13 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	// Create a mutex to wait for certificate to be updated.
-	certWaitCondition := sync.NewCond(&sync.Mutex{})
+	certWaitSemaphore := semaphore.NewWeighted(1)
 
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, certWaitCondition, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, certWaitSemaphore, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
 
 	if c.flagServerWaitForTLSCert {
-		c.waitForTLSCert(certWaitCondition)
+		c.waitForTLSCert(certWaitSemaphore)
 	}
 
 	// Build the HTTP handler and server
@@ -325,20 +326,19 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) waitForTLSCert(certWaitCondition *sync.Cond) {
+func (c *Command) waitForTLSCert(certWaitSemaphore *semaphore.Weighted) error {
 	c.UI.Info("Waiting for TLS certificate before continuing with starting handler")
-	certWaitCondition.L.Lock()
-	for c.cert.Load() == nil {
-		certWaitCondition.Wait()
+
+	err := certWaitSemaphore.Acquire(1)
+	if err != nil {
+		return errors.New("Something went wrong while waiting for the TLS certificate: %s", err)
 	}
+
 	c.UI.Info("Updated TLS certificate.. continuing with starting handler")
-	certWaitCondition.L.Unlock()
+	return nil
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitCondition *sync.Cond, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
-	if c.flagServerWaitForTLSCert {
-		certWaitCondition.L.Lock()
-	}
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWaitSemaphore *semaphore.Weighted, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
 
 	for {
@@ -414,8 +414,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, certWa
 		// Update the certificate
 		// Check if previously no certificate was loaded in to prevent panic
 		if c.cert.Swap(&crt) == nil && c.flagServerWaitForTLSCert {
-			certWaitCondition.Signal()
-			certWaitCondition.L.Unlock()
+			certWaitSemaphore.Release(1)
 		}
 	}
 }
