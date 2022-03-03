@@ -10,6 +10,8 @@ GOARCH?=amd64
 BIN_NAME=$(IMAGE_NAME)
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 XC_PUBLISH?=
+PKG=github.com/hashicorp/vault-k8s/version
+LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 
 .PHONY: all test build image clean version
 all: build
@@ -18,10 +20,14 @@ version:
 	@echo $(VERSION)
 
 build:
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build -a -o $(BUILD_DIR)/$(BIN_NAME) .
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
+		-a \
+		-ldflags $(LDFLAGS) \
+		-o $(BUILD_DIR)/$(BIN_NAME) \
+		.
 
 image: build
-	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) -f $(DOCKER_DIR)/Dev.dockerfile .
+	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
 #This target is used as part of the release pipeline in CircleCI, but can also be used to build the production image locally.
 #The released/signed linux binary will be pulled from releases.hashicorp.com instead of a local build of the binary.
