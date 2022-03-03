@@ -40,9 +40,9 @@ RUN set -eux && \
     BUILD_GPGKEY=C874011F0AB405110D02105534365D9472D7468F; \
     found=''; \
     for server in \
-        hkp://p80.pool.sks-keyservers.net:80 \
-        hkp://keyserver.ubuntu.com:80 \
-        hkp://pgp.mit.edu:80 \
+        hkps://keys.openpgp.org \
+        hkps://keyserver.ubuntu.com \
+        hkps://pgp.mit.edu \
     ; do \
         echo "Fetching GPG key $BUILD_GPGKEY from $server"; \
         gpg --keyserver "$server" --recv-keys "$BUILD_GPGKEY" && found=yes && break; \
