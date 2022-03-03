@@ -7,7 +7,7 @@ DOCKER_DIR=./build/docker
 BUILD_DIR=dist
 GOOS?=linux
 GOARCH?=amd64
-BIN_NAME=$(IMAGE_NAME)_$(GOOS)_$(GOARCH)_$(VERSION)
+BIN_NAME=$(IMAGE_NAME)
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 XC_PUBLISH?=
 
