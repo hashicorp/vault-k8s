@@ -19,7 +19,7 @@ func init() {
 			return &cmdInjector.Command{UI: ui}, nil
 		},
 		"version": func() (cli.Command, error) {
-			return &cmdVersion.Command{UI: ui, Version: version.GetHumanVersion()}, nil
+			return &cmdVersion.Command{UI: ui, Version: version.Version}, nil
 		},
 	}
 }

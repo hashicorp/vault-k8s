@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	c := cli.NewCLI("vault-k8s", version.GetHumanVersion())
+	c := cli.NewCLI("vault-k8s", version.Version)
 	c.Args = os.Args[1:]
 	c.Commands = Commands
 	c.HelpFunc = cli.BasicHelpFunc("vault-k8s")
