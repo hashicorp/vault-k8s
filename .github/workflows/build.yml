@@ -1,6 +1,14 @@
 name: build
 
-on: push
+on:
+  push:
+    branches: ["*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build, e.g. 0.1.0"
+        type: string
+        required: false
 
 env:
   PKG_NAME: "vault-k8s"
@@ -28,8 +36,9 @@ jobs:
       - name: get product version
         id: get-product-version
         run: |
-          make version
-          echo "::set-output name=product-version::$(make version)"
+          VERSION="${{ github.event.inputs.version || '0.0.0-dev' }}"
+          echo "Using version ${VERSION}"
+          echo "::set-output name=product-version::${VERSION}"
   generate-metadata-file:
     needs: get-product-version
     runs-on: ubuntu-latest
@@ -76,7 +85,7 @@ jobs:
           GOARCH: ${{ matrix.arch }}
         run: |
           mkdir dist out
-          make build
+          VERSION="${{ needs.get-product-version.outputs.product-version }}" make build
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip dist/
       - uses: actions/upload-artifact@v2
         with:
