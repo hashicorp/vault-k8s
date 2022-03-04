@@ -6,6 +6,19 @@ env:
   PKG_NAME: "vault-k8s"
 
 jobs:
+  get-go-version:
+    name: "Determine Go toolchain version"
+    runs-on: ubuntu-latest
+    outputs:
+      go-version: ${{ steps.get-go-version.outputs.go-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Determine Go version
+        id: get-go-version
+        run: |
+          echo "Building with Go $(cat .go-version)"
+          echo "::set-output name=go-version::$(cat .go-version)"
+
   get-product-version:
     runs-on: ubuntu-latest
     outputs:
@@ -38,7 +51,9 @@ jobs:
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
 
   build:
-    needs: get-product-version
+    needs:
+      - get-product-version
+      - get-go-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -53,7 +68,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v2
         with:
-          go-version: "1.17.7"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Build
         env:
