@@ -83,9 +83,10 @@ jobs:
         env:
           GOOS: "linux"
           GOARCH: ${{ matrix.arch }}
+          VERSION: ${{ needs.get-product-version.outputs.product-version }}
         run: |
           mkdir dist out
-          VERSION="${{ needs.get-product-version.outputs.product-version }}" make build
+          make build
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip dist/
       - uses: actions/upload-artifact@v2
         with:
