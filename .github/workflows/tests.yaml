@@ -18,7 +18,7 @@ jobs:
           echo "::set-output name=go-version::$(cat .go-version)"
 
   build:
-    needs: 
+    needs:
       - get-go-version
     runs-on: ubuntu-latest
     env:
