@@ -1,10 +1,13 @@
 ## Unreleased
 
+## 0.15.0 (March 21, 2022)
+
 Features:
 * Add agent-inject-containers annotation [GH-313](https://github.com/hashicorp/vault-k8s/pull/313)
 
 Changes:
 * Build with go 1.17.8
+* Default to Vault v1.9.4
 
 ## 0.14.2 (January 19, 2022)
 
