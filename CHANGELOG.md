@@ -1,5 +1,11 @@
 ## Unreleased
 
+## 0.16.0 (March 30, 2022)
+
+Features:
+* New environment variable and annotation to configure metrics listener address for Vault agent
+* New environment variable and annotation to enable prometheus metrics and configure retention time for Vault agent
+
 ## 0.15.0 (March 21, 2022)
 
 Features:

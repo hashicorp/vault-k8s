@@ -64,6 +64,8 @@ type Handler struct {
 	ResourceLimitMem           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	MetricsListenerAddress     string
+	MetricsPrometheusRetention string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -194,6 +196,8 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		ResourceLimitMem:           h.ResourceLimitMem,
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
+		MetricsListenerAddress:     h.MetricsListenerAddress,
+		MetricsPrometheusRetention: h.MetricsPrometheusRetention,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

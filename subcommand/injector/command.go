@@ -56,7 +56,7 @@ type Command struct {
 	flagRunAsGroup                 string // Group (gid) to run Vault agent as
 	flagRunAsSameUser              bool   // Run Vault agent as the User (uid) of the first application container
 	flagSetSecurityContext         bool   // Set SecurityContext in injected containers
-	flagTelemetryPath              string // Path under which to expose metrics
+	flagTelemetryPath              string // Path under which to expose Agent Injector metrics
 	flagUseLeaderElector           bool   // Use leader elector code
 	flagDefaultTemplate            string // Toggles which default template to use
 	flagResourceRequestCPU         string // Set CPU request in the injected containers
@@ -65,6 +65,8 @@ type Command struct {
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
 	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
+	flagMetricsListenerAddress     string // Enables and defines a default listener address for Vault agent
+	flagMetricsPrometheusRetention string // Enables prometheus metrics and defines a default retention period for Vault agent
 
 	flagSet *flag.FlagSet
 
@@ -197,6 +199,8 @@ func (c *Command) Run(args []string) int {
 		ResourceLimitMem:           c.flagResourceLimitMem,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
+		MetricsListenerAddress:     c.flagMetricsListenerAddress,
+		MetricsPrometheusRetention: c.flagMetricsPrometheusRetention,
 	}
 
 	mux := http.NewServeMux()

@@ -33,6 +33,7 @@ const (
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
+	DefaultAgentMetricsListenerPort         = 8081
 )
 
 // Agent is the top level structure holding all the
@@ -158,6 +159,9 @@ type Agent struct {
 	// InjectToken controls whether the auto-auth token is injected into the
 	// secrets volume (e.g. /vault/secrets/token)
 	InjectToken bool
+
+	// VaultAgentMetricsListener is the structure holding the Vault agent metrics configuration
+	VaultAgentMetrics VaultAgentMetrics
 }
 
 type ServiceAccountTokenVolume struct {
@@ -289,6 +293,16 @@ type VaultAgentTemplateConfig struct {
 	// StaticSecretRenderInterval If specified, configures how often
 	// Vault Agent Template should render non-leased secrets such as KV v2
 	StaticSecretRenderInterval string
+}
+
+type VaultAgentMetrics struct {
+	// Listener address enables and configures a listening address to
+	// receive http metrics requests
+	ListenerAddress string
+
+	// PrometheusRetention enables prometheus metrics and
+	// configures the retention time
+	PrometheusRetention string
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -440,6 +454,12 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		ExitOnRetryFailure:         exitOnRetryFailure,
 		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
 	}
+
+	agent.VaultAgentMetrics.ListenerAddress, err = agent.metricsListenerAddress()
+	if err != nil {
+		return agent, err
+	}
+	agent.VaultAgentMetrics.PrometheusRetention = pod.Annotations[AnnotationAgentMetricsPrometheusRetention]
 
 	return agent, nil
 }

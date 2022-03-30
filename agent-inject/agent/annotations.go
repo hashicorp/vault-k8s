@@ -255,6 +255,14 @@ const (
 	// If specified, configures how often Vault Agent Template should render non-leased secrets such as KV v2.
 	// Defaults to 5 minutes.
 	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-static-secret-render-interval"
+
+	// AnnotationAgentMetricsListenerAddress
+	// If specified, configures a TCP listener on the Vault Agent to receive metrics requests from
+	AnnotationAgentMetricsListenerAddress = "vault.hashicorp.com/agent-metrics-listener-address"
+
+	// AnnotationAgentMetricsPrometheusRetention
+	// If specified, enables prometheus metrics and configures the amount of time they are retained in memory
+	AnnotationAgentMetricsPrometheusRetention = "vault.hashicorp.com/agent-metrics-prometheus-retention"
 )
 
 type AgentConfig struct {
@@ -276,6 +284,8 @@ type AgentConfig struct {
 	ResourceLimitMem           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	MetricsListenerAddress     string
+	MetricsPrometheusRetention string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -441,6 +451,14 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentMetricsListenerAddress]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentMetricsListenerAddress] = cfg.MetricsListenerAddress
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentMetricsPrometheusRetention]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentMetricsPrometheusRetention] = cfg.MetricsPrometheusRetention
 	}
 
 	return nil
@@ -688,4 +706,37 @@ func (a *Agent) authConfig() map[string]interface{} {
 	}
 
 	return authConfig
+}
+
+func (a *Agent) metricsListenerAddress() (string, error) {
+	addr := a.Annotations[AnnotationAgentMetricsListenerAddress]
+	if addr == "" {
+		return "", nil
+	}
+
+	arr := strings.Split(addr, ":")
+	switch len(arr) {
+	case 1:
+		addr = fmt.Sprintf("%s:%d", addr, DefaultAgentMetricsListenerPort)
+	case 2:
+	default:
+		return "", fmt.Errorf("invalid metrics address string: %s", addr)
+	}
+
+	// Temporary safeguard until the issue described below is resolved.
+	// In many cases, users will intend for the cache listener to only be available
+	// locally while exposing the metrics endpoint externally. At the time of writing
+	// this though, the "vault agent -config" command, which the Agent Injector relies
+	// on, will configure each listener to expose both the cache and metrics endpoints,
+	// regardless of the listener's intended purpose. This can be particularly dangerous
+	// if the cache has been configured to auto-authenticate.
+	// See https://github.com/remilapeyre/vault/blob/1e331ed2973b1099e3dfc169ced2d3c2d0364fc0/command/agent.go#L723
+	if cacheEnabled, err := strconv.ParseBool(a.Annotations[AnnotationAgentCacheEnable]); err == nil {
+		autoAuth := a.Annotations[AnnotationAgentCacheUseAutoAuthToken]
+		if cacheEnabled && (arr[0] != "127.0.0.1") && (autoAuth != "false") && (autoAuth != "") {
+			return "", fmt.Errorf("metrics listener address must be 127.0.0.1 if the agent cache is enabled.")
+		}
+	}
+
+	return addr, nil
 }

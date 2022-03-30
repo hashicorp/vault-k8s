@@ -109,6 +109,12 @@ type Specification struct {
 
 	// TLSCipherSuites is the AGENT_INJECT_TLS_CIPHER_SUITES environment variable
 	TLSCipherSuites string `envconfig:"tls_cipher_suites"`
+
+	// MetricsListenerAddress is the AGENT_INJECT_METRICS_LISTENER_ADDR environment variable
+	MetricsListenerAddr string `split_words:"true"`
+
+	// MetricsPrometheusRetention is the AGENT_INJECT_METRICS_PROMETHEUS_RETENTION environment variable
+	MetricsPrometheusRetention string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -153,7 +159,7 @@ func (c *Command) init() {
 	c.flagSet.BoolVar(&c.flagSetSecurityContext, "set-security-context", agent.DefaultAgentSetSecurityContext,
 		fmt.Sprintf("Set SecurityContext in injected containers. Defaults to %v.", agent.DefaultAgentSetSecurityContext))
 	c.flagSet.StringVar(&c.flagTelemetryPath, "telemetry-path", "",
-		"Path under which to expose metrics")
+		"Path under which to expose Agent Injector metrics")
 	c.flagSet.BoolVar(&c.flagUseLeaderElector, "use-leader-elector", agent.DefaultAgentUseLeaderElector,
 		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
 	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
@@ -179,6 +185,11 @@ func (c *Command) init() {
 		fmt.Sprintf(`Minimum supported version of TLS. Defaults to %s. Accepted values are %s.`, defaultTLSMinVersion, tlsStr))
 	c.flagSet.StringVar(&c.flagTLSCipherSuites, "tls-cipher-suites", "",
 		"Comma-separated list of supported cipher suites for TLS 1.0-1.2")
+
+	c.flagSet.StringVar(&c.flagMetricsListenerAddress, "metrics-listener-address", "",
+		"Enables and defines a default listener address for Vault agent")
+	c.flagSet.StringVar(&c.flagMetricsPrometheusRetention, "metrics-prometheus-retention", "",
+		"Enables prometheus metrics and defines a default retention period for Vault agent")
 
 	c.help = flags.Usage(help, c.flagSet)
 }
@@ -337,6 +348,14 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TLSCipherSuites != "" {
 		c.flagTLSCipherSuites = envs.TLSCipherSuites
+	}
+
+	if envs.MetricsListenerAddr != "" {
+		c.flagMetricsListenerAddress = envs.MetricsListenerAddr
+	}
+
+	if envs.MetricsPrometheusRetention != "" {
+		c.flagMetricsPrometheusRetention = envs.MetricsPrometheusRetention
 	}
 
 	return nil

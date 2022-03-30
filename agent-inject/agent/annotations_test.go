@@ -732,6 +732,10 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentCacheEnable, "tRuE", false},
 		{AnnotationAgentCacheEnable, "fAlSe", false},
 		{AnnotationAgentCacheEnable, "", false},
+
+		{AnnotationAgentMetricsListenerAddress, "127.0.0.1", true},
+		{AnnotationAgentMetricsListenerAddress, "127.0.0.1:8080", true},
+		{AnnotationAgentMetricsListenerAddress, "127.0.01:1:1", false},
 	}
 
 	for i, tt := range tests {

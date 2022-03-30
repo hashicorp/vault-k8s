@@ -27,6 +27,7 @@ type Config struct {
 	Listener       []*Listener     `json:"listener,omitempty"`
 	Cache          *Cache          `json:"cache,omitempty"`
 	TemplateConfig *TemplateConfig `json:"template_config,omitempty"`
+	Telemetry      *Telemetry      `json:"telemetry,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -80,7 +81,7 @@ type Template struct {
 	Perms          string `json:"perms,omitempty"`
 }
 
-// Listener defines the configuration for Vault Agent Cache Listener
+// Listener defines the configuration for Vault Agent Cache Listener and/ or Vault Agent Metrics Listener
 type Listener struct {
 	Type       string `json:"type"`
 	Address    string `json:"address"`
@@ -106,6 +107,12 @@ type CachePersist struct {
 type TemplateConfig struct {
 	ExitOnRetryFailure         bool   `json:"exit_on_retry_failure"`
 	StaticSecretRenderInterval string `json:"static_secret_render_interval,omitempty"`
+}
+
+// Telemetry defines the telemetry configuration for Vault Agent
+type Telemetry struct {
+	PrometheusRetentionTime string `json:"prometheus_retention_time"`
+	DisableHostname         bool   `json:"disable_hostname"`
 }
 
 func (a *Agent) newTemplateConfigs() []*Template {
@@ -212,6 +219,25 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		config.Listener = cacheListener
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
+		}
+	}
+
+	if a.VaultAgentMetrics.ListenerAddress != "" && !init {
+		config.Listener = append(config.Listener, &Listener{
+			Type:       "tcp",
+			Address:    a.VaultAgentMetrics.ListenerAddress,
+			TLSDisable: true,
+		})
+
+		if config.Cache == nil { // workaround until https://github.com/hashicorp/vault/issues/8953 is resolved
+			config.Cache = &Cache{}
+		}
+	}
+
+	if a.VaultAgentMetrics.PrometheusRetention != "" && !init {
+		config.Telemetry = &Telemetry{
+			PrometheusRetentionTime: a.VaultAgentMetrics.PrometheusRetention,
+			DisableHostname:         true,
 		}
 	}
 
