@@ -158,6 +158,10 @@ type Agent struct {
 	// InjectToken controls whether the auto-auth token is injected into the
 	// secrets volume (e.g. /vault/secrets/token)
 	InjectToken bool
+
+	// EnableQuit controls whether the quit endpoint is enabled on a localhost
+	// listener
+	EnableQuit *bool
 }
 
 type ServiceAccountTokenVolume struct {
@@ -439,6 +443,11 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
 		ExitOnRetryFailure:         exitOnRetryFailure,
 		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
+	}
+
+	agent.EnableQuit, err = agent.getEnableQuit()
+	if err != nil {
+		return nil, err
 	}
 
 	return agent, nil

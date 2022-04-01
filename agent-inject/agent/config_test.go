@@ -154,7 +154,6 @@ func TestNewConfig(t *testing.T) {
 }
 
 func TestFilePathAndName(t *testing.T) {
-
 	tests := []struct {
 		name        string
 		annotations map[string]string
@@ -244,7 +243,6 @@ func TestFilePathAndName(t *testing.T) {
 }
 
 func TestFilePermission(t *testing.T) {
-
 	tests := []struct {
 		name        string
 		annotations map[string]string
@@ -536,7 +534,6 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			assert.Equal(t, tt.expectedListeners, sidecarConfig.Listener)
 		})
 	}
-
 }
 
 func TestConfigVaultAgentTemplateConfig(t *testing.T) {
@@ -597,7 +594,6 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 }
 
 func TestInjectTokenSink(t *testing.T) {
-
 	tokenHelperSink := &Sink{
 		Type: "file",
 		Config: map[string]interface{}{
@@ -667,6 +663,118 @@ func TestInjectTokenSink(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, tt.expectedSinks, config.AutoAuth.Sinks)
+		})
+	}
+}
+
+func TestConfigAgentQuit(t *testing.T) {
+	tests := []struct {
+		name                   string
+		annotations            map[string]string
+		expectedAgentAPIConfig *AgentAPI
+		expectedAddress        string
+		expectedCache          *Cache
+	}{
+		{
+			"enable_quit true",
+			map[string]string{
+				AnnotationAgentEnableQuit: "true",
+			},
+			&AgentAPI{EnableQuit: true},
+			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
+			&Cache{},
+		},
+		{
+			"enable_quit true with custom port",
+			map[string]string{
+				AnnotationAgentEnableQuit:        "true",
+				AnnotationAgentCacheListenerPort: "1234",
+			},
+			&AgentAPI{EnableQuit: true},
+			fmt.Sprintf("127.0.0.1:%s", "1234"),
+			&Cache{},
+		},
+		{
+			"enable_quit false with no cache listener",
+			map[string]string{
+				AnnotationAgentEnableQuit: "false",
+			},
+			nil,
+			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
+			nil,
+		},
+		{
+			"enable_quit true with existing cache listener",
+			map[string]string{
+				AnnotationAgentCacheEnable: "true",
+				AnnotationAgentEnableQuit:  "true",
+			},
+			&AgentAPI{EnableQuit: true},
+			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
+			&Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type: "kubernetes",
+					Path: "/vault/agent-cache",
+				},
+			},
+		},
+		{
+			"enable_quit false with existing cache listener",
+			map[string]string{
+				AnnotationAgentCacheEnable: "true",
+				AnnotationAgentEnableQuit:  "false",
+			},
+			&AgentAPI{EnableQuit: false},
+			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
+			&Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type: "kubernetes",
+					Path: "/vault/agent-cache",
+				},
+			},
+		},
+		{
+			"everything empty",
+			map[string]string{},
+			nil,
+			DefaultAgentCacheListenerPort,
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			var patches []*jsonpatch.JsonPatchOperation
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod, patches)
+			require.NoError(t, err)
+			// create sidecar config
+			cfg, err := agent.newConfig(false)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			if tt.expectedAgentAPIConfig != nil {
+				require.NotEmpty(t, config.Listener)
+				require.NotNil(t, config.Listener[0].AgentAPI)
+				assert.Equal(t, tt.expectedAgentAPIConfig, config.Listener[0].AgentAPI)
+				assert.Equal(t, tt.expectedAddress, config.Listener[0].Address)
+			} else {
+				if len(config.Listener) > 0 {
+					assert.Nil(t, config.Listener[0].AgentAPI)
+					assert.Equal(t, tt.expectedAddress, config.Listener[0].Address)
+				}
+			}
+			assert.Equal(t, tt.expectedCache, config.Cache)
 		})
 	}
 }
