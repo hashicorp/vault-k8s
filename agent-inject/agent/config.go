@@ -95,7 +95,7 @@ type AgentAPI struct {
 
 // Cache defines the configuration for the Vault Agent Cache
 type Cache struct {
-	UseAutoAuthToken string        `json:"use_auto_auth_token"`
+	UseAutoAuthToken string        `json:"use_auto_auth_token,omitempty"`
 	Persist          *CachePersist `json:"persist,omitempty"`
 }
 
