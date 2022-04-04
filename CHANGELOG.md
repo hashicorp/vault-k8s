@@ -3,8 +3,7 @@
 ## 0.16.0 (March 30, 2022)
 
 Features:
-* New environment variable and annotation to configure metrics listener address for Vault agent
-* New environment variable and annotation to enable prometheus metrics and configure retention time for Vault agent
+* New environment variables and annotations to configure metrics on Vault agent [GH-329](https://github.com/hashicorp/vault-k8s/pull/329)
 
 ## 0.15.0 (March 21, 2022)
 
