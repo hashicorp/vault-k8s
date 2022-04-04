@@ -33,6 +33,7 @@ const (
 	DefaultAgentInjectToken                 = false
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
+	DefaultEnableQuit                       = false
 )
 
 // Agent is the top level structure holding all the
@@ -161,7 +162,7 @@ type Agent struct {
 
 	// EnableQuit controls whether the quit endpoint is enabled on a localhost
 	// listener
-	EnableQuit *bool
+	EnableQuit bool
 }
 
 type ServiceAccountTokenVolume struct {

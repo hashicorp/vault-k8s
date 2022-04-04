@@ -649,16 +649,12 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
-func (a *Agent) getEnableQuit() (*bool, error) {
+func (a *Agent) getEnableQuit() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentEnableQuit]
 	if !ok {
-		return nil, nil
+		return DefaultEnableQuit, nil
 	}
-	val, err := strconv.ParseBool(raw)
-	if err != nil {
-		return nil, err
-	}
-	return &val, nil
+	return strconv.ParseBool(raw)
 }
 
 func (a *Agent) cachePersist(cacheEnabled bool) bool {

@@ -215,24 +215,21 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		}
 	}
 
-	// If EnableQuit has been set, set it on the listener. If a listener hasn't
-	// been defined, set it on a new one. Also add a simple cache stanza since
-	// that's required for an agent listener.
-	if a.EnableQuit != nil {
+	// If EnableQuit is true, set it on the listener. If a listener hasn't been
+	// defined, set it on a new one. Also add a simple cache stanza since that's
+	// required for an agent listener.
+	if a.EnableQuit {
 		if len(config.Listener) > 0 {
 			config.Listener[0].AgentAPI = &AgentAPI{
-				EnableQuit: *a.EnableQuit,
+				EnableQuit: a.EnableQuit,
 			}
 		} else {
-			// Only setup a new listener if EnableQuit is true
-			if *a.EnableQuit {
-				config.Listener = makeCacheListener(a.VaultAgentCache.ListenerPort)
-				config.Listener[0].AgentAPI = &AgentAPI{
-					EnableQuit: *a.EnableQuit,
-				}
+			config.Listener = makeCacheListener(a.VaultAgentCache.ListenerPort)
+			config.Listener[0].AgentAPI = &AgentAPI{
+				EnableQuit: a.EnableQuit,
 			}
 		}
-		if *a.EnableQuit && config.Cache == nil {
+		if config.Cache == nil {
 			// Cache is required for an agent listener
 			config.Cache = &Cache{}
 		}

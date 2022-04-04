@@ -696,9 +696,7 @@ func TestConfigAgentQuit(t *testing.T) {
 		},
 		{
 			"enable_quit false with no cache listener",
-			map[string]string{
-				AnnotationAgentEnableQuit: "false",
-			},
+			nil,
 			nil,
 			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
 			nil,
@@ -725,7 +723,7 @@ func TestConfigAgentQuit(t *testing.T) {
 				AnnotationAgentCacheEnable: "true",
 				AnnotationAgentEnableQuit:  "false",
 			},
-			&AgentAPI{EnableQuit: false},
+			nil,
 			fmt.Sprintf("127.0.0.1:%s", DefaultAgentCacheListenerPort),
 			&Cache{
 				UseAutoAuthToken: "true",
