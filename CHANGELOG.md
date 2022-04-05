@@ -1,5 +1,8 @@
 ## Unreleased
 
+Features:
+* Add agent-enable-quit annotation [GH-330](https://github.com/hashicorp/vault-k8s/pull/330)
+
 ## 0.15.0 (March 21, 2022)
 
 Features:

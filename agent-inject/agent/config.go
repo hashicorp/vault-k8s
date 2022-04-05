@@ -82,14 +82,20 @@ type Template struct {
 
 // Listener defines the configuration for Vault Agent Cache Listener
 type Listener struct {
-	Type       string `json:"type"`
-	Address    string `json:"address"`
-	TLSDisable bool   `json:"tls_disable"`
+	Type       string    `json:"type"`
+	Address    string    `json:"address"`
+	TLSDisable bool      `json:"tls_disable"`
+	AgentAPI   *AgentAPI `json:"agent_api,omitempty"`
+}
+
+// AgentAPI defines the agent_api stanza for a listener
+type AgentAPI struct {
+	EnableQuit bool `json:"enable_quit"`
 }
 
 // Cache defines the configuration for the Vault Agent Cache
 type Cache struct {
-	UseAutoAuthToken string        `json:"use_auto_auth_token"`
+	UseAutoAuthToken string        `json:"use_auto_auth_token,omitempty"`
 	Persist          *CachePersist `json:"persist,omitempty"`
 }
 
@@ -191,13 +197,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		})
 	}
 
-	cacheListener := []*Listener{
-		{
-			Type:       "tcp",
-			Address:    fmt.Sprintf("127.0.0.1:%s", a.VaultAgentCache.ListenerPort),
-			TLSDisable: true,
-		},
-	}
+	cacheListener := makeCacheListener(a.VaultAgentCache.ListenerPort)
 	if a.VaultAgentCache.Persist {
 		config.Listener = cacheListener
 		config.Cache = &Cache{
@@ -215,9 +215,39 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		}
 	}
 
+	// If EnableQuit is true, set it on the listener. If a listener hasn't been
+	// defined, set it on a new one. Also add a simple cache stanza since that's
+	// required for an agent listener.
+	if a.EnableQuit {
+		if len(config.Listener) > 0 {
+			config.Listener[0].AgentAPI = &AgentAPI{
+				EnableQuit: a.EnableQuit,
+			}
+		} else {
+			config.Listener = makeCacheListener(a.VaultAgentCache.ListenerPort)
+			config.Listener[0].AgentAPI = &AgentAPI{
+				EnableQuit: a.EnableQuit,
+			}
+		}
+		if config.Cache == nil {
+			// Cache is required for an agent listener
+			config.Cache = &Cache{}
+		}
+	}
+
 	return config.render()
 }
 
 func (c *Config) render() ([]byte, error) {
 	return json.Marshal(c)
+}
+
+func makeCacheListener(port string) []*Listener {
+	return []*Listener{
+		{
+			Type:       "tcp",
+			Address:    fmt.Sprintf("127.0.0.1:%s", port),
+			TLSDisable: true,
+		},
+	}
 }
