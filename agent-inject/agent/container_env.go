@@ -11,6 +11,13 @@ import (
 func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	var envs []corev1.EnvVar
 
+	if a.Vault.GoMaxProcs != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "GOMAXPROCS",
+			Value: a.Vault.GoMaxProcs,
+		})
+	}
+
 	if a.Vault.ClientTimeout != "" {
 		envs = append(envs, corev1.EnvVar{
 			Name:  "VAULT_CLIENT_TIMEOUT",

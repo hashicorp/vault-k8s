@@ -197,6 +197,9 @@ const (
 	// AnnotationVaultClientTimeout sets the request timeout when communicating with Vault.
 	AnnotationVaultClientTimeout = "vault.hashicorp.com/client-timeout"
 
+	// AnnotationVaultGoMaxProcs sets the Vault Agent go max procs.
+	AnnotationVaultGoMaxProcs = "vault.hashicorp.com/go-max-procs"
+
 	// AnnotationVaultLogLevel sets the Vault Agent log level.
 	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
