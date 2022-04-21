@@ -111,6 +111,17 @@ func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonP
 	return result
 }
 
+func updateShareProcessNamespace(shareProcessNamespace bool) []*jsonpatch.JsonPatchOperation {
+	var result []*jsonpatch.JsonPatchOperation
+	result = append(result, &jsonpatch.JsonPatchOperation{
+		Operation: "add",
+		Path:      "/spec/shareProcessNamespace",
+		Value:     shareProcessNamespace,
+	})
+
+	return result
+}
+
 // EscapeJSONPointer escapes a JSON string to be compliant with the
 // JavaScript Object Notation (JSON) Pointer syntax RFC:
 // https://tools.ietf.org/html/rfc6901.

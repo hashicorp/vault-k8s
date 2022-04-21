@@ -176,6 +176,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/-",
 				},
 				{
@@ -237,6 +241,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/-",
 				},
 				{
@@ -290,6 +298,10 @@ func TestHandlerHandle(t *testing.T) {
 				{
 					Operation: "add",
 					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
 				},
 				{
 					Operation: "add",
@@ -354,6 +366,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
+				},
+				{
+					Operation: "add",
 					Path:      "/spec/containers/-",
 				},
 				{
@@ -408,6 +424,10 @@ func TestHandlerHandle(t *testing.T) {
 				{
 					Operation: "add",
 					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
 				},
 				{
 					Operation: "add",
@@ -511,6 +531,10 @@ func TestHandlerHandle(t *testing.T) {
 				},
 				{
 					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
+				},
+				{
+					Operation: "add",
 					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
 				},
 			},
@@ -557,6 +581,10 @@ func TestHandlerHandle(t *testing.T) {
 				{
 					Operation: "add",
 					Path:      "/spec/initContainers/0/volumeMounts/-",
+				},
+				{
+					Operation: "add",
+					Path:      "/spec/shareProcessNamespace",
 				},
 				{
 					Operation: "add",

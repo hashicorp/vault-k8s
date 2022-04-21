@@ -149,6 +149,9 @@ const (
 	// Pod Spec.
 	AnnotationAgentRunAsSameUser = "vault.hashicorp.com/agent-run-as-same-user"
 
+	// AnnotationAgentShareProcessNamespace sets the shareProcessNamespace value on the pod spec.
+	AnnotationAgentShareProcessNamespace = "vault.hashicorp.com/agent-share-process-namespace"
+
 	// AnnotationAgentSetSecurityContext controls whether a SecurityContext (uid
 	// and gid) is set on the injected Vault Agent containers
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
@@ -272,6 +275,7 @@ type AgentConfig struct {
 	GroupID                    string
 	SameID                     bool
 	SetSecurityContext         bool
+	ShareProcessNamespace      bool
 	ProxyAddress               string
 	DefaultTemplate            string
 	ResourceRequestCPU         string
@@ -290,6 +294,7 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	var runAsUserIsSet bool
 	var runAsSameUserIsSet bool
 	var runAsGroupIsSet bool
+	var shareProcessNamespaceIsSet bool
 
 	if pod == nil {
 		return errors.New("pod is empty")
@@ -395,6 +400,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, runAsSameUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser]; !runAsSameUserIsSet {
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser] = strconv.FormatBool(cfg.SameID)
+	}
+
+	if _, shareProcessNamespaceIsSet = pod.ObjectMeta.Annotations[AnnotationAgentShareProcessNamespace]; !shareProcessNamespaceIsSet {
+		pod.ObjectMeta.Annotations[AnnotationAgentShareProcessNamespace] = strconv.FormatBool(cfg.ShareProcessNamespace)
 	}
 
 	if _, runAsGroupIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !runAsGroupIsSet {
@@ -620,6 +629,23 @@ func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
 		a.RunAsUser = *pod.Spec.Containers[0].SecurityContext.RunAsUser
 	}
 	return runAsSameID, nil
+}
+
+func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentShareProcessNamespace]
+	if !ok {
+		return DefaultAgentShareProcessNamespace, nil
+	}
+	shareProcessNamespace, err := strconv.ParseBool(raw)
+	if err != nil {
+		return DefaultAgentShareProcessNamespace, err
+	}
+	if pod.Spec.ShareProcessNamespace != nil {
+		if *pod.Spec.ShareProcessNamespace == false && shareProcessNamespace == true {
+			return DefaultAgentShareProcessNamespace, errors.New("Will not override shareProcessNamespace already set to false")
+		}
+	}
+	return strconv.ParseBool(raw)
 }
 
 func (a *Agent) setSecurityContext() (bool, error) {

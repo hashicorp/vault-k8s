@@ -93,6 +93,7 @@ func TestInitDefaults(t *testing.T) {
 		{annotationKey: AnnotationAgentImage, annotationValue: DefaultVaultImage},
 		{annotationKey: AnnotationAgentRunAsUser, annotationValue: strconv.Itoa(DefaultAgentRunAsUser)},
 		{annotationKey: AnnotationAgentRunAsGroup, annotationValue: strconv.Itoa(DefaultAgentRunAsGroup)},
+		{annotationKey: AnnotationAgentShareProcessNamespace, annotationValue: strconv.FormatBool(DefaultAgentShareProcessNamespace)},
 	}
 
 	for _, tt := range tests {
@@ -716,6 +717,14 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRunAsGroup, "100", true},
 		{AnnotationAgentRunAsGroup, "root", false},
 
+		{AnnotationAgentShareProcessNamespace, "true", true},
+		{AnnotationAgentShareProcessNamespace, "false", true},
+		{AnnotationAgentShareProcessNamespace, "TRUE", true},
+		{AnnotationAgentShareProcessNamespace, "FALSE", true},
+		{AnnotationAgentShareProcessNamespace, "tRuE", false},
+		{AnnotationAgentShareProcessNamespace, "fAlSe", false},
+		{AnnotationAgentShareProcessNamespace, "", false},
+
 		{AnnotationAgentSetSecurityContext, "true", true},
 		{AnnotationAgentSetSecurityContext, "false", true},
 		{AnnotationAgentSetSecurityContext, "secure", false},
@@ -975,6 +984,7 @@ func TestInjectContainers(t *testing.T) {
 				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
 				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
 				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/shareProcessNamespace"},
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
 			},
@@ -989,6 +999,7 @@ func TestInjectContainers(t *testing.T) {
 				{Operation: "add", Path: "/spec/volumes"},
 				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
 				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/shareProcessNamespace"},
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
 			},
@@ -1004,6 +1015,7 @@ func TestInjectContainers(t *testing.T) {
 				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
 				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
 				{Operation: "add", Path: "/spec/initContainers"},
+				{Operation: "add", Path: "/spec/shareProcessNamespace"},
 				{Operation: "add", Path: "/spec/containers/-"},
 				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
 			},
