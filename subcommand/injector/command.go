@@ -368,7 +368,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 					err))
 				continue
 			}
-			if len(currentBundles) > 0 && bytes.Equal(currentBundles[0], bundle.CACert) {
+			if len(currentBundles) == 0 || !bytes.Equal(currentBundles[0], bundle.CACert) {
 				err = c.updateCABundle(ctx, &bundle, clientset, adminAPIVersion)
 				if err != nil {
 					c.UI.Error(fmt.Sprintf(
