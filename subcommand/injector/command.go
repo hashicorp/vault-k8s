@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
@@ -27,6 +28,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -318,6 +320,12 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
 	var bundle cert.Bundle
+	webhooksWatcher, err := watchWebhooks(ctx, clientset, adminAPIVersion)
+	if err != nil {
+		log.Warn("Error watching webhooks", "error", err)
+		webhooksWatcher = newTickerWatcher(1 * time.Second)
+	}
+	defer webhooksWatcher.Stop()
 
 	for {
 		select {
@@ -325,11 +333,8 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			log.Info("Updated certificate bundle received. Updating certs...")
 			// Bundle is updated, set it up
 
-		case <-time.After(1 * time.Second):
-			// This forces the mutating webhook config to remain updated
-			// fairly quickly. This is a jank way to do this and we should
-			// look to improve it in the future. Since we use Patch requests
-			// it is pretty cheap to do, though.
+		case <-webhooksWatcher.ResultChan():
+			// Webhooks changed.
 
 		case <-ctx.Done():
 			// Quit
@@ -353,45 +358,137 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			}
 		}
 
-		// If there is a MWC name set, then update the CA bundle.
+		// If there is an MWC name set, then update the CA bundle.
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
-			// The CA Bundle value must be base64 encoded
-			value := base64.StdEncoding.EncodeToString(bundle.CACert)
-			payload := []byte(fmt.Sprintf(
-				`[{
-					"op": "add",
-					"path": "/webhooks/0/clientConfig/caBundle",
-					"value": %q
-				}]`, value))
-
-			var err error
-			switch adminAPIVersion {
-			// AdmissionregistrationV1 is valid in k8s 1.16+
-			case "v1":
-				_, err = clientset.AdmissionregistrationV1().
-					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
-						metav1.PatchOptions{})
-			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
-			case "v1beta1":
-				_, err = clientset.AdmissionregistrationV1beta1().
-					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
-						metav1.PatchOptions{})
-			default:
-				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
-			}
+			// Check the current bundles and only update if necessary.
+			currentBundles, err := c.getCurrentCABundles(ctx, clientset, adminAPIVersion)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf(
-					"Error updating MutatingWebhookConfiguration: %s",
+					"Error getting MutatingWebhookConfiguration: %s",
 					err))
 				continue
+			}
+			if len(currentBundles) > 0 && bytes.Equal(currentBundles[0], bundle.CACert) {
+				err = c.updateCABundle(ctx, &bundle, clientset, adminAPIVersion)
+				if err != nil {
+					c.UI.Error(fmt.Sprintf(
+						"Error updating MutatingWebhookConfiguration: %s",
+						err))
+					continue
+				}
 			}
 		}
 
 		// Update the certificate
 		c.cert.Store(&crt)
 	}
+}
+
+func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset, adminAPIVersion string) (watch.Interface, error) {
+	switch adminAPIVersion {
+	// AdmissionregistrationV1 is valid in k8s 1.16+
+	case "v1":
+		return clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Watch(ctx, metav1.ListOptions{})
+	// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
+	case "v1beta1":
+		return clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Watch(ctx, metav1.ListOptions{})
+	default:
+		return nil, fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+	}
+}
+
+// tickerWatcher simply emits an empty watch event once after a specific duration
+type tickerWatcher struct {
+	ch     chan watch.Event
+	ticker *time.Ticker
+}
+
+func newTickerWatcher(after time.Duration) *tickerWatcher {
+	ticker := time.NewTicker(after)
+	ch := make(chan watch.Event)
+	go func() {
+		for {
+			<-ticker.C
+			ch <- watch.Event{}
+		}
+	}()
+	return &tickerWatcher{
+		ch,
+		ticker,
+	}
+}
+
+// implements watch.Interface
+func (n *tickerWatcher) Stop() {
+	n.ticker.Stop()
+	close(n.ch)
+}
+
+func (n *tickerWatcher) ResultChan() <-chan watch.Event {
+	return n.ch
+}
+
+// updateCABundle updates the current CA bundle for the first mutating webhook
+func (c *Command) updateCABundle(ctx context.Context, bundle *cert.Bundle, clientset *kubernetes.Clientset, adminAPIVersion string) (err error) {
+	// The CA Bundle value must be base64 encoded
+	value := base64.StdEncoding.EncodeToString(bundle.CACert)
+	payload := []byte(fmt.Sprintf(
+		`[{
+					"op": "add",
+					"path": "/webhooks/0/clientConfig/caBundle",
+					"value": %q
+				}]`, value))
+
+	switch adminAPIVersion {
+	// AdmissionregistrationV1 is valid in k8s 1.16+
+	case "v1":
+		_, err = clientset.AdmissionregistrationV1().
+			MutatingWebhookConfigurations().
+			Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+				metav1.PatchOptions{})
+	// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
+	case "v1beta1":
+		_, err = clientset.AdmissionregistrationV1beta1().
+			MutatingWebhookConfigurations().
+			Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+				metav1.PatchOptions{})
+	default:
+		err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+	}
+	return
+}
+
+// getCurrentCABundles fetches the current CA bundles for all mutating webhook configurations
+func (c *Command) getCurrentCABundles(ctx context.Context, clientset *kubernetes.Clientset, adminAPIVersion string) ([][]byte, error) {
+	bundles := make([][]byte, 0, 1)
+	switch adminAPIVersion {
+	case "v1":
+		current, err := clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, webhook := range current.Webhooks {
+			bundle := make([]byte, len(webhook.ClientConfig.CABundle))
+			copy(bundle, webhook.ClientConfig.CABundle)
+			bundles = append(bundles, bundle)
+		}
+
+	case "v1beta1":
+		current, err := clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, webhook := range current.Webhooks {
+			bundle := make([]byte, len(webhook.ClientConfig.CABundle))
+			copy(bundle, webhook.ClientConfig.CABundle)
+			bundles = append(bundles, bundle)
+		}
+	default:
+		return nil, fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
+	}
+	return bundles, nil
 }
 
 func (c *Command) Synopsis() string { return synopsis }
