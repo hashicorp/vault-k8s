@@ -28,7 +28,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -175,7 +174,7 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, leaderElector, namespace, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -318,32 +317,53 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, namespace string, log hclog.Logger) {
 	var bundle cert.Bundle
-	webhooksWatcher, err := watchWebhooks(ctx, clientset)
+	webhooksCache, webhooksWatcher, err := watchWebhooks(ctx, clientset, namespace)
 	if err != nil {
-		log.Warn("Error watching webhooks", "error", err)
-		webhooksWatcher = newTickerWatcher(1 * time.Second)
+		log.Error("Error watching webhooks", "error", err)
+		panic(err)
 	}
-	defer webhooksWatcher.Stop()
+	tryImmediately := false
 
 	for {
-		select {
-		case bundle = <-ch:
-			log.Info("Updated certificate bundle received. Updating certs...")
-			// Bundle is updated, set it up
+		if tryImmediately {
+			// avoid tight loop on failure
+			time.Sleep(1 * time.Second)
+		} else {
+			select {
+			case bundle = <-ch:
+				log.Info("Updated certificate bundle received. Updating certs...")
+				// Bundle is updated, set it up
+			case <-webhooksWatcher:
+				log.Info("Webhooks changed. Updating certs...")
+				// Webhooks changed, make sure the CA bundle is up-to-date.
+			case <-ctx.Done():
+				// Quit
+				return
+			}
+		}
+		tryImmediately = false
 
-		case <-webhooksWatcher.ResultChan():
-			// Webhooks changed.
-
-		case <-ctx.Done():
-			// Quit
-			return
+		item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
+		if !exists {
+			log.Warn("Could not find webhook config in cache. Trying again...", "item", item)
+			tryImmediately = true
+			continue
+		} else if err != nil {
+			log.Warn(fmt.Sprintf("Could not find webhook config in cache: %s. Trying again...", err))
+			tryImmediately = true
+			continue
+		}
+		config, ok := item.(*adminv1.MutatingWebhookConfiguration)
+		if !ok {
+			log.Error("Got unknown object from cache; expected &MutatingWebhookConfiguration", "item", item)
 		}
 
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
+			tryImmediately = true
 			continue
 		}
 
@@ -354,6 +374,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			isLeader, err = leaderElector.IsLeader()
 			if err != nil {
 				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
+				tryImmediately = true
 				continue
 			}
 		}
@@ -361,19 +382,13 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		// If there is an MWC name set, then update the CA bundle.
 		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
 			// Check the current bundles and only update if necessary.
-			currentBundles, err := c.getCurrentCABundles(ctx, clientset)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf(
-					"Error getting MutatingWebhookConfiguration: %s",
-					err))
-				continue
-			}
-			if len(currentBundles) == 0 || !bytes.Equal(currentBundles[0], bundle.CACert) {
+			if len(config.Webhooks) == 0 || !bytes.Equal(config.Webhooks[0].ClientConfig.CABundle, bundle.CACert) {
 				err = c.updateCABundle(ctx, &bundle, clientset)
 				if err != nil {
 					c.UI.Error(fmt.Sprintf(
 						"Error updating MutatingWebhookConfiguration: %s",
 						err))
+					tryImmediately = true
 					continue
 				}
 			}
@@ -384,39 +399,30 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 	}
 }
 
-func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (watch.Interface, error) {
-	return clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Watch(ctx, metav1.ListOptions{})
-}
-
-// tickerWatcher simply emits an empty watch event once after a specific duration
-type tickerWatcher struct {
-	ch     chan watch.Event
-	ticker *time.Ticker
-}
-
-func newTickerWatcher(after time.Duration) *tickerWatcher {
-	ticker := time.NewTicker(after)
-	ch := make(chan watch.Event)
-	go func() {
-		for {
-			<-ticker.C
-			ch <- watch.Event{}
-		}
-	}()
-	return &tickerWatcher{
-		ch,
-		ticker,
+func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset, namespace string) (cache.Store, <-chan interface{}, error) {
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
+	webhooks := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
+	go webhooks.Informer().Run(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), webhooks.Informer().HasSynced) {
+		return nil, nil, fmt.Errorf("timeout syncing Webhooks informer")
 	}
+	notifyCh := make(webhookWatcher)
+	webhooks.Informer().AddEventHandler(notifyCh)
+	return webhooks.Informer().GetStore(), notifyCh, nil
 }
 
-// implements watch.Interface
-func (n *tickerWatcher) Stop() {
-	n.ticker.Stop()
-	close(n.ch)
+type webhookWatcher chan interface{}
+
+func (w webhookWatcher) OnAdd(_ interface{}) {
+	w <- nil
 }
 
-func (n *tickerWatcher) ResultChan() <-chan watch.Event {
-	return n.ch
+func (w webhookWatcher) OnUpdate(_, _ interface{}) {
+	w <- nil
+}
+
+func (w webhookWatcher) OnDelete(_ interface{}) {
+	w <- nil
 }
 
 // updateCABundle updates the current CA bundle for the first mutating webhook
@@ -435,22 +441,6 @@ func (c *Command) updateCABundle(ctx context.Context, bundle *cert.Bundle, clien
 		Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
 			metav1.PatchOptions{})
 	return err
-}
-
-// getCurrentCABundles fetches the current CA bundles for all mutating webhook configurations
-func (c *Command) getCurrentCABundles(ctx context.Context, clientset *kubernetes.Clientset) ([][]byte, error) {
-	bundles := make([][]byte, 0, 1)
-	current, err := clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	for _, webhook := range current.Webhooks {
-		bundle := make([]byte, len(webhook.ClientConfig.CABundle))
-		copy(bundle, webhook.ClientConfig.CABundle)
-		bundles = append(bundles, bundle)
-	}
-	return bundles, nil
 }
 
 func (c *Command) Synopsis() string { return synopsis }
