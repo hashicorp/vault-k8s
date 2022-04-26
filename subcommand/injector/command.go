@@ -325,78 +325,80 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		log.Error("Error watching webhooks", "error", err)
 		panic(err)
 	}
-	tryImmediately := false
 
 	expBackoff := backoff.NewExponentialBackOff()
 
 	for {
-		if tryImmediately {
-			// avoid tight loop on failure
+		select {
+		case bundle = <-ch:
+			// Bundle is updated, set it up
+			log.Info("Updated certificate bundle received. Updating certs...")
+
+		case <-webhooksWatcher:
+			// Webhooks changed, make sure the CA bundle is up-to-date.
+			log.Info("Webhooks changed. Updating certs...")
+
+		case <-ctx.Done():
+			// Quit
+			return
+		}
+		err := c.updateWebhook(ctx, clientset, bundle, webhooksCache, leaderElector, log)
+		if err != nil {
 			time.Sleep(expBackoff.NextBackOff())
 		} else {
-			select {
-			case bundle = <-ch:
-				log.Info("Updated certificate bundle received. Updating certs...")
-				// Bundle is updated, set it up
-			case <-webhooksWatcher:
-				log.Info("Webhooks changed. Updating certs...")
-				// Webhooks changed, make sure the CA bundle is up-to-date.
-			case <-ctx.Done():
-				// Quit
-				return
-			}
+			expBackoff.Reset()
 		}
-		tryImmediately = true
-
-		item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
-		if !exists {
-			log.Warn("Could not find webhook config in cache. Trying again...", "item", item)
-			continue
-		} else if err != nil {
-			log.Warn(fmt.Sprintf("Could not find webhook config in cache: %s. Trying again...", err))
-			continue
-		}
-		config, ok := item.(*adminv1.MutatingWebhookConfiguration)
-		if !ok {
-			log.Error("Got unknown object from cache; expected &MutatingWebhookConfiguration", "item", item)
-		}
-
-		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
-		if err != nil {
-			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
-			continue
-		}
-
-		isLeader := true
-		if c.flagUseLeaderElector {
-			// Only the leader should do the caBundle patching in k8s API
-			var err error
-			isLeader, err = leaderElector.IsLeader()
-			if err != nil {
-				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
-				continue
-			}
-		}
-
-		// If there is an MWC name set, then update the CA bundle.
-		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
-			// Check the current bundles and only update if necessary.
-			if len(config.Webhooks) == 0 || !bytes.Equal(config.Webhooks[0].ClientConfig.CABundle, bundle.CACert) {
-				err = c.updateCABundle(ctx, &bundle, clientset)
-				if err != nil {
-					c.UI.Error(fmt.Sprintf(
-						"Error updating MutatingWebhookConfiguration: %s",
-						err))
-					continue
-				}
-			}
-		}
-
-		// Update the certificate
-		c.cert.Store(&crt)
-		tryImmediately = false
-		expBackoff.Reset()
 	}
+}
+
+func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+	item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
+	if !exists {
+		log.Warn("Could not find webhook config in cache. Trying again...", "item", item)
+		return fmt.Errorf("could not find webhook config in cache")
+	} else if err != nil {
+		log.Warn(fmt.Sprintf("Could not find webhook config in cache: %s. Trying again...", err))
+		return err
+	}
+	config, ok := item.(*adminv1.MutatingWebhookConfiguration)
+	if !ok {
+		log.Error("Got unknown object from cache; expected &MutatingWebhookConfiguration", "item", item)
+	}
+
+	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
+	if err != nil {
+		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
+		return err
+	}
+
+	isLeader := true
+	if c.flagUseLeaderElector {
+		// Only the leader should do the caBundle patching in k8s API
+		var err error
+		isLeader, err = leaderElector.IsLeader()
+		if err != nil {
+			log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
+			return err
+		}
+	}
+
+	// If there is an MWC name set, then update the CA bundle.
+	if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
+		// Check the current bundles and only update if necessary.
+		if len(config.Webhooks) == 0 || !bytes.Equal(config.Webhooks[0].ClientConfig.CABundle, bundle.CACert) {
+			err = c.updateCABundle(ctx, &bundle, clientset)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf(
+					"Error updating MutatingWebhookConfiguration: %s",
+					err))
+				return err
+			}
+		}
+	}
+
+	// Update the certificate
+	c.cert.Store(&crt)
+	return nil
 }
 
 func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (cache.Store, <-chan interface{}, error) {
