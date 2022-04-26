@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
@@ -174,7 +175,7 @@ func (c *Command) Run(args []string) int {
 	certCh := make(chan cert.Bundle)
 	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, leaderElector, namespace, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
@@ -317,19 +318,21 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, namespace string, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, log hclog.Logger) {
 	var bundle cert.Bundle
-	webhooksCache, webhooksWatcher, err := watchWebhooks(ctx, clientset, namespace)
+	webhooksCache, webhooksWatcher, err := watchWebhooks(ctx, clientset)
 	if err != nil {
 		log.Error("Error watching webhooks", "error", err)
 		panic(err)
 	}
 	tryImmediately := false
 
+	expBackoff := backoff.NewExponentialBackOff()
+
 	for {
 		if tryImmediately {
 			// avoid tight loop on failure
-			time.Sleep(1 * time.Second)
+			time.Sleep(expBackoff.NextBackOff())
 		} else {
 			select {
 			case bundle = <-ch:
@@ -343,16 +346,14 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 				return
 			}
 		}
-		tryImmediately = false
+		tryImmediately = true
 
 		item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
 		if !exists {
 			log.Warn("Could not find webhook config in cache. Trying again...", "item", item)
-			tryImmediately = true
 			continue
 		} else if err != nil {
 			log.Warn(fmt.Sprintf("Could not find webhook config in cache: %s. Trying again...", err))
-			tryImmediately = true
 			continue
 		}
 		config, ok := item.(*adminv1.MutatingWebhookConfiguration)
@@ -363,7 +364,6 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 		if err != nil {
 			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
-			tryImmediately = true
 			continue
 		}
 
@@ -374,7 +374,6 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			isLeader, err = leaderElector.IsLeader()
 			if err != nil {
 				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
-				tryImmediately = true
 				continue
 			}
 		}
@@ -388,7 +387,6 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 					c.UI.Error(fmt.Sprintf(
 						"Error updating MutatingWebhookConfiguration: %s",
 						err))
-					tryImmediately = true
 					continue
 				}
 			}
@@ -396,11 +394,13 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		// Update the certificate
 		c.cert.Store(&crt)
+		tryImmediately = false
+		expBackoff.Reset()
 	}
 }
 
-func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset, namespace string) (cache.Store, <-chan interface{}, error) {
-	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0, informers.WithNamespace(namespace))
+func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (cache.Store, <-chan interface{}, error) {
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0)
 	webhooks := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
 	go webhooks.Informer().Run(ctx.Done())
 	if !cache.WaitForCacheSync(ctx.Done(), webhooks.Informer().HasSynced) {
