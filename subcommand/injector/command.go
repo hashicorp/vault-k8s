@@ -326,6 +326,8 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		panic(err)
 	}
 
+	defaultLoopTime := 1 * time.Hour // update after this amount of time even if nothing has happened
+	timer := time.NewTimer(defaultLoopTime)
 	expBackoff := backoff.NewExponentialBackOff()
 
 	for {
@@ -341,12 +343,23 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 		case <-ctx.Done():
 			// Quit
 			return
+
+		case <-timer.C:
+			// we are told to retry or periodically update
 		}
+
+		// clear the timer
+		if !timer.Stop() {
+			<-timer.C
+		}
+
 		err := c.updateWebhook(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
-			time.Sleep(expBackoff.NextBackOff())
+			// retry after a delay
+			timer.Reset(expBackoff.NextBackOff())
 		} else {
 			expBackoff.Reset()
+			timer.Reset(defaultLoopTime)
 		}
 	}
 }
