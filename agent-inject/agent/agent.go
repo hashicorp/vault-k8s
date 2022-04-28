@@ -244,6 +244,9 @@ type Vault struct {
 	// make a request to the Vault server.
 	ClientTimeout string
 
+	// GoMaxProcs sets the Vault Agent go max procs.
+	GoMaxProcs string
+
 	// LogLevel sets the Vault Agent log level.  Defaults to info.
 	LogLevel string
 
@@ -337,6 +340,7 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientKey:        pod.Annotations[AnnotationVaultClientKey],
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
+			GoMaxProcs:       pod.Annotations[AnnotationVaultGoMaxProcs],
 			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
 			LogFormat:        pod.Annotations[AnnotationVaultLogFormat],
 			Namespace:        pod.Annotations[AnnotationVaultNamespace],
