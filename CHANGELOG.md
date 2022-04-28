@@ -2,6 +2,7 @@
 
 Features:
 * Add agent-enable-quit annotation [GH-330](https://github.com/hashicorp/vault-k8s/pull/330)
+* Add go-max-procs annotation [GH-333](https://github.com/hashicorp/vault-k8s/pull/333)
 
 ## 0.15.0 (March 21, 2022)
 
