@@ -67,6 +67,8 @@ type Command struct {
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
 	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
+	flagAuthMinBackoff             string // Auth min backoff on failure
+	flagAuthMaxBackoff             string // Auth min backoff on failure
 
 	flagSet *flag.FlagSet
 
@@ -199,6 +201,8 @@ func (c *Command) Run(args []string) int {
 		ResourceLimitMem:           c.flagResourceLimitMem,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
+		AuthMinBackoff:             c.flagAuthMinBackoff,
+		AuthMaxBackoff:             c.flagAuthMaxBackoff,
 	}
 
 	mux := http.NewServeMux()

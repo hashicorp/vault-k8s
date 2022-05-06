@@ -52,6 +52,8 @@ type Method struct {
 	MountPath  string                 `json:"mount_path,omitempty"`
 	WrapTTLRaw interface{}            `json:"wrap_ttl,omitempty"`
 	WrapTTL    time.Duration          `json:"-"`
+	MinBackoff string                 `json:"min_backoff,omitempty"`
+	MaxBackoff string                 `json:"max_backoff,omitempty"`
 	Namespace  string                 `json:"namespace,omitempty"`
 	Config     map[string]interface{} `json:"config,omitempty"`
 }
@@ -167,10 +169,12 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type:      a.Vault.AuthType,
-				Namespace: a.Vault.Namespace,
-				MountPath: a.Vault.AuthPath,
-				Config:    a.Vault.AuthConfig,
+				Type:       a.Vault.AuthType,
+				Namespace:  a.Vault.Namespace,
+				MountPath:  a.Vault.AuthPath,
+				Config:     a.Vault.AuthConfig,
+				MinBackoff: a.Vault.AuthMinBackoff,
+				MaxBackoff: a.Vault.AuthMaxBackoff,
 			},
 			Sinks: []*Sink{
 				{

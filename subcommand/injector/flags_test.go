@@ -133,6 +133,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL", value: "12s", cmdPtr: &cmd.flagStaticSecretRenderInterval},
 		{env: "AGENT_INJECT_TLS_MIN_VERSION", value: "tls13", cmdPtr: &cmd.flagTLSMinVersion},
 		{env: "AGENT_INJECT_TLS_CIPHER_SUITES", value: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", cmdPtr: &cmd.flagTLSCipherSuites},
+		{env: "AGENT_INJECT_AUTH_MIN_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMinBackoff},
+		{env: "AGENT_INJECT_AUTH_MAX_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMaxBackoff},
 	}
 
 	for _, tt := range tests {

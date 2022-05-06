@@ -732,6 +732,16 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentCacheEnable, "tRuE", false},
 		{AnnotationAgentCacheEnable, "fAlSe", false},
 		{AnnotationAgentCacheEnable, "", false},
+
+		{AnnotationAgentAuthMinBackoff, "", true},
+		{AnnotationAgentAuthMinBackoff, "1s", true},
+		{AnnotationAgentAuthMinBackoff, "1m", true},
+		{AnnotationAgentAuthMinBackoff, "x", false},
+
+		{AnnotationAgentAuthMaxBackoff, "", true},
+		{AnnotationAgentAuthMaxBackoff, "1s", true},
+		{AnnotationAgentAuthMaxBackoff, "1m", true},
+		{AnnotationAgentAuthMaxBackoff, "x", false},
 	}
 
 	for i, tt := range tests {
@@ -741,7 +751,11 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
+			if tt.valid {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+			// if !tt.valid, that is okay, we expected an error
+			continue
 		}
 
 		_, err = New(pod, patches)
@@ -1120,4 +1134,24 @@ func TestDefaultTemplateOverride(t *testing.T) {
 				"expected %v, got %v", tt.expectedValue, agent.DefaultTemplate)
 		}
 	}
+}
+
+func TestAuthMinMaxBackoff(t *testing.T) {
+	pod := testPod(map[string]string{
+		"vault.hashicorp.com/auth-min-backoff": "5s",
+		"vault.hashicorp.com/auth-max-backoff": "10s",
+	})
+	agentConfig := basicAgentConfig()
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod, nil)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	require.Equal(t, "5s", agent.Vault.AuthMinBackoff, "expected 5s, got %v", agent.Vault.AuthMinBackoff)
+	require.Equal(t, "10s", agent.Vault.AuthMaxBackoff, "expected 10s, got %v", agent.Vault.AuthMaxBackoff)
 }

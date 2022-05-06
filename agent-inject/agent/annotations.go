@@ -5,6 +5,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -262,6 +263,14 @@ const (
 	// AnnotationAgentEnableQuit configures whether the quit endpoint is
 	// enabled in the injected agent config
 	AnnotationAgentEnableQuit = "vault.hashicorp.com/agent-enable-quit"
+
+	// AnnotationAgentAuthMinBackoff specifies the minimum backoff duration used when the agent auto auth fails.
+	// Defaults to 1 second.
+	AnnotationAgentAuthMinBackoff = "vault.hashicorp.com/auth-min-backoff"
+
+	// AnnotationAgentAuthMaxBackoff specifies the maximum backoff duration used when the agent auto auth fails.
+	// Defaults to 5 minutes.
+	AnnotationAgentAuthMaxBackoff = "vault.hashicorp.com/auth-max-backoff"
 )
 
 type AgentConfig struct {
@@ -283,6 +292,8 @@ type AgentConfig struct {
 	ResourceLimitMem           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	AuthMinBackoff             string
+	AuthMaxBackoff             string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -449,6 +460,30 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
+	}
+
+	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
+		if minBackoffString != "" {
+			_, err := time.ParseDuration(minBackoffString)
+			if err != nil {
+				return fmt.Errorf("error parsing min backoff as duration: %v", err)
+			}
+		}
+	} else if cfg.AuthMinBackoff != "" {
+		// set default from env/flag
+		pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff] = cfg.AuthMinBackoff
+	}
+
+	if maxBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff]; ok {
+		if maxBackoffString != "" {
+			_, err := time.ParseDuration(maxBackoffString)
+			if err != nil {
+				return fmt.Errorf("error parsing max backoff as duration: %v", err)
+			}
+		}
+	} else if cfg.AuthMaxBackoff != "" {
+		// set default from env/flag
+		pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff] = cfg.AuthMaxBackoff
 	}
 
 	return nil
