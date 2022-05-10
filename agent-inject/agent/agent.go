@@ -269,6 +269,12 @@ type Vault struct {
 	// TLSServerName is the name of the Vault server to use when validating Vault's
 	// TLS certificates.
 	TLSServerName string
+
+	// AuthMinBackoff is the minimum time to backoff if auto auth fails.
+	AuthMinBackoff string
+
+	// AuthMinBackoff is the maximum time to backoff if auto auth fails.
+	AuthMaxBackoff string
 }
 
 type VaultAgentCache struct {
@@ -347,6 +353,8 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
+			AuthMinBackoff:   pod.Annotations[AnnotationAgentAuthMinBackoff],
+			AuthMaxBackoff:   pod.Annotations[AnnotationAgentAuthMaxBackoff],
 		},
 	}
 

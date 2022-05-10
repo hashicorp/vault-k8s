@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
@@ -109,6 +110,12 @@ type Specification struct {
 
 	// TLSCipherSuites is the AGENT_INJECT_TLS_CIPHER_SUITES environment variable
 	TLSCipherSuites string `envconfig:"tls_cipher_suites"`
+
+	// AuthMinBackoff is the AGENT_MIN_BACKOFF environment variable
+	AuthMinBackoff string `envconfig:"AGENT_INJECT_AUTH_MIN_BACKOFF"`
+
+	// AuthMaxBackoff is the AGENT_MAX_BACKOFF environment variable
+	AuthMaxBackoff string `envconfig:"AGENT_INJECT_AUTH_MAX_BACKOFF"`
 }
 
 func (c *Command) init() {
@@ -168,6 +175,10 @@ func (c *Command) init() {
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+	c.flagSet.StringVar(&c.flagAuthMinBackoff, "auth-min-backoff", "",
+		"Sets the minimum backoff on auto-auth failure. Default is 1s")
+	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",
+		"Sets the maximum backoff on auto-auth failure. Default is 5m")
 
 	tlsVersions := []string{}
 	for v := range tlsutil.TLSLookup {
@@ -337,6 +348,28 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TLSCipherSuites != "" {
 		c.flagTLSCipherSuites = envs.TLSCipherSuites
+	}
+
+	if envs.AuthMinBackoff != "" {
+		c.flagAuthMinBackoff = envs.AuthMinBackoff
+	}
+
+	if c.flagAuthMinBackoff != "" {
+		_, err = time.ParseDuration(c.flagAuthMinBackoff)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.AuthMaxBackoff != "" {
+		c.flagAuthMaxBackoff = envs.AuthMaxBackoff
+	}
+
+	if c.flagAuthMaxBackoff != "" {
+		_, err = time.ParseDuration(c.flagAuthMaxBackoff)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

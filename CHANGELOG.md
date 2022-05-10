@@ -3,6 +3,7 @@
 Features:
 * Add agent-enable-quit annotation [GH-330](https://github.com/hashicorp/vault-k8s/pull/330)
 * Add go-max-procs annotation [GH-333](https://github.com/hashicorp/vault-k8s/pull/333)
+* Add min and max auth backoff annotations and environment variables [GH-341](https://github.com/hashicorp/vault-k8s/pull/341)
 
 Changes:
 * Only update webhook CA bundles when needed [GH-336](https://github.com/hashicorp/vault-k8s/pull/336)
