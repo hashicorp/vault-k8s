@@ -69,6 +69,9 @@ type Specification struct {
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
 
+	// VaultNamespace is the AGENT_INJECT_VAULT_NAMESPACE environment variable.
+	VaultNamespace string `split_words:"true"`
+
 	// RevokeOnShutdown is AGENT_INJECT_REVOKE_ON_SHUTDOWN environment variable.
 	RevokeOnShutdown string `split_words:"true"`
 
@@ -147,6 +150,7 @@ func (c *Command) init() {
 		fmt.Sprintf("Type of Vault Auth Method to use. Defaults to %q.", agent.DefaultVaultAuthType))
 	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
 		fmt.Sprintf("Mount path of the Vault Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
+	c.flagSet.StringVar(&c.flagVaultNamespace, "vault-namespace", "", "Vault enterprise namespace.")
 	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
 		"Automatically revoke Vault Token on Pod termination.")
 	c.flagSet.StringVar(&c.flagRunAsUser, "run-as-user", strconv.Itoa(agent.DefaultAgentRunAsUser),
@@ -280,6 +284,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath
+	}
+
+	if envs.VaultNamespace != "" {
+		c.flagVaultNamespace = envs.VaultNamespace
 	}
 
 	if envs.RevokeOnShutdown != "" {
