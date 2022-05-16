@@ -387,15 +387,6 @@ func (c *Command) getWebhookCached(webhooksCache cache.Store) (*adminv1.Mutating
 }
 
 func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
-	config, err := c.getWebhookCached(webhooksCache)
-	if err != nil {
-		log.Warn("Getting webhook config from cache failed", "err", err)
-		config, err = c.fetchWebhook(ctx, clientset)
-		if err != nil {
-			log.Warn("Fetching webhook config directly failed; will try again", "err", err)
-			return err
-		}
-	}
 	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 	if err != nil {
 		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
@@ -415,6 +406,16 @@ func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clien
 
 	// If there is an MWC name set, then update the CA bundle.
 	if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
+		config, err := c.getWebhookCached(webhooksCache)
+		if err != nil {
+			log.Warn("Getting webhook config from cache failed", "err", err)
+			config, err = c.fetchWebhook(ctx, clientset)
+			if err != nil {
+				log.Warn("Fetching webhook config directly failed; will try again", "err", err)
+				return err
+			}
+		}
+
 		// Check the current bundles and only update if necessary.
 		if len(config.Webhooks) == 0 || !bytes.Equal(config.Webhooks[0].ClientConfig.CABundle, bundle.CACert) {
 			err = c.updateCABundle(ctx, &bundle, clientset)
