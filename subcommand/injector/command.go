@@ -368,20 +368,34 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 	}
 }
 
-func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+func (c *Command) fetchWebhook(ctx context.Context, clientset *kubernetes.Clientset) (*adminv1.MutatingWebhookConfiguration, error) {
+	return clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
+}
+
+func (c *Command) getWebhookCached(webhooksCache cache.Store) (*adminv1.MutatingWebhookConfiguration, error) {
 	item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
 	if !exists {
-		log.Warn("Could not find webhook config in cache. Trying again...", "item", item)
-		return fmt.Errorf("could not find webhook config in cache")
+		return nil, fmt.Errorf("webhook config not cached")
 	} else if err != nil {
-		log.Warn(fmt.Sprintf("Could not find webhook config in cache: %s. Trying again...", err))
-		return err
+		return nil, err
 	}
 	config, ok := item.(*adminv1.MutatingWebhookConfiguration)
 	if !ok {
-		log.Error("Got unknown object from cache; expected &MutatingWebhookConfiguration", "item", item)
+		return nil, fmt.Errorf("got unknown object from cache; expected &MutatingWebhookConfiguration but got %T", item)
 	}
+	return config, nil
+}
 
+func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+	config, err := c.getWebhookCached(webhooksCache)
+	if err != nil {
+		log.Warn("Getting webhook config from cache failed", "err", err)
+		config, err = c.fetchWebhook(ctx, clientset)
+		if err != nil {
+			log.Warn("Fetching webhook config directly failed; will try again", "err", err)
+			return err
+		}
+	}
 	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 	if err != nil {
 		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
