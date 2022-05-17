@@ -32,6 +32,7 @@ import (
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/listers/admissionregistration/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -372,21 +373,7 @@ func (c *Command) fetchWebhook(ctx context.Context, clientset *kubernetes.Client
 	return clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
 }
 
-func (c *Command) getWebhookCached(webhooksCache cache.Store) (*adminv1.MutatingWebhookConfiguration, error) {
-	item, exists, err := webhooksCache.GetByKey(c.flagAutoName)
-	if !exists {
-		return nil, fmt.Errorf("webhook config not cached")
-	} else if err != nil {
-		return nil, err
-	}
-	config, ok := item.(*adminv1.MutatingWebhookConfiguration)
-	if !ok {
-		return nil, fmt.Errorf("got unknown object from cache; expected &MutatingWebhookConfiguration but got %T", item)
-	}
-	return config, nil
-}
-
-func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache v1.MutatingWebhookConfigurationLister, leaderElector leader.Elector, log hclog.Logger) error {
 	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 	if err != nil {
 		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
@@ -406,7 +393,7 @@ func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.C
 
 	// If there is an MWC name set, then update the CA bundle.
 	if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
-		config, err := c.getWebhookCached(webhooksCache)
+		config, err := webhooksCache.Get(c.flagAutoName)
 		if err != nil {
 			log.Warn("Getting webhook config from cache failed", "err", err)
 			config, err = c.fetchWebhook(ctx, clientset)
@@ -433,7 +420,7 @@ func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.C
 	return nil
 }
 
-func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (cache.Store, <-chan interface{}, error) {
+func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (v1.MutatingWebhookConfigurationLister, <-chan interface{}, error) {
 	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0)
 	webhooks := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
 	go webhooks.Informer().Run(ctx.Done())
@@ -442,7 +429,7 @@ func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (cache.
 	}
 	notifyCh := make(webhookWatcher)
 	webhooks.Informer().AddEventHandler(notifyCh)
-	return webhooks.Informer().GetStore(), notifyCh, nil
+	return webhooks.Lister(), notifyCh, nil
 }
 
 type webhookWatcher chan interface{}
