@@ -357,7 +357,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			<-timer.C
 		}
 
-		err := c.updateWebhook(ctx, clientset, bundle, webhooksCache, leaderElector, log)
+		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
 			// retry after a delay
 			timer.Reset(expBackoff.NextBackOff())
@@ -386,7 +386,7 @@ func (c *Command) getWebhookCached(webhooksCache cache.Store) (*adminv1.Mutating
 	return config, nil
 }
 
-func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
 	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
 	if err != nil {
 		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
