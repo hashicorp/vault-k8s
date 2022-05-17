@@ -357,7 +357,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			<-timer.C
 		}
 
-		err := c.updateWebhook(ctx, clientset, bundle, webhooksCache, leaderElector, log)
+		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
 			// retry after a delay
 			timer.Reset(expBackoff.NextBackOff())
@@ -366,6 +366,29 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			timer.Reset(defaultLoopTime)
 		}
 	}
+}
+
+func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
+	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
+	if err != nil {
+		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
+		return err
+	}
+
+	if c.isInAutoMode() {
+		err := c.updateWebhook(ctx, clientset, bundle, webhooksCache, leaderElector, log)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Update the certificate
+	c.cert.Store(&crt)
+	return nil
+}
+
+func (c *Command) isInAutoMode() bool {
+	return c.flagAutoName != ""
 }
 
 func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache cache.Store, leaderElector leader.Elector, log hclog.Logger) error {
@@ -380,12 +403,6 @@ func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clien
 	config, ok := item.(*adminv1.MutatingWebhookConfiguration)
 	if !ok {
 		log.Error("Got unknown object from cache; expected &MutatingWebhookConfiguration", "item", item)
-	}
-
-	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
-	if err != nil {
-		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
-		return err
 	}
 
 	isLeader := true
@@ -413,8 +430,6 @@ func (c *Command) updateWebhook(ctx context.Context, clientset *kubernetes.Clien
 		}
 	}
 
-	// Update the certificate
-	c.cert.Store(&crt)
 	return nil
 }
 
