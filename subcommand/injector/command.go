@@ -355,7 +355,11 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		// clear the timer
 		if !timer.Stop() {
-			<-timer.C
+			// non-blocking drain
+			select {
+			case <-timer.C:
+			default:
+			}
 		}
 
 		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
