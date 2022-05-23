@@ -1,5 +1,8 @@
 ## Unreleased
 
+Changes:
+* Certificate watcher timer deadlock fix [GH-350]([https://github.com/hashicorp/vault-k8s/pull/350)
+
 ## 0.16.0 (May 11, 2022)
 
 Features:
