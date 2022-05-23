@@ -446,7 +446,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 2
+	expectedEnvs := 9
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}

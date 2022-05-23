@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/base64"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -64,6 +65,48 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 			Name:  "VAULT_CONFIG",
 			Value: b64Config,
 		})
+	} else {
+		// set up environment variables to access Vault since "vault" section may not be present in the config
+		if a.Vault.Address != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_ADDR",
+				Value: a.Vault.Address,
+			})
+		}
+		if a.Vault.CACert != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_CACERT",
+				Value: a.Vault.CACert,
+			})
+		}
+		if a.Vault.CAKey != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_CAPATH",
+				Value: a.Vault.CAKey,
+			})
+		}
+		if a.Vault.ClientCert != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_CLIENT_CERT",
+				Value: a.Vault.ClientCert,
+			})
+		}
+		if a.Vault.ClientKey != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_CLIENT_KEY",
+				Value: a.Vault.ClientKey,
+			})
+		}
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_SKIP_VERIFY",
+			Value: strconv.FormatBool(a.Vault.TLSSkipVerify),
+		})
+		if a.Vault.TLSServerName != "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_TLS_SERVER_NAME",
+				Value: a.Vault.TLSServerName,
+			})
+		}
 	}
 
 	// Add IRSA AWS Env variables for vault containers
