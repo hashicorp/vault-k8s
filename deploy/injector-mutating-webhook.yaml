@@ -24,5 +24,9 @@ webhooks:
         apiVersions: ["v1"]
         resources: ["deployments", "jobs", "pods", "statefulsets"]
     namespaceSelector: {}
-    objectSelector: {}
+    objectSelector:
+      matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: NotIn
+        values: ["vault-agent-injector"]
     failurePolicy: Ignore
