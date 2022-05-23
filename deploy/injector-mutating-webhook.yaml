@@ -28,5 +28,5 @@ webhooks:
       matchExpressions:
       - key: app.kubernetes.io/name
         operator: NotIn
-        values: ["vault-agent-injector"]
+        values: ["vault-injector"]
     failurePolicy: Ignore
