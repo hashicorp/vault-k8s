@@ -1,12 +1,14 @@
 ## Unreleased
 
+## 0.16.1 (May 25, 2022)
+
 Improvements:
 * ConfigMap with missing vault section should default to env vars [GH-353](https://github.com/hashicorp/vault-k8s/pull/353)
-
-Changes:
-* Certificate watcher timer deadlock fix [GH-350]([https://github.com/hashicorp/vault-k8s/pull/350)
 * Wait for certificate before starting HTTP listener [GH-354](https://github.com/hashicorp/vault-k8s/pull/354)
 * Update example injector mutating webhook config to exclude agent pod [GH-351](https://github.com/hashicorp/vault-k8s/pull/351)
+
+Bugs:
+* Certificate watcher timer deadlock fix [GH-350]([https://github.com/hashicorp/vault-k8s/pull/350)
 
 ## 0.16.0 (May 11, 2022)
 
