@@ -176,7 +176,8 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
+	certReady := make(chan bool)
+	certNotify := cert.NewNotify(ctx, certCh, certReady, certSource, logger.Named("notify"))
 	go certNotify.Run()
 	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
 
@@ -222,6 +223,18 @@ func (c *Command) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
 		return 1
 	}
+
+	// if we don't have a certificate given to us, wait for cert to generate to prevent
+	// TLS errors on startup
+	if c.flagCertFile == "" && c.flagKeyFile == "" {
+		<-certReady
+	} else {
+		// otherwise drain async just to clean up the sending goroutine
+		go func() {
+			<-certReady
+		}()
+	}
+
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,

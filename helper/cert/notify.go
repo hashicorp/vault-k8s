@@ -2,17 +2,19 @@ package cert
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
 )
 
-func NewNotify(ctx context.Context, newBundle chan<- Bundle, source Source, logger hclog.Logger) *Notify {
+func NewNotify(ctx context.Context, newBundle chan<- Bundle, notifyOnce chan<- bool, source Source, logger hclog.Logger) *Notify {
 	return &Notify{
-		ctx:    ctx,
-		ch:     newBundle,
-		source: source,
-		logger: logger,
+		ctx:        ctx,
+		ch:         newBundle,
+		notifyOnce: notifyOnce,
+		source:     source,
+		logger:     logger,
 	}
 }
 
@@ -26,6 +28,8 @@ type Notify struct {
 	// blocks then the notify loop will also be blocked, so downstream
 	// users should process this channel in a timely manner.
 	ch chan<- Bundle
+	// used to notify the first time it is run
+	notifyOnce chan<- bool
 
 	// source is the source of certificates.
 	source Source
@@ -39,6 +43,7 @@ func (n *Notify) Run() {
 	retryTicker := time.NewTicker(5 * time.Second)
 	defer retryTicker.Stop()
 	first := true
+	once := sync.Once{}
 	for {
 		if first {
 			// On the first pass we want to check for the cert immediately.
@@ -57,6 +62,12 @@ func (n *Notify) Run() {
 			n.logger.Warn("error loading next cert", "error", err.Error())
 			continue
 		}
+
+		once.Do(func() {
+			go func() {
+				n.notifyOnce <- true
+			}()
+		})
 
 		// If the returned bundles are equal, then ignore it.
 		if last.Equal(&next) {

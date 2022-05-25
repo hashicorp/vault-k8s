@@ -19,7 +19,8 @@ func TestNotify(t *testing.T) {
 
 	// Create notifier
 	ch := make(chan Bundle)
-	n := NewNotify(context.Background(), ch, source, hclog.NewNullLogger())
+	notifyOnce := make(chan bool)
+	n := NewNotify(context.Background(), ch, notifyOnce, source, hclog.NewNullLogger())
 	go n.Run()
 
 	// We should receive an update almost immediately
@@ -35,6 +36,19 @@ func TestNotify(t *testing.T) {
 	case <-time.After(750 * time.Millisecond):
 	case <-ch:
 		t.Fatal("should not receive update")
+	}
+
+	// we should receive the once notification
+	select {
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("should've received once notification")
+	case <-notifyOnce:
+	}
+	// ... just once
+	select {
+	case <-time.After(250 * time.Millisecond):
+	case <-notifyOnce:
+		t.Fatal("should not receive second notification on notifyOnce channel")
 	}
 
 	b := <-ch
@@ -54,6 +68,8 @@ func TestNotifyRace(t *testing.T) {
 	// giving races a chance to be detected.
 	done := make(chan interface{})
 
+	notifyOnce := make(chan bool)
+
 	for i := 0; i < numParallel; i++ {
 
 		// Use one background context for everything since that could happen
@@ -68,7 +84,7 @@ func TestNotifyRace(t *testing.T) {
 			Hosts: []string{"some", "hosts"},
 			Log:   hclog.Default(),
 		}
-		n := NewNotify(ctx, certCh, certSource, hclog.NewNullLogger())
+		n := NewNotify(ctx, certCh, notifyOnce, certSource, hclog.NewNullLogger())
 
 		go func() {
 			<-start
