@@ -165,16 +165,19 @@ func (c *Command) init() {
 		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
 	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
 		"Sets the default template type (map or json). Defaults to map.")
-
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
 	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
 		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
+	c.flagSet.StringVar(&c.flagResourceRequestEphemeral, "ephemeral-storage-request", agent.DefaultResourceRequestEphemeral,
+		fmt.Sprintf("Ephemeral Storage resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestEphemeral))
 
 	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+	c.flagSet.StringVar(&c.flagResourceLimitEphemeral, "ephemeral-storage-limit", agent.DefaultResourceLimitEphemeral,
+		fmt.Sprintf("Ephemeral Storage resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitEphemeral))
 	c.flagSet.StringVar(&c.flagAuthMinBackoff, "auth-min-backoff", "",
 		"Sets the minimum backoff on auto-auth failure. Default is 1s")
 	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",

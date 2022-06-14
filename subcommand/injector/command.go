@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/listers/admissionregistration/v1"
+	v1 "k8s.io/client-go/listers/admissionregistration/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -64,8 +64,10 @@ type Command struct {
 	flagDefaultTemplate            string // Toggles which default template to use
 	flagResourceRequestCPU         string // Set CPU request in the injected containers
 	flagResourceRequestMem         string // Set Memory request in the injected containers
+	flagResourceRequestEphemeral   string // Set Ephemeral Storage request in the injected containers
 	flagResourceLimitCPU           string // Set CPU limit in the injected containers
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagResourceLimitEphemeral     string // Set Ephemeral storage limit in the injected containers
 	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 	flagAuthMinBackoff             string // Auth min backoff on failure

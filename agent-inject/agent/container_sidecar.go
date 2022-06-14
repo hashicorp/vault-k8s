@@ -11,14 +11,16 @@ import (
 
 const (
 	// https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
-	DefaultResourceLimitCPU   = "500m"
-	DefaultResourceLimitMem   = "128Mi"
-	DefaultResourceRequestCPU = "250m"
-	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
-	DefaultRevokeGrace        = 5
-	DefaultAgentLogLevel      = "info"
-	DefaultAgentLogFormat     = "standard"
+	DefaultResourceLimitCPU         = "500m"
+	DefaultResourceLimitMem         = "128Mi"
+	DefaultResourceLimitEphemeral   = "128Mi"
+	DefaultResourceRequestCPU       = "250m"
+	DefaultResourceRequestMem       = "64Mi"
+	DefaultResourceRequestEphemeral = "64Mi"
+	DefaultContainerArg             = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
+	DefaultRevokeGrace              = 5
+	DefaultAgentLogLevel            = "info"
+	DefaultAgentLogFormat           = "standard"
 )
 
 // ContainerSidecar creates a new container to be added
@@ -133,6 +135,14 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 		limits[corev1.ResourceMemory] = mem
 	}
 
+	if a.LimitsEphemeral != "" {
+		ephemeral, err := parseQuantity(a.LimitsEphemeral)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceEphemeralStorage] = ephemeral
+	}
+
 	resources.Limits = limits
 
 	// Requests
@@ -150,6 +160,14 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 			return resources, err
 		}
 		requests[corev1.ResourceMemory] = mem
+	}
+
+	if a.RequestsEphemeral != "" {
+		ephemeral, err := parseQuantity(a.RequestsEphemeral)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceEphemeralStorage] = ephemeral
 	}
 
 	resources.Requests = requests
