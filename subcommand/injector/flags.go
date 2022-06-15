@@ -99,11 +99,17 @@ type Specification struct {
 	// ResourceRequestMem is the AGENT_INJECT_MEM_REQUEST environment variable.
 	ResourceRequestMem string `envconfig:"AGENT_INJECT_MEM_REQUEST"`
 
+	// ResourceRequestEphemeral is the AGENT_INJECT_EPHEMERAL_REQUEST environment variable.
+	ResourceRequestEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_REQUEST"`
+
 	// ResourceLimitCPU is the AGENT_INJECT_CPU_LIMIT environment variable.
 	ResourceLimitCPU string `envconfig:"AGENT_INJECT_CPU_LIMIT"`
 
 	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
 	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
+
+	// ResourceLimitEphemeral is the AGENT_INJECT_EPHEMERAL_LIMIT environment variable.
+	ResourceLimitEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_LIMIT"`
 
 	// TLSMinVersion is the AGENT_INJECT_TLS_MIN_VERSION environment variable
 	TLSMinVersion string `envconfig:"tls_min_version"`
@@ -337,12 +343,20 @@ func (c *Command) parseEnvs() error {
 		c.flagResourceRequestMem = envs.ResourceRequestMem
 	}
 
+	if envs.ResourceRequestEphemeral != "" {
+		c.flagResourceRequestEphemeral = envs.ResourceRequestEphemeral
+	}
+
 	if envs.ResourceLimitCPU != "" {
 		c.flagResourceLimitCPU = envs.ResourceLimitCPU
 	}
 
 	if envs.ResourceLimitMem != "" {
 		c.flagResourceLimitMem = envs.ResourceLimitMem
+	}
+
+	if envs.ResourceLimitEphemeral != "" {
+		c.flagResourceLimitEphemeral = envs.ResourceLimitEphemeral
 	}
 
 	if envs.TLSMinVersion != "" {
