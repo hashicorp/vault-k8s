@@ -1,5 +1,8 @@
 ## Unreleased
 
+Bugs:
+* Properly return admission errors [GH-363](https://github.com/hashicorp/vault-k8s/pull/363)
+
 ## 0.16.1 (May 25, 2022)
 
 Improvements:
