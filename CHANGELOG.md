@@ -1,5 +1,8 @@
 ## Unreleased
 
+Improvements:
+* Added support to configure default vault namespace on the agent config [GH-345](https://github.com/hashicorp/vault-k8s/pull/345)
+
 Bugs:
 * Properly return admission errors [GH-363](https://github.com/hashicorp/vault-k8s/pull/363)
 
