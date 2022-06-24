@@ -1,5 +1,8 @@
 ## Unreleased
 
+Bugs:
+* Properly return admission errors [GH-363](https://github.com/hashicorp/vault-k8s/pull/363)
+
 ## 0.16.1 (May 25, 2022)
 
 Improvements:
@@ -8,7 +11,7 @@ Improvements:
 * Update example injector mutating webhook config to exclude agent pod [GH-351](https://github.com/hashicorp/vault-k8s/pull/351)
 
 Bugs:
-* Certificate watcher timer deadlock fix [GH-350]([https://github.com/hashicorp/vault-k8s/pull/350)
+* Certificate watcher timer deadlock fix [GH-350](https://github.com/hashicorp/vault-k8s/pull/350)
 
 ## 0.16.0 (May 11, 2022)
 
