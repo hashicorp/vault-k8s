@@ -278,6 +278,7 @@ type AgentConfig struct {
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
+	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
 	UserID                     string
@@ -338,6 +339,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultNamespace]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultNamespace] = cfg.VaultNamespace
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationProxyAddress]; !ok {

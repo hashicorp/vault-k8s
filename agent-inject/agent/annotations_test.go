@@ -778,14 +778,17 @@ func TestInitEmptyPod(t *testing.T) {
 
 func TestVaultNamespaceAnnotation(t *testing.T) {
 	tests := []struct {
-		key           string
-		value         string
-		expectedValue string
+		key                       string
+		value                     string
+		agentVaultNamespaceConfig string
+		expectedValue             string
 	}{
-		{"", "", ""},
-		{"vault.hashicorp.com/namespace", "", ""},
-		{"vault.hashicorp.com/namespace", "foobar", "foobar"},
-		{"vault.hashicorp.com/namespace", "fooBar", "fooBar"},
+		{"", "", "", ""},
+		{"", "", "test-namespace", "test-namespace"},
+		{"vault.hashicorp.com/namespace", "", "", ""},
+		{"vault.hashicorp.com/namespace", "foobar", "", "foobar"},
+		{"vault.hashicorp.com/namespace", "foobar", "test-namespace", "foobar"},
+		{"vault.hashicorp.com/namespace", "fooBar", "", "fooBar"},
 	}
 
 	for _, tt := range tests {
@@ -796,6 +799,7 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
+		agentConfig.VaultNamespace = tt.agentVaultNamespaceConfig
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
