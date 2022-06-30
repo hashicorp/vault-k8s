@@ -136,6 +136,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_TLS_CIPHER_SUITES", value: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", cmdPtr: &cmd.flagTLSCipherSuites},
 		{env: "AGENT_INJECT_AUTH_MIN_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMinBackoff},
 		{env: "AGENT_INJECT_AUTH_MAX_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMaxBackoff},
+		{env: "AGENT_INJECT_DISABLE_IDLE_CONNECTIONS", value: "auto-auth,caching,templating", cmdPtr: &cmd.flagDisableIdleConnections},
 	}
 
 	for _, tt := range tests {

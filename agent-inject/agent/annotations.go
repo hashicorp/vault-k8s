@@ -271,6 +271,11 @@ const (
 	// AnnotationAgentAuthMaxBackoff specifies the maximum backoff duration used when the agent auto auth fails.
 	// Defaults to 5 minutes.
 	AnnotationAgentAuthMaxBackoff = "vault.hashicorp.com/auth-max-backoff"
+
+	// AnnotationAgentDisableIdleConnections specifies disabling idle connections for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableIdleConnections = "vault.hashicorp.com/agent-disable-idle-connections"
 )
 
 type AgentConfig struct {
@@ -295,6 +300,7 @@ type AgentConfig struct {
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
+	DisableIdleConnections     string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -489,6 +495,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	} else if cfg.AuthMaxBackoff != "" {
 		// set default from env/flag
 		pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff] = cfg.AuthMaxBackoff
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections] = cfg.DisableIdleConnections
 	}
 
 	return nil

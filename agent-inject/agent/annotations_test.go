@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,7 +67,6 @@ func TestInitCanSet(t *testing.T) {
 
 		if raw != tt.annotationValue {
 			t.Errorf("Default annotation confiured value incorrect, wanted %s, got %s", tt.annotationValue, raw)
-
 		}
 	}
 }
@@ -195,7 +195,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 			if agent.Secrets[0].Path != tt.expectedPath {
 				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
 			}
 		} else if len(agent.Secrets) > 0 {
 			t.Errorf("Secrets length was greater than zero, it shouldn't have been: %s", tt.key)
@@ -243,7 +242,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 
 			if agent.Secrets[0].Path != tt.expectedPath {
 				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
 			}
 		} else if len(agent.Secrets) > 0 {
 			t.Error("Secrets length was greater than zero, it shouldn't have been")
@@ -428,14 +426,14 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
 			},
 			map[string]Secret{
-				"foobar": Secret{
+				"foobar": {
 					Name:         "foobar",
 					Path:         "test1",
 					Template:     "",
 					TemplateFile: "/etc/config.tmpl",
 					MountPath:    secretVolumePath,
 				},
-				"test2": Secret{
+				"test2": {
 					Name:         "test2",
 					Path:         "test2",
 					Template:     "foobarTemplate",
@@ -817,7 +815,6 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 }
 
 func Test_runAsSameID(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		runAsSameUser  string
@@ -892,7 +889,6 @@ func Test_runAsSameID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			annotations := map[string]string{}
 			if len(tt.runAsSameUser) > 0 {
 				annotations[AnnotationAgentRunAsSameUser] = tt.runAsSameUser
@@ -1053,10 +1049,8 @@ func TestInjectContainers(t *testing.T) {
 				output[i].Value = nil
 			}
 			require.Equal(t, tt.ExpectedPatch, output)
-
 		})
 	}
-
 }
 
 func TestDefaultTemplateOverride(t *testing.T) {
@@ -1158,4 +1152,40 @@ func TestAuthMinMaxBackoff(t *testing.T) {
 
 	require.Equal(t, "5s", agent.Vault.AuthMinBackoff, "expected 5s, got %v", agent.Vault.AuthMinBackoff)
 	require.Equal(t, "10s", agent.Vault.AuthMaxBackoff, "expected 10s, got %v", agent.Vault.AuthMaxBackoff)
+}
+
+func TestDisableIdleConnections(t *testing.T) {
+	tests := map[string]struct {
+		annotations   map[string]string
+		expectedValue []string
+	}{
+		"full list": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-idle-connections": "auto-auth,caching,templating",
+			},
+			expectedValue: []string{"auto-auth", "caching", "templating"},
+		},
+		"one": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-idle-connections": "auto-auth",
+			},
+			expectedValue: []string{"auto-auth"},
+		},
+		"none": {
+			annotations:   map[string]string{},
+			expectedValue: nil,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			pod := testPod(tc.annotations)
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+			agent, err := New(pod, nil)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedValue, agent.DisableIdleConnections)
+		})
+	}
 }

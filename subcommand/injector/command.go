@@ -32,7 +32,7 @@ import (
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/listers/admissionregistration/v1"
+	v1 "k8s.io/client-go/listers/admissionregistration/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -71,6 +71,7 @@ type Command struct {
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 	flagAuthMinBackoff             string // Auth min backoff on failure
 	flagAuthMaxBackoff             string // Auth min backoff on failure
+	flagDisableIdleConnections     string // Idle connections control
 
 	flagSet *flag.FlagSet
 
@@ -207,6 +208,7 @@ func (c *Command) Run(args []string) int {
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 		AuthMinBackoff:             c.flagAuthMinBackoff,
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
+		DisableIdleConnections:     c.flagDisableIdleConnections,
 	}
 
 	mux := http.NewServeMux()
