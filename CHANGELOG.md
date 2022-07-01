@@ -1,5 +1,8 @@
 ## Unreleased
 
+Features:
+* Support for setting [`disable_idle_connections`](https://github.com/hashicorp/vault/pull/15986) in the agent config [GH-366](https://github.com/hashicorp/vault-k8s/pull/366)
+
 Improvements:
 * Added support to configure default vault namespace on the agent config [GH-345](https://github.com/hashicorp/vault-k8s/pull/345)
 

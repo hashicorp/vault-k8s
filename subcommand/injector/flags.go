@@ -119,6 +119,9 @@ type Specification struct {
 
 	// AuthMaxBackoff is the AGENT_MAX_BACKOFF environment variable
 	AuthMaxBackoff string `envconfig:"AGENT_INJECT_AUTH_MAX_BACKOFF"`
+
+	// DisableIdleConnections is the AGENT_INJECT_DISABLE_IDLE_CONNECTIONS environment variable
+	DisableIdleConnections string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -183,6 +186,8 @@ func (c *Command) init() {
 		"Sets the minimum backoff on auto-auth failure. Default is 1s")
 	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",
 		"Sets the maximum backoff on auto-auth failure. Default is 5m")
+	c.flagSet.StringVar(&c.flagDisableIdleConnections, "disable-idle-connections", "",
+		"Comma-separated list of Vault features where idle connections should be disabled.")
 
 	tlsVersions := []string{}
 	for v := range tlsutil.TLSLookup {
@@ -378,6 +383,10 @@ func (c *Command) parseEnvs() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if envs.DisableIdleConnections != "" {
+		c.flagDisableIdleConnections = envs.DisableIdleConnections
 	}
 
 	return nil

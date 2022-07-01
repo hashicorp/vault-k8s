@@ -163,6 +163,10 @@ type Agent struct {
 	// EnableQuit controls whether the quit endpoint is enabled on a localhost
 	// listener
 	EnableQuit bool
+
+	// DisableIdleConnections controls which Agent features have idle
+	// connections disabled
+	DisableIdleConnections []string
 }
 
 type ServiceAccountTokenVolume struct {
@@ -461,6 +465,10 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent.EnableQuit, err = agent.getEnableQuit()
 	if err != nil {
 		return nil, err
+	}
+
+	if pod.Annotations[AnnotationAgentDisableIdleConnections] != "" {
+		agent.DisableIdleConnections = strings.Split(pod.Annotations[AnnotationAgentDisableIdleConnections], ",")
 	}
 
 	return agent, nil

@@ -68,6 +68,7 @@ type Handler struct {
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
+	DisableIdleConnections     string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -202,6 +203,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 		AuthMinBackoff:             h.AuthMinBackoff,
 		AuthMaxBackoff:             h.AuthMaxBackoff,
+		DisableIdleConnections:     h.DisableIdleConnections,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {
