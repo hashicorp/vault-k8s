@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
+	"github.com/hashicorp/vault-k8s/agent-inject/csi"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	"github.com/mattbaird/jsonpatch"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -164,75 +165,97 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		UID:     req.UID,
 	}
 
+	var patches []*jsonpatch.JsonPatchOperation
 	h.Log.Debug("checking if should inject agent..")
 	inject, err := agent.ShouldInject(&pod)
 	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
 		err := fmt.Errorf("error checking if should inject agent: %s", err)
 		return admissionError(req.UID, err)
-	} else if !inject {
-		return resp
+	} else if inject {
+
+		h.Log.Debug("checking namespaces..")
+		if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
+			err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
+			return admissionError(req.UID, err)
+		}
+
+		h.Log.Debug("setting default annotations..")
+		cfg := agent.AgentConfig{
+			Image:                      h.ImageVault,
+			Address:                    h.VaultAddress,
+			AuthType:                   h.VaultAuthType,
+			AuthPath:                   h.VaultAuthPath,
+			VaultNamespace:             h.VaultNamespace,
+			ProxyAddress:               h.ProxyAddress,
+			Namespace:                  req.Namespace,
+			RevokeOnShutdown:           h.RevokeOnShutdown,
+			UserID:                     h.UserID,
+			GroupID:                    h.GroupID,
+			SameID:                     h.SameID,
+			SetSecurityContext:         h.SetSecurityContext,
+			DefaultTemplate:            h.DefaultTemplate,
+			ResourceRequestCPU:         h.ResourceRequestCPU,
+			ResourceRequestMem:         h.ResourceRequestMem,
+			ResourceLimitCPU:           h.ResourceLimitCPU,
+			ResourceLimitMem:           h.ResourceLimitMem,
+			ExitOnRetryFailure:         h.ExitOnRetryFailure,
+			StaticSecretRenderInterval: h.StaticSecretRenderInterval,
+			AuthMinBackoff:             h.AuthMinBackoff,
+			AuthMaxBackoff:             h.AuthMaxBackoff,
+			DisableIdleConnections:     h.DisableIdleConnections,
+		}
+		err = agent.Init(&pod, cfg)
+		if err != nil {
+			err := fmt.Errorf("error adding default annotations: %s", err)
+			return admissionError(req.UID, err)
+		}
+
+		h.Log.Debug("creating new agent..")
+		agentSidecar, err := agent.New(&pod)
+		if err != nil {
+			err := fmt.Errorf("error creating new agent sidecar: %s", err)
+			return admissionError(req.UID, err)
+		}
+
+		h.Log.Debug("validating agent configuration..")
+		err = agentSidecar.Validate()
+		if err != nil {
+			err := fmt.Errorf("error validating agent configuration: %s", err)
+			return admissionError(req.UID, err)
+		}
+
+		h.Log.Debug("creating patches for the pod..")
+		agentPatches, err := agentSidecar.Patch()
+		if err != nil {
+			err := fmt.Errorf("error creating patch for agent: %s", err)
+			return admissionError(req.UID, err)
+		}
+
+		patches = append(patches, agentPatches...)
 	}
 
-	h.Log.Debug("checking namespaces..")
-	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
-		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
-		return admissionError(req.UID, err)
+	if injectCSI := csi.ShouldInject(&pod); injectCSI {
+		h.Log.Info("Injecting CSI volumes...")
+		csiPatches, err := csi.GeneratePatches(h.Clientset, &pod)
+		if err != nil {
+			err := fmt.Errorf("error creating patch for CSI: %s", err)
+			return admissionError(req.UID, err)
+		}
+
+		patches = append(patches, csiPatches...)
 	}
 
-	h.Log.Debug("setting default annotations..")
-	var patches []*jsonpatch.JsonPatchOperation
-	cfg := agent.AgentConfig{
-		Image:                      h.ImageVault,
-		Address:                    h.VaultAddress,
-		AuthType:                   h.VaultAuthType,
-		AuthPath:                   h.VaultAuthPath,
-		VaultNamespace:             h.VaultNamespace,
-		ProxyAddress:               h.ProxyAddress,
-		Namespace:                  req.Namespace,
-		RevokeOnShutdown:           h.RevokeOnShutdown,
-		UserID:                     h.UserID,
-		GroupID:                    h.GroupID,
-		SameID:                     h.SameID,
-		SetSecurityContext:         h.SetSecurityContext,
-		DefaultTemplate:            h.DefaultTemplate,
-		ResourceRequestCPU:         h.ResourceRequestCPU,
-		ResourceRequestMem:         h.ResourceRequestMem,
-		ResourceLimitCPU:           h.ResourceLimitCPU,
-		ResourceLimitMem:           h.ResourceLimitMem,
-		ExitOnRetryFailure:         h.ExitOnRetryFailure,
-		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
-		AuthMinBackoff:             h.AuthMinBackoff,
-		AuthMaxBackoff:             h.AuthMaxBackoff,
-		DisableIdleConnections:     h.DisableIdleConnections,
-	}
-	err = agent.Init(&pod, cfg)
-	if err != nil {
-		err := fmt.Errorf("error adding default annotations: %s", err)
-		return admissionError(req.UID, err)
+	// Generate the patch
+	var patchesMarshalled []byte
+	if len(patches) > 0 {
+		var err error
+		patchesMarshalled, err = json.Marshal(patches)
+		if err != nil {
+			return admissionError(req.UID, err)
+		}
 	}
 
-	h.Log.Debug("creating new agent..")
-	agentSidecar, err := agent.New(&pod, patches)
-	if err != nil {
-		err := fmt.Errorf("error creating new agent sidecar: %s", err)
-		return admissionError(req.UID, err)
-	}
-
-	h.Log.Debug("validating agent configuration..")
-	err = agentSidecar.Validate()
-	if err != nil {
-		err := fmt.Errorf("error validating agent configuration: %s", err)
-		return admissionError(req.UID, err)
-	}
-
-	h.Log.Debug("creating patches for the pod..")
-	patch, err := agentSidecar.Patch()
-	if err != nil {
-		err := fmt.Errorf("error creating patch for agent: %s", err)
-		return admissionError(req.UID, err)
-	}
-
-	resp.Patch = patch
+	resp.Patch = patchesMarshalled
 	patchType := admissionv1.PatchTypeJSONPatch
 	resp.PatchType = &patchType
 

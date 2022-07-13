@@ -4,44 +4,18 @@ import (
 	"strings"
 
 	"github.com/mattbaird/jsonpatch"
-	corev1 "k8s.io/api/core/v1"
 )
 
-// TODO this can be broken down into a common code and type switched.
-
-func addVolumes(target, volumes []corev1.Volume, base string) []*jsonpatch.JsonPatchOperation {
+func addObjects[T any](target, objects []T, base string) []*jsonpatch.JsonPatchOperation {
 	var result []*jsonpatch.JsonPatchOperation
 	first := len(target) == 0
-	var value interface{}
-	for _, v := range volumes {
-		value = v
+	var value any
+	for _, o := range objects {
+		value = o
 		path := base
 		if first {
 			first = false
-			value = []corev1.Volume{v}
-		} else {
-			path = path + "/-"
-		}
-
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
-	}
-	return result
-}
-
-func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
-	first := len(target) == 0
-	var value interface{}
-	for _, v := range mounts {
-		value = v
-		path := base
-		if first {
-			first = false
-			value = []corev1.VolumeMount{v}
+			value = []T{o}
 		} else {
 			path = path + "/-"
 		}
@@ -62,30 +36,6 @@ func removeContainers(path string) []*jsonpatch.JsonPatchOperation {
 		Operation: "remove",
 		Path:      path,
 	})
-}
-
-func addContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
-	first := len(target) == 0
-	var value interface{}
-	for _, container := range containers {
-		value = container
-		path := base
-		if first {
-			first = false
-			value = []corev1.Container{container}
-		} else {
-			path = path + "/-"
-		}
-
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
-	}
-
-	return result
 }
 
 func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonPatchOperation {

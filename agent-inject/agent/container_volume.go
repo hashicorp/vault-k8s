@@ -38,7 +38,7 @@ func (a *Agent) getUniqueMountPaths() []string {
 // are used for shared data between containers.
 func (a *Agent) ContainerVolumes() []corev1.Volume {
 	containerVolumes := []corev1.Volume{
-		corev1.Volume{
+		{
 			Name: secretVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{
@@ -138,7 +138,7 @@ func (a *Agent) ContainerTLSSecretVolume() corev1.Volume {
 // will be rendered.
 func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
-		corev1.VolumeMount{
+		{
 			Name:      secretVolumeName,
 			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
 			ReadOnly:  false,

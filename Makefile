@@ -27,7 +27,11 @@ build:
 		.
 
 image: build
-	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
+	docker build --build-arg VERSION=$(VERSION) -t $(IMAGE_TAG) .
+
+deploy-dev: image
+	kind load docker-image docker.io/hashicorp/vault-k8s:0.0.0-dev
+	kubectl delete pods -l app.kubernetes.io/name=vault-agent-injector
 
 prod-ubi-image:
 	docker build --platform linux/amd64 -t $(IMAGE_TAG)_ubi \
