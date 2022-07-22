@@ -17,7 +17,7 @@ jobs:
           echo "Building with Go $(cat .go-version)"
           echo "::set-output name=go-version::$(cat .go-version)"
 
-  build:
+  test:
     needs:
       - get-go-version
     runs-on: ubuntu-latest
@@ -45,3 +45,63 @@ jobs:
 
       - name: Test
         run: make test
+
+  acceptance:
+    needs:
+      - test
+    strategy:
+      fail-fast: false
+      matrix:
+        kind-k8s-version: [1.19.16, 1.20.15, 1.21.12, 1.22.9, 1.23.6, 1.24.2]
+    runs-on: ubuntu-latest
+    steps:
+      # Setup test tools from https://github.com/hashicorp/vault-helm/blob/main/.github/workflows/setup-test-tools/action.yaml
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - run: npm install -g bats@${BATS_VERSION}
+        shell: bash
+        env:
+          BATS_VERSION: '1.5.0'
+      - run: bats -v
+        shell: bash
+      - uses: actions/setup-python@v2
+      - run: pip install yq
+        shell: bash
+
+      # Checkout vault-k8s to build tip.
+      - uses: actions/checkout@v2
+        with:
+          path: "vault-k8s"
+
+      - name: Create K8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: kind
+          config: vault-k8s/test/kind/config.yaml
+          node_image: kindest/node:v${{ matrix.kind-k8s-version }}
+          version: v0.14.0
+
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - run: |
+          REGISTRY=hashicorp make -C vault-k8s image
+          kind load docker-image hashicorp/vault-k8s:0.0.0-dev
+
+      # Checkout vault-helm for acceptance test code.
+      - uses: actions/checkout@v2
+        with:
+          repository: "hashicorp/vault-helm"
+          ref: "v0.20.1"
+          path: "vault-helm"
+
+      - run: |
+          yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./vault-helm/values.yaml
+          CLEANUP=false bats ./vault-helm/test/acceptance -t --filter injector
