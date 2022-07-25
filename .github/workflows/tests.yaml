@@ -18,11 +18,11 @@ jobs:
           echo "::set-output name=go-version::$(cat .go-version)"
 
   test:
+    env:
+      TARBALL_FILE: vault-k8s-image.docker.tar
     needs:
       - get-go-version
     runs-on: ubuntu-latest
-    env:
-      GO111MODULE: on
     steps:
       - uses: actions/checkout@v2
 
@@ -41,10 +41,17 @@ jobs:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Build
-        run: make build
+        run: |
+          REGISTRY=hashicorp make build image
+          docker save --output "${TARBALL_FILE}" hashicorp/vault-k8s:0.0.0-dev
 
       - name: Test
         run: make test
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: vault-k8s-image
+          path: ${{ env.TARBALL_FILE }}
 
   acceptance:
     needs:
@@ -69,32 +76,6 @@ jobs:
       - run: pip install yq
         shell: bash
 
-      # Checkout vault-k8s to build tip.
-      - uses: actions/checkout@v2
-        with:
-          path: "vault-k8s"
-
-      - name: Create K8s Kind Cluster
-        uses: helm/kind-action@v1.2.0
-        with:
-          cluster_name: kind
-          config: vault-k8s/test/kind/config.yaml
-          node_image: kindest/node:v${{ matrix.kind-k8s-version }}
-          version: v0.14.0
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
-      - run: |
-          REGISTRY=hashicorp make -C vault-k8s image
-          kind load docker-image hashicorp/vault-k8s:0.0.0-dev
-
       # Checkout vault-helm for acceptance test code.
       - uses: actions/checkout@v2
         with:
@@ -102,6 +83,24 @@ jobs:
           ref: "v0.20.1"
           path: "vault-helm"
 
-      - run: |
+      - name: Create K8s Kind Cluster
+        uses: helm/kind-action@v1.2.0
+        with:
+          cluster_name: kind
+          config: vault-helm/test/kind/config.yaml
+          node_image: kindest/node:v${{ matrix.kind-k8s-version }}
+          version: v0.14.0
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: vault-k8s-image
+
+      - name: Load vault-k8s dev image
+        run: |
+          docker image load --input vault-k8s-image.docker.tar
+          kind load docker-image hashicorp/vault-k8s:0.0.0-dev
+
+      - name: bats tests
+        run: |
           yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./vault-helm/values.yaml
-          CLEANUP=false bats ./vault-helm/test/acceptance -t --filter injector
+          bats ./vault-helm/test/acceptance -t --filter injector
