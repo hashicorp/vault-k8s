@@ -21,7 +21,6 @@ version:
 
 build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-		-a \
 		-ldflags $(LDFLAGS) \
 		-o $(BUILD_DIR)/$(BIN_NAME) \
 		.
