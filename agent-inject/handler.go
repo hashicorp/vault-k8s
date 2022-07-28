@@ -69,6 +69,7 @@ type Handler struct {
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
+	DisableKeepAlives          string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -204,6 +205,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		AuthMinBackoff:             h.AuthMinBackoff,
 		AuthMaxBackoff:             h.AuthMaxBackoff,
 		DisableIdleConnections:     h.DisableIdleConnections,
+		DisableKeepAlives:          h.DisableKeepAlives,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {

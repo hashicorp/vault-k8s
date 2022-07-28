@@ -276,6 +276,11 @@ const (
 	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
 	// templating.
 	AnnotationAgentDisableIdleConnections = "vault.hashicorp.com/agent-disable-idle-connections"
+
+	// AnnotationAgentDisableKeepAlives specifies disabling keep-alives for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableKeepAlives = "vault.hashicorp.com/agent-disable-keep-alives"
 )
 
 type AgentConfig struct {
@@ -301,6 +306,7 @@ type AgentConfig struct {
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
+	DisableKeepAlives          string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -499,6 +505,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections] = cfg.DisableIdleConnections
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives] = cfg.DisableKeepAlives
 	}
 
 	return nil

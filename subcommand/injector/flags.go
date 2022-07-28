@@ -122,6 +122,9 @@ type Specification struct {
 
 	// DisableIdleConnections is the AGENT_INJECT_DISABLE_IDLE_CONNECTIONS environment variable
 	DisableIdleConnections string `split_words:"true"`
+
+	// DisableKeepAlives is the AGENT_INJECT_DISABLE_KEEP_ALIVES environment variable
+	DisableKeepAlives string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -188,6 +191,8 @@ func (c *Command) init() {
 		"Sets the maximum backoff on auto-auth failure. Default is 5m")
 	c.flagSet.StringVar(&c.flagDisableIdleConnections, "disable-idle-connections", "",
 		"Comma-separated list of Vault features where idle connections should be disabled.")
+	c.flagSet.StringVar(&c.flagDisableKeepAlives, "disable-keep-alives", "",
+		"Comma-separated list of Vault features where keep-alives should be disabled.")
 
 	tlsVersions := []string{}
 	for v := range tlsutil.TLSLookup {
@@ -387,6 +392,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.DisableIdleConnections != "" {
 		c.flagDisableIdleConnections = envs.DisableIdleConnections
+	}
+
+	if envs.DisableKeepAlives != "" {
+		c.flagDisableKeepAlives = envs.DisableKeepAlives
 	}
 
 	return nil

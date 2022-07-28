@@ -137,6 +137,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_AUTH_MIN_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMinBackoff},
 		{env: "AGENT_INJECT_AUTH_MAX_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMaxBackoff},
 		{env: "AGENT_INJECT_DISABLE_IDLE_CONNECTIONS", value: "auto-auth,caching,templating", cmdPtr: &cmd.flagDisableIdleConnections},
+		{env: "AGENT_INJECT_DISABLE_KEEP_ALIVES", value: "auto-auth,caching,templating", cmdPtr: &cmd.flagDisableKeepAlives},
 	}
 
 	for _, tt := range tests {
