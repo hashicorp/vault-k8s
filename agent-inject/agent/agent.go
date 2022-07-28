@@ -168,7 +168,7 @@ type Agent struct {
 	// connections disabled
 	DisableIdleConnections []string
 
-	// DisableKeepAlives controls which Agent features have keep-alives disables.
+	// DisableKeepAlives controls which Agent features have keep-alives disabled.
 	DisableKeepAlives []string
 }
 
