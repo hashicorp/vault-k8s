@@ -13,7 +13,7 @@ require (
 	github.com/mitchellh/cli v1.1.4
 	github.com/operator-framework/operator-lib v0.8.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.11.1
 	github.com/radovskyb/watcher v1.0.7
 	github.com/stretchr/testify v1.7.0
 	k8s.io/api v0.22.2
