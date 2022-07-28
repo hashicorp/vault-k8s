@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 0.17.0 (July 28, 2022)
+
 Features:
 * Support for setting [`disable_idle_connections`](https://github.com/hashicorp/vault/pull/15986) in the agent config [GH-366](https://github.com/hashicorp/vault-k8s/pull/366)
 
