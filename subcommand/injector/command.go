@@ -72,6 +72,7 @@ type Command struct {
 	flagAuthMinBackoff             string // Auth min backoff on failure
 	flagAuthMaxBackoff             string // Auth min backoff on failure
 	flagDisableIdleConnections     string // Idle connections control
+	flagDisableKeepAlives          string // Keep-alives control
 
 	flagSet *flag.FlagSet
 
@@ -209,6 +210,7 @@ func (c *Command) Run(args []string) int {
 		AuthMinBackoff:             c.flagAuthMinBackoff,
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
 		DisableIdleConnections:     c.flagDisableIdleConnections,
+		DisableKeepAlives:          c.flagDisableKeepAlives,
 	}
 
 	mux := http.NewServeMux()

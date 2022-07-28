@@ -28,6 +28,7 @@ type Config struct {
 	Cache                  *Cache          `json:"cache,omitempty"`
 	TemplateConfig         *TemplateConfig `json:"template_config,omitempty"`
 	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
+	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -192,6 +193,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
 		},
 		DisableIdleConnections: a.DisableIdleConnections,
+		DisableKeepAlives:      a.DisableKeepAlives,
 	}
 
 	if a.InjectToken {

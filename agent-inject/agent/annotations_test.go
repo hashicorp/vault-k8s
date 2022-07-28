@@ -1189,3 +1189,39 @@ func TestDisableIdleConnections(t *testing.T) {
 		})
 	}
 }
+
+func TestDisableKeepAlives(t *testing.T) {
+	tests := map[string]struct {
+		annotations   map[string]string
+		expectedValue []string
+	}{
+		"full list": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-keep-alives": "auto-auth,caching,templating",
+			},
+			expectedValue: []string{"auto-auth", "caching", "templating"},
+		},
+		"one": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-keep-alives": "auto-auth",
+			},
+			expectedValue: []string{"auto-auth"},
+		},
+		"none": {
+			annotations:   map[string]string{},
+			expectedValue: nil,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			pod := testPod(tc.annotations)
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+			agent, err := New(pod, nil)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedValue, agent.DisableKeepAlives)
+		})
+	}
+}

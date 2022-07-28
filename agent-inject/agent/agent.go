@@ -167,6 +167,9 @@ type Agent struct {
 	// DisableIdleConnections controls which Agent features have idle
 	// connections disabled
 	DisableIdleConnections []string
+
+	// DisableKeepAlives controls which Agent features have keep-alives disabled.
+	DisableKeepAlives []string
 }
 
 type ServiceAccountTokenVolume struct {
@@ -469,6 +472,10 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 
 	if pod.Annotations[AnnotationAgentDisableIdleConnections] != "" {
 		agent.DisableIdleConnections = strings.Split(pod.Annotations[AnnotationAgentDisableIdleConnections], ",")
+	}
+
+	if pod.Annotations[AnnotationAgentDisableKeepAlives] != "" {
+		agent.DisableKeepAlives = strings.Split(pod.Annotations[AnnotationAgentDisableKeepAlives], ",")
 	}
 
 	return agent, nil
