@@ -15,7 +15,7 @@ import (
 // TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.10.3"
+	DefaultVaultImage                       = "hashicorp/vault:1.11.1"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
@@ -169,6 +169,13 @@ type Agent struct {
 	// EnableQuit controls whether the quit endpoint is enabled on a localhost
 	// listener
 	EnableQuit bool
+
+	// DisableIdleConnections controls which Agent features have idle
+	// connections disabled
+	DisableIdleConnections []string
+
+	// DisableKeepAlives controls which Agent features have keep-alives disabled.
+	DisableKeepAlives []string
 }
 
 type ServiceAccountTokenVolume struct {
@@ -469,6 +476,14 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 	agent.EnableQuit, err = agent.getEnableQuit()
 	if err != nil {
 		return nil, err
+	}
+
+	if pod.Annotations[AnnotationAgentDisableIdleConnections] != "" {
+		agent.DisableIdleConnections = strings.Split(pod.Annotations[AnnotationAgentDisableIdleConnections], ",")
+	}
+
+	if pod.Annotations[AnnotationAgentDisableKeepAlives] != "" {
+		agent.DisableKeepAlives = strings.Split(pod.Annotations[AnnotationAgentDisableKeepAlives], ",")
 	}
 
 	return agent, nil

@@ -276,6 +276,16 @@ const (
 	// AnnotationAgentAuthMaxBackoff specifies the maximum backoff duration used when the agent auto auth fails.
 	// Defaults to 5 minutes.
 	AnnotationAgentAuthMaxBackoff = "vault.hashicorp.com/auth-max-backoff"
+
+	// AnnotationAgentDisableIdleConnections specifies disabling idle connections for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableIdleConnections = "vault.hashicorp.com/agent-disable-idle-connections"
+
+	// AnnotationAgentDisableKeepAlives specifies disabling keep-alives for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableKeepAlives = "vault.hashicorp.com/agent-disable-keep-alives"
 )
 
 type AgentConfig struct {
@@ -283,6 +293,7 @@ type AgentConfig struct {
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
+	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
 	UserID                     string
@@ -301,6 +312,8 @@ type AgentConfig struct {
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
+	DisableIdleConnections     string
+	DisableKeepAlives          string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -345,6 +358,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultNamespace]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultNamespace] = cfg.VaultNamespace
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationProxyAddress]; !ok {
@@ -499,6 +516,14 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	} else if cfg.AuthMaxBackoff != "" {
 		// set default from env/flag
 		pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff] = cfg.AuthMaxBackoff
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections] = cfg.DisableIdleConnections
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives] = cfg.DisableKeepAlives
 	}
 
 	return nil

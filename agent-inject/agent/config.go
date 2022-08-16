@@ -19,14 +19,16 @@ const (
 // Config is the top level struct that composes a Vault Agent
 // configuration file.
 type Config struct {
-	AutoAuth       *AutoAuth       `json:"auto_auth"`
-	ExitAfterAuth  bool            `json:"exit_after_auth"`
-	PidFile        string          `json:"pid_file"`
-	Vault          *VaultConfig    `json:"vault"`
-	Templates      []*Template     `json:"template,omitempty"`
-	Listener       []*Listener     `json:"listener,omitempty"`
-	Cache          *Cache          `json:"cache,omitempty"`
-	TemplateConfig *TemplateConfig `json:"template_config,omitempty"`
+	AutoAuth               *AutoAuth       `json:"auto_auth"`
+	ExitAfterAuth          bool            `json:"exit_after_auth"`
+	PidFile                string          `json:"pid_file"`
+	Vault                  *VaultConfig    `json:"vault"`
+	Templates              []*Template     `json:"template,omitempty"`
+	Listener               []*Listener     `json:"listener,omitempty"`
+	Cache                  *Cache          `json:"cache,omitempty"`
+	TemplateConfig         *TemplateConfig `json:"template_config,omitempty"`
+	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
+	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -190,6 +192,8 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			ExitOnRetryFailure:         a.VaultAgentTemplateConfig.ExitOnRetryFailure,
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
 		},
+		DisableIdleConnections: a.DisableIdleConnections,
+		DisableKeepAlives:      a.DisableKeepAlives,
 	}
 
 	if a.InjectToken {

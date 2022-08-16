@@ -54,6 +54,7 @@ type Command struct {
 	flagVaultImage                 string // Name of the Vault Image to use
 	flagVaultAuthType              string // Type of Vault Auth Method to use
 	flagVaultAuthPath              string // Mount path of the Vault Auth Method
+	flagVaultNamespace             string // Vault enterprise namespace
 	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser                  string // User (uid) to run Vault agent as
 	flagRunAsGroup                 string // Group (gid) to run Vault agent as
@@ -72,6 +73,8 @@ type Command struct {
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 	flagAuthMinBackoff             string // Auth min backoff on failure
 	flagAuthMaxBackoff             string // Auth min backoff on failure
+	flagDisableIdleConnections     string // Idle connections control
+	flagDisableKeepAlives          string // Keep-alives control
 
 	flagSet *flag.FlagSet
 
@@ -188,6 +191,7 @@ func (c *Command) Run(args []string) int {
 		VaultAddress:               c.flagVaultService,
 		VaultAuthType:              c.flagVaultAuthType,
 		VaultAuthPath:              c.flagVaultAuthPath,
+		VaultNamespace:             c.flagVaultNamespace,
 		ProxyAddress:               c.flagProxyAddress,
 		ImageVault:                 c.flagVaultImage,
 		Clientset:                  clientset,
@@ -207,6 +211,8 @@ func (c *Command) Run(args []string) int {
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 		AuthMinBackoff:             c.flagAuthMinBackoff,
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
+		DisableIdleConnections:     c.flagDisableIdleConnections,
+		DisableKeepAlives:          c.flagDisableKeepAlives,
 	}
 
 	mux := http.NewServeMux()

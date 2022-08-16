@@ -115,7 +115,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_VAULT_ADDR", value: "http://vault:8200", cmdPtr: &cmd.flagVaultService},
 		{env: "AGENT_INJECT_PROXY_ADDR", value: "http://proxy:3128", cmdPtr: &cmd.flagProxyAddress},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
-		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.10.3", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.11.1", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_NAMESPACE", value: "test-namespace", cmdPtr: &cmd.flagVaultNamespace},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
 		{env: "AGENT_INJECT_TLS_AUTO_HOSTS", value: "foobar.com", cmdPtr: &cmd.flagAutoHosts},
@@ -135,6 +136,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_TLS_CIPHER_SUITES", value: "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA", cmdPtr: &cmd.flagTLSCipherSuites},
 		{env: "AGENT_INJECT_AUTH_MIN_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMinBackoff},
 		{env: "AGENT_INJECT_AUTH_MAX_BACKOFF", value: "5s", cmdPtr: &cmd.flagAuthMaxBackoff},
+		{env: "AGENT_INJECT_DISABLE_IDLE_CONNECTIONS", value: "auto-auth,caching,templating", cmdPtr: &cmd.flagDisableIdleConnections},
+		{env: "AGENT_INJECT_DISABLE_KEEP_ALIVES", value: "auto-auth,caching,templating", cmdPtr: &cmd.flagDisableKeepAlives},
 	}
 
 	for _, tt := range tests {

@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 )
@@ -48,6 +49,7 @@ type Handler struct {
 	VaultAddress               string
 	VaultAuthType              string
 	VaultAuthPath              string
+	VaultNamespace             string
 	ProxyAddress               string
 	ImageVault                 string
 	Clientset                  *kubernetes.Clientset
@@ -68,6 +70,8 @@ type Handler struct {
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
+	DisableIdleConnections     string
+	DisableKeepAlives          string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -150,6 +154,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		h.Log.Error("could not unmarshal request to pod: %s", err)
 		h.Log.Debug("%s", req.Object.Raw)
 		return &admissionv1.AdmissionResponse{
+			UID: req.UID,
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -166,7 +171,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	inject, err := agent.ShouldInject(&pod)
 	if err != nil && !strings.Contains(err.Error(), "no inject annotation found") {
 		err := fmt.Errorf("error checking if should inject agent: %s", err)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	} else if !inject {
 		return resp
 	}
@@ -174,7 +179,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	h.Log.Debug("checking namespaces..")
 	if strutil.StrListContains(kubeSystemNamespaces, req.Namespace) {
 		err := fmt.Errorf("error with request namespace: cannot inject into system namespaces: %s", req.Namespace)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	}
 
 	h.Log.Debug("setting default annotations..")
@@ -184,6 +189,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		Address:                    h.VaultAddress,
 		AuthType:                   h.VaultAuthType,
 		AuthPath:                   h.VaultAuthPath,
+		VaultNamespace:             h.VaultNamespace,
 		ProxyAddress:               h.ProxyAddress,
 		Namespace:                  req.Namespace,
 		RevokeOnShutdown:           h.RevokeOnShutdown,
@@ -202,32 +208,34 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 		AuthMinBackoff:             h.AuthMinBackoff,
 		AuthMaxBackoff:             h.AuthMaxBackoff,
+		DisableIdleConnections:     h.DisableIdleConnections,
+		DisableKeepAlives:          h.DisableKeepAlives,
 	}
 	err = agent.Init(&pod, cfg)
 	if err != nil {
 		err := fmt.Errorf("error adding default annotations: %s", err)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	}
 
 	h.Log.Debug("creating new agent..")
 	agentSidecar, err := agent.New(&pod, patches)
 	if err != nil {
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	}
 
 	h.Log.Debug("validating agent configuration..")
 	err = agentSidecar.Validate()
 	if err != nil {
 		err := fmt.Errorf("error validating agent configuration: %s", err)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	}
 
 	h.Log.Debug("creating patches for the pod..")
 	patch, err := agentSidecar.Patch()
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)
-		return admissionError(err)
+		return admissionError(req.UID, err)
 	}
 
 	resp.Patch = patch
@@ -237,8 +245,9 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	return resp
 }
 
-func admissionError(err error) *admissionv1.AdmissionResponse {
+func admissionError(UID types.UID, err error) *admissionv1.AdmissionResponse {
 	return &admissionv1.AdmissionResponse{
+		UID: UID,
 		Result: &metav1.Status{
 			Message: err.Error(),
 		},
