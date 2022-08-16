@@ -102,11 +102,17 @@ type Specification struct {
 	// ResourceRequestMem is the AGENT_INJECT_MEM_REQUEST environment variable.
 	ResourceRequestMem string `envconfig:"AGENT_INJECT_MEM_REQUEST"`
 
+	// ResourceRequestEphemeral is the AGENT_INJECT_EPHEMERAL_REQUEST environment variable.
+	ResourceRequestEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_REQUEST"`
+
 	// ResourceLimitCPU is the AGENT_INJECT_CPU_LIMIT environment variable.
 	ResourceLimitCPU string `envconfig:"AGENT_INJECT_CPU_LIMIT"`
 
 	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
 	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
+
+	// ResourceLimitEphemeral is the AGENT_INJECT_EPHEMERAL_LIMIT environment variable.
+	ResourceLimitEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_LIMIT"`
 
 	// TLSMinVersion is the AGENT_INJECT_TLS_MIN_VERSION environment variable
 	TLSMinVersion string `envconfig:"tls_min_version"`
@@ -175,16 +181,19 @@ func (c *Command) init() {
 		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
 	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
 		"Sets the default template type (map or json). Defaults to map.")
-
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
 	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
 		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
+	c.flagSet.StringVar(&c.flagResourceRequestEphemeral, "ephemeral-storage-request", agent.DefaultResourceRequestEphemeral,
+		fmt.Sprintf("Ephemeral Storage resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestEphemeral))
 
 	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+	c.flagSet.StringVar(&c.flagResourceLimitEphemeral, "ephemeral-storage-limit", agent.DefaultResourceLimitEphemeral,
+		fmt.Sprintf("Ephemeral Storage resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitEphemeral))
 	c.flagSet.StringVar(&c.flagAuthMinBackoff, "auth-min-backoff", "",
 		"Sets the minimum backoff on auto-auth failure. Default is 1s")
 	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",
@@ -352,12 +361,20 @@ func (c *Command) parseEnvs() error {
 		c.flagResourceRequestMem = envs.ResourceRequestMem
 	}
 
+	if envs.ResourceRequestEphemeral != "" {
+		c.flagResourceRequestEphemeral = envs.ResourceRequestEphemeral
+	}
+
 	if envs.ResourceLimitCPU != "" {
 		c.flagResourceLimitCPU = envs.ResourceLimitCPU
 	}
 
 	if envs.ResourceLimitMem != "" {
 		c.flagResourceLimitMem = envs.ResourceLimitMem
+	}
+
+	if envs.ResourceLimitEphemeral != "" {
+		c.flagResourceLimitEphemeral = envs.ResourceLimitEphemeral
 	}
 
 	if envs.TLSMinVersion != "" {

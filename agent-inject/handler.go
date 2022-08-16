@@ -62,8 +62,10 @@ type Handler struct {
 	DefaultTemplate            string
 	ResourceRequestCPU         string
 	ResourceRequestMem         string
+	ResourceRequestEphemeral   string
 	ResourceLimitCPU           string
 	ResourceLimitMem           string
+	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
@@ -198,8 +200,10 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		DefaultTemplate:            h.DefaultTemplate,
 		ResourceRequestCPU:         h.ResourceRequestCPU,
 		ResourceRequestMem:         h.ResourceRequestMem,
+		ResourceRequestEphemeral:   h.ResourceRequestEphemeral,
 		ResourceLimitCPU:           h.ResourceLimitCPU,
 		ResourceLimitMem:           h.ResourceLimitMem,
+		ResourceLimitEphemeral:     h.ResourceLimitEphemeral,
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 		AuthMinBackoff:             h.AuthMinBackoff,

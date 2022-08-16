@@ -67,6 +67,9 @@ type Agent struct {
 	// LimitsMem is the upper memory limit the sidecar container is allowed to consume.
 	LimitsMem string
 
+	// LimitsEphemeral is the upper ephemeral storage limit the sidecar container is allowed to consume.
+	LimitsEphemeral string
+
 	// Namespace is the Kubernetes namespace the request originated from.
 	Namespace string
 
@@ -96,6 +99,9 @@ type Agent struct {
 
 	// RequestsMem is the requested minimum memory amount required when being scheduled to deploy.
 	RequestsMem string
+
+	// RequestsEphemeral is the requested minimum ephemeral storage amount required when being scheduled to deploy.
+	RequestsEphemeral string
 
 	// Secrets are all the templates, the path in Vault where the secret can be
 	// found, and the unique name of the secret which will be used for the filename.
@@ -330,12 +336,14 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		DefaultTemplate:           pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:                 pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:                 pod.Annotations[AnnotationAgentLimitsMem],
+		LimitsEphemeral:           pod.Annotations[AnnotationAgentLimitsEphemeral],
 		Namespace:                 pod.Annotations[AnnotationAgentRequestNamespace],
 		Patches:                   patches,
 		Pod:                       pod,
 		Containers:                []string{},
 		RequestsCPU:               pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:               pod.Annotations[AnnotationAgentRequestsMem],
+		RequestsEphemeral:         pod.Annotations[AnnotationAgentRequestsEphemeral],
 		ServiceAccountTokenVolume: sa,
 		Status:                    pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:               pod.Annotations[AnnotationAgentExtraSecret],

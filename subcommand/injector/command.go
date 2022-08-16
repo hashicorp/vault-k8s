@@ -65,8 +65,10 @@ type Command struct {
 	flagDefaultTemplate            string // Toggles which default template to use
 	flagResourceRequestCPU         string // Set CPU request in the injected containers
 	flagResourceRequestMem         string // Set Memory request in the injected containers
+	flagResourceRequestEphemeral   string // Set Ephemeral Storage request in the injected containers
 	flagResourceLimitCPU           string // Set CPU limit in the injected containers
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagResourceLimitEphemeral     string // Set Ephemeral storage limit in the injected containers
 	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
 	flagAuthMinBackoff             string // Auth min backoff on failure
@@ -203,8 +205,10 @@ func (c *Command) Run(args []string) int {
 		DefaultTemplate:            c.flagDefaultTemplate,
 		ResourceRequestCPU:         c.flagResourceRequestCPU,
 		ResourceRequestMem:         c.flagResourceRequestMem,
+		ResourceRequestEphemeral:   c.flagResourceRequestEphemeral,
 		ResourceLimitCPU:           c.flagResourceLimitCPU,
 		ResourceLimitMem:           c.flagResourceLimitMem,
+		ResourceLimitEphemeral:     c.flagResourceLimitEphemeral,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 		AuthMinBackoff:             c.flagAuthMinBackoff,

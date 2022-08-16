@@ -2,6 +2,7 @@
 
 Features:
 * Support for setting [`disable_keep_alives`](https://github.com/hashicorp/vault/pull/16479) in the agent config [GH-376](https://github.com/hashicorp/vault-k8s/pull/376)
+* Added flags, envs and annotations to control ephemeral storage resources for injected containers: [GH-360](https://github.com/hashicorp/vault-k8s/pull/360)
 
 ## 0.17.0 (July 28, 2022)
 

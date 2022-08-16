@@ -113,18 +113,23 @@ const (
 	// AnnotationAgentExtraSecret is the name of a Kubernetes secret that will be mounted
 	// into the Vault agent container so that the agent config can reference secrets.
 	AnnotationAgentExtraSecret = "vault.hashicorp.com/agent-extra-secret"
-
 	// AnnotationAgentLimitsCPU sets the CPU limit on the Vault Agent containers.
 	AnnotationAgentLimitsCPU = "vault.hashicorp.com/agent-limits-cpu"
 
 	// AnnotationAgentLimitsMem sets the memory limit on the Vault Agent containers.
 	AnnotationAgentLimitsMem = "vault.hashicorp.com/agent-limits-mem"
 
+	// AnnotationAgentLimitsEphemeral sets the ephemeral storage limit on the Vault Agent containers.
+	AnnotationAgentLimitsEphemeral = "vault.hashicorp.com/agent-limits-ephemeral"
+
 	// AnnotationAgentRequestsCPU sets the requested CPU amount on the Vault Agent containers.
 	AnnotationAgentRequestsCPU = "vault.hashicorp.com/agent-requests-cpu"
 
 	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
 	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
+
+	// AnnotationAgentRequestsEphemeral sets the ephemeral storage request on the Vault Agent containers.
+	AnnotationAgentRequestsEphemeral = "vault.hashicorp.com/agent-requests-ephemeral"
 
 	// AnnotationAgentRevokeOnShutdown controls whether a sidecar container will revoke its
 	// own Vault token before shutting down. If you are using a custom agent template, you must
@@ -299,8 +304,10 @@ type AgentConfig struct {
 	DefaultTemplate            string
 	ResourceRequestCPU         string
 	ResourceRequestMem         string
+	ResourceRequestEphemeral   string
 	ResourceLimitCPU           string
 	ResourceLimitMem           string
+	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	AuthMinBackoff             string
@@ -380,6 +387,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = cfg.ResourceLimitMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsEphemeral]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsEphemeral] = cfg.ResourceLimitEphemeral
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = cfg.ResourceRequestCPU
 	}
@@ -388,6 +399,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = cfg.ResourceRequestMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral] = cfg.ResourceRequestEphemeral
+	}
+	
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = secretVolumePath
 	}
