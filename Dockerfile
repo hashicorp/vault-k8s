@@ -1,4 +1,6 @@
-FROM docker.mirror.hashicorp.services/alpine:latest as dev
+ARG ALPINE_VERSION=3.16.2
+
+FROM docker.mirror.hashicorp.services/alpine:${ALPINE_VERSION} as dev
 
 RUN addgroup vault && \
     adduser -S -G vault vault
@@ -10,7 +12,7 @@ USER vault
 ENTRYPOINT ["/vault-k8s"]
 
 # This target creates a production release image for the project.
-FROM docker.mirror.hashicorp.services/alpine:latest as default
+FROM docker.mirror.hashicorp.services/alpine:${ALPINE_VERSION} as default
 
 # PRODUCT_VERSION is the tag built, e.g. v0.1.0
 # PRODUCT_REVISION is the git hash built
