@@ -1,5 +1,8 @@
 ## Unreleased
 
+Changes:
+* Upgrade Docker base image to alpine:3.16.2 [GH-382](https://github.com/hashicorp/vault-k8s/pull/382)
+
 Features:
 * Support for setting [`disable_keep_alives`](https://github.com/hashicorp/vault/pull/16479) in the agent config [GH-376](https://github.com/hashicorp/vault-k8s/pull/376)
 * Added flags, envs and annotations to control ephemeral storage resources for injected containers: [GH-360](https://github.com/hashicorp/vault-k8s/pull/360)
