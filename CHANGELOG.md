@@ -1,7 +1,10 @@
 ## Unreleased
 
+## 1.0.0 (September 6, 2022)
+
 Changes:
 * Upgrade Docker base image to alpine:3.16.2 [GH-382](https://github.com/hashicorp/vault-k8s/pull/382)
+* Default to Vault v1.11.3
 
 Features:
 * Support for setting [`disable_keep_alives`](https://github.com/hashicorp/vault/pull/16479) in the agent config [GH-376](https://github.com/hashicorp/vault-k8s/pull/376)
