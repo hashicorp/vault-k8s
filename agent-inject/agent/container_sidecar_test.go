@@ -41,24 +41,22 @@ func TestContainerSidecarVolume(t *testing.T) {
 	pod := testPod(annotations)
 	var patches []*jsonpatch.JsonPatchOperation
 	agentConfig := AgentConfig{
-		Image:                    "foobar-image",
-		Address:                  "http://foobar:1234",
-		AuthType:                 DefaultVaultAuthType,
-		AuthPath:                 "test",
-		Namespace:                "test",
-		RevokeOnShutdown:         true,
-		UserID:                   "1000",
-		GroupID:                  "100",
-		SameID:                   DefaultAgentRunAsSameUser,
-		SetSecurityContext:       DefaultAgentSetSecurityContext,
-		DefaultTemplate:          "map",
-		ResourceRequestCPU:       DefaultResourceRequestCPU,
-		ResourceRequestMem:       DefaultResourceRequestMem,
-		ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-		ResourceLimitCPU:         DefaultResourceLimitCPU,
-		ResourceLimitMem:         DefaultResourceLimitMem,
-		ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-		ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -138,24 +136,22 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		Image:                    "foobar-image",
-		Address:                  "http://foobar:1234",
-		AuthType:                 "aws",
-		AuthPath:                 "test",
-		Namespace:                "test",
-		RevokeOnShutdown:         true,
-		UserID:                   "1000",
-		GroupID:                  "100",
-		SameID:                   DefaultAgentRunAsSameUser,
-		SetSecurityContext:       DefaultAgentSetSecurityContext,
-		DefaultTemplate:          "map",
-		ResourceRequestCPU:       DefaultResourceRequestCPU,
-		ResourceRequestMem:       DefaultResourceRequestMem,
-		ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-		ResourceLimitCPU:         DefaultResourceLimitCPU,
-		ResourceLimitMem:         DefaultResourceLimitMem,
-		ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-		ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           "aws",
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -217,24 +213,22 @@ func TestContainerSidecar(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		Image:                    "foobar-image",
-		Address:                  "http://foobar:1234",
-		AuthType:                 DefaultVaultAuthType,
-		AuthPath:                 "test",
-		Namespace:                "test",
-		UserID:                   "1000",
-		GroupID:                  "100",
-		SameID:                   DefaultAgentRunAsSameUser,
-		SetSecurityContext:       DefaultAgentSetSecurityContext,
-		ProxyAddress:             "https://proxy:3128",
-		DefaultTemplate:          "map",
-		ResourceRequestCPU:       DefaultResourceRequestCPU,
-		ResourceRequestMem:       DefaultResourceRequestMem,
-		ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-		ResourceLimitCPU:         DefaultResourceLimitCPU,
-		ResourceLimitMem:         DefaultResourceLimitMem,
-		ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-		ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		ProxyAddress:       "https://proxy:3128",
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -301,8 +295,8 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("resource memory limit value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Limits.Memory().String())
 	}
 
-	if container.Resources.Limits.StorageEphemeral().String() != DefaultResourceLimitEphemeral {
-		t.Errorf("resource ephemeral storage limit value wrong, should have been %s, got %s", DefaultResourceLimitEphemeral, container.Resources.Limits.StorageEphemeral().String())
+	if value, ok := container.Resources.Limits.StorageEphemeral().AsInt64(); !ok || value != 0 {
+		t.Errorf("resource ephemeral storage limit value wrong, should have been unset, got %s", container.Resources.Limits.StorageEphemeral().String())
 	}
 
 	if container.Resources.Requests.Cpu().String() != DefaultResourceRequestCPU {
@@ -313,8 +307,8 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceRequestMem, container.Resources.Requests.Memory().String())
 	}
 
-	if container.Resources.Requests.StorageEphemeral().String() != DefaultResourceRequestEphemeral {
-		t.Errorf("resource ephemeral storage requests value wrong, should have been %s, got %s", DefaultResourceRequestEphemeral, container.Resources.Requests.Memory().String())
+	if value, ok := container.Resources.Requests.StorageEphemeral().AsInt64(); !ok || value != 0 {
+		t.Errorf("resource ephemeral storage requests value wrong, should have been unset, got %s", container.Resources.Requests.Memory().String())
 	}
 
 	for _, volumeMount := range container.VolumeMounts {
@@ -359,24 +353,22 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
-				Image:                    "foobar-image",
-				Address:                  "http://foobar:1234",
-				AuthType:                 DefaultVaultAuthType,
-				AuthPath:                 "test",
-				Namespace:                "test",
-				RevokeOnShutdown:         tt.revokeFlag,
-				UserID:                   "1000",
-				GroupID:                  "100",
-				SameID:                   DefaultAgentRunAsSameUser,
-				SetSecurityContext:       DefaultAgentSetSecurityContext,
-				DefaultTemplate:          "map",
-				ResourceRequestCPU:       DefaultResourceRequestCPU,
-				ResourceRequestMem:       DefaultResourceRequestMem,
-				ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-				ResourceLimitCPU:         DefaultResourceLimitCPU,
-				ResourceLimitMem:         DefaultResourceLimitMem,
-				ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-				ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   tt.revokeFlag,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 			}
 
 			err := Init(pod, agentConfig)
@@ -429,24 +421,22 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
-		Image:                    "foobar-image",
-		Address:                  "http://foobar:1234",
-		AuthType:                 DefaultVaultAuthType,
-		AuthPath:                 "test",
-		Namespace:                "test",
-		RevokeOnShutdown:         true,
-		UserID:                   "1000",
-		GroupID:                  "100",
-		SameID:                   DefaultAgentRunAsSameUser,
-		SetSecurityContext:       DefaultAgentSetSecurityContext,
-		DefaultTemplate:          "map",
-		ResourceRequestCPU:       DefaultResourceRequestCPU,
-		ResourceRequestMem:       DefaultResourceRequestMem,
-		ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-		ResourceLimitCPU:         DefaultResourceLimitCPU,
-		ResourceLimitMem:         DefaultResourceLimitMem,
-		ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-		ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		RevokeOnShutdown:   true,
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 	}
 
 	err := Init(pod, agentConfig)
@@ -483,176 +473,262 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 		agent              Agent
 		expectedLimitCPU   string
 		expectedLimitMem   string
+		expectedLimitEph   string
 		expectedRequestCPU string
 		expectedRequestMem string
+		expectedRequestEph string
 		expectedErr        bool
 	}{
 		{
 			name: "valid M",
 			agent: Agent{
-				LimitsCPU:   "500M",
-				LimitsMem:   "128M",
-				RequestsCPU: "250M",
-				RequestsMem: "64M",
+				LimitsCPU:         "500M",
+				LimitsMem:         "128M",
+				LimitsEphemeral:   "128M",
+				RequestsCPU:       "250M",
+				RequestsMem:       "64M",
+				RequestsEphemeral: "64M",
 			},
 			expectedLimitCPU:   "500M",
 			expectedLimitMem:   "128M",
+			expectedLimitEph:   "128M",
 			expectedRequestCPU: "250M",
 			expectedRequestMem: "64M",
+			expectedRequestEph: "64M",
 			expectedErr:        false,
 		},
 		{
 			name: "valid G",
 			agent: Agent{
-				LimitsCPU:   "500G",
-				LimitsMem:   "128G",
-				RequestsCPU: "250G",
-				RequestsMem: "64G",
+				LimitsCPU:         "500G",
+				LimitsMem:         "128G",
+				LimitsEphemeral:   "128G",
+				RequestsCPU:       "250G",
+				RequestsMem:       "64G",
+				RequestsEphemeral: "64G",
 			},
 			expectedLimitCPU:   "500G",
 			expectedLimitMem:   "128G",
+			expectedLimitEph:   "128G",
 			expectedRequestCPU: "250G",
 			expectedRequestMem: "64G",
+			expectedRequestEph: "64G",
 			expectedErr:        false,
 		},
 		{
 			name: "valid Mi",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "128Mi",
-				RequestsCPU: "250Mi",
-				RequestsMem: "64Mi",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "128Mi",
+				LimitsEphemeral:   "128Mi",
+				RequestsCPU:       "250Mi",
+				RequestsMem:       "64Mi",
+				RequestsEphemeral: "64Mi",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128Mi",
+			expectedLimitEph:   "128Mi",
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64Mi",
+			expectedRequestEph: "64Mi",
 			expectedErr:        false,
 		},
 		{
 			name: "valid Gi",
 			agent: Agent{
-				LimitsCPU:   "500Gi",
-				LimitsMem:   "128Gi",
-				RequestsCPU: "250Gi",
-				RequestsMem: "64Gi",
+				LimitsCPU:         "500Gi",
+				LimitsMem:         "128Gi",
+				LimitsEphemeral:   "128Gi",
+				RequestsCPU:       "250Gi",
+				RequestsMem:       "64Gi",
+				RequestsEphemeral: "64Gi",
 			},
 			expectedLimitCPU:   "500Gi",
 			expectedLimitMem:   "128Gi",
+			expectedLimitEph:   "128Gi",
 			expectedRequestCPU: "250Gi",
 			expectedRequestMem: "64Gi",
+			expectedRequestEph: "64Gi",
 			expectedErr:        false,
 		},
 		{
 			name: "valid none",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid 0",
 			agent: Agent{
-				LimitsCPU:   "0",
-				LimitsMem:   "0",
-				RequestsCPU: "0",
-				RequestsMem: "0",
+				LimitsCPU:         "0",
+				LimitsMem:         "0",
+				LimitsEphemeral:   "0",
+				RequestsCPU:       "0",
+				RequestsMem:       "0",
+				RequestsEphemeral: "0",
 			},
 			expectedLimitCPU:   "0",
 			expectedLimitMem:   "0",
+			expectedLimitEph:   "0",
 			expectedRequestCPU: "0",
 			expectedRequestMem: "0",
+			expectedRequestEph: "0",
 			expectedErr:        false,
 		},
 		{
 			name: "valid no requests",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "128m",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "128m",
+				LimitsEphemeral:   "128m",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128m",
+			expectedLimitEph:   "128m",
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid no limits",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "250Mi",
-				RequestsMem: "64m",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "250Mi",
+				RequestsMem:       "64m",
+				RequestsEphemeral: "64m",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64m",
+			expectedRequestEph: "64m",
 			expectedErr:        false,
 		},
 		{
 			name: "valid just cpu limit",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just mem limit",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "128m",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "128m",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   "128m",
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid just eph storage limit",
+			agent: Agent{
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "128m",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
+			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedLimitEph:   "128m",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just cpu request",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "500Mi",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "500Mi",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: "500Mi",
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just mem request",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "128m",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "128m",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: "128m",
+			expectedRequestEph: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid just eph storage request",
+			agent: Agent{
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "128m",
+			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedRequestEph: "128m",
 			expectedErr:        false,
 		},
 		{
@@ -753,6 +829,13 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, mem.String())
 				}
 
+				eph, exists := resources.Limits["ephemeral-storage"]
+				if tt.expectedLimitEph == absent && exists {
+					t.Errorf("expected eph storage limit to not exist")
+				} else if tt.expectedLimitEph != absent && eph.String() != tt.expectedLimitEph {
+					t.Errorf("expected eph storage limit mismatch: wanted %s, got %s", tt.expectedLimitEph, eph.String())
+				}
+
 				cpu, exists = resources.Requests["cpu"]
 				if tt.expectedRequestCPU == absent && exists {
 					t.Errorf("expected cpu request to not exist")
@@ -765,6 +848,13 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 					t.Errorf("expected mem limit to not exist")
 				} else if tt.expectedRequestMem != absent && mem.String() != tt.expectedRequestMem {
 					t.Errorf("expected mem request mismatch: wanted %s, got %s", tt.expectedRequestMem, mem.String())
+				}
+
+				eph, exists = resources.Requests["ephemeral-storage"]
+				if tt.expectedRequestEph == absent && exists {
+					t.Errorf("expected eph storage limit to not exist")
+				} else if tt.expectedRequestEph != absent && eph.String() != tt.expectedRequestEph {
+					t.Errorf("expected eph storage request mismatch: wanted %s, got %s", tt.expectedRequestMem, eph.String())
 				}
 			}
 		})
@@ -1146,24 +1236,22 @@ func TestContainerCache(t *testing.T) {
 			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
-				Image:                    "foobar-image",
-				Address:                  "http://foobar:1234",
-				AuthType:                 DefaultVaultAuthType,
-				AuthPath:                 "test",
-				Namespace:                "test",
-				RevokeOnShutdown:         true,
-				UserID:                   "1000",
-				GroupID:                  "100",
-				SameID:                   DefaultAgentRunAsSameUser,
-				SetSecurityContext:       DefaultAgentSetSecurityContext,
-				DefaultTemplate:          "map",
-				ResourceRequestCPU:       DefaultResourceRequestCPU,
-				ResourceRequestMem:       DefaultResourceRequestMem,
-				ResourceRequestEphemeral: DefaultResourceRequestEphemeral,
-				ResourceLimitCPU:         DefaultResourceLimitCPU,
-				ResourceLimitMem:         DefaultResourceLimitMem,
-				ResourceLimitEphemeral:   DefaultResourceLimitEphemeral,
-				ExitOnRetryFailure:       DefaultTemplateConfigExitOnRetryFailure,
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
 			}
 
 			err := Init(pod, agentConfig)
