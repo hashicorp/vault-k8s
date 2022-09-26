@@ -308,7 +308,7 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	if value, ok := container.Resources.Requests.StorageEphemeral().AsInt64(); !ok || value != 0 {
-		t.Errorf("resource ephemeral storage requests value wrong, should have been unset, got %s", container.Resources.Requests.Memory().String())
+		t.Errorf("resource ephemeral storage requests value is wrong, should have been unset, got %s", container.Resources.Requests.Memory().String())
 	}
 
 	for _, volumeMount := range container.VolumeMounts {
