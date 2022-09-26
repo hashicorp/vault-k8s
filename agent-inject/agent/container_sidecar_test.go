@@ -296,7 +296,7 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	if value, ok := container.Resources.Limits.StorageEphemeral().AsInt64(); !ok || value != 0 {
-		t.Errorf("resource ephemeral storage limit value wrong, should have been unset, got %s", container.Resources.Limits.StorageEphemeral().String())
+		t.Errorf("resource ephemeral storage limit value is wrong, should have been unset, got %s", container.Resources.Limits.StorageEphemeral().String())
 	}
 
 	if container.Resources.Requests.Cpu().String() != DefaultResourceRequestCPU {
