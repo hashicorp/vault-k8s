@@ -402,7 +402,7 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral] = cfg.ResourceRequestEphemeral
 	}
-	
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath] = secretVolumePath
 	}

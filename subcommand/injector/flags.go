@@ -185,15 +185,15 @@ func (c *Command) init() {
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
 	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
 		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
-	c.flagSet.StringVar(&c.flagResourceRequestEphemeral, "ephemeral-storage-request", agent.DefaultResourceRequestEphemeral,
-		fmt.Sprintf("Ephemeral Storage resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestEphemeral))
+	c.flagSet.StringVar(&c.flagResourceRequestEphemeral, "ephemeral-storage-request", "",
+		"Ephemeral Storage resource request set in injected containers. Defaults to unset")
 
 	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
-	c.flagSet.StringVar(&c.flagResourceLimitEphemeral, "ephemeral-storage-limit", agent.DefaultResourceLimitEphemeral,
-		fmt.Sprintf("Ephemeral Storage resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitEphemeral))
+	c.flagSet.StringVar(&c.flagResourceLimitEphemeral, "ephemeral-storage-limit", "",
+		"Ephemeral Storage resource limit set in injected containers. Defaults to unset")
 	c.flagSet.StringVar(&c.flagAuthMinBackoff, "auth-min-backoff", "",
 		"Sets the minimum backoff on auto-auth failure. Default is 1s")
 	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",
