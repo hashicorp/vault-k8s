@@ -43,7 +43,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			ReadOnly:  true,
 		})
 	}
-	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts()...)
+	volumeMounts = append(volumeMounts, a.ContainerVolumeMounts(false)...)
 
 	if a.ExtraSecret != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
