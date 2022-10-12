@@ -6,6 +6,7 @@ Bugs:
 Improvements:
 * Upgrade dependency `golang.org/x/net` from `v0.0.0-20220708220712-1185a9018129` to `v0.0.0-20221004154528-8021a29435af`
 * Upgrade dependency `golang.org/x/sys` from `v0.0.0-20220520151302-bc2c85ada10a` to `v0.0.0-20220728004956-3c1f35247d10`
+* Upgrade dependency `golang.org/x/text` from v0.3.7 to v0.3.8
 
 ## 1.0.0 (September 6, 2022)
 
