@@ -1,3 +1,14 @@
+# This Dockerfile contains multiple targets.
+# Use 'docker build --target=<name> .' to build one.
+# e.g. `docker build --target=dev .`
+#
+# All non-dev targets have a VERSION argument that must be provided 
+# via --build-arg=VERSION=<version> when building. 
+# e.g. --build-arg VERSION=1.11.2
+#
+# `default` is the production docker image which cannot be built locally. 
+# For local dev and testing purposes, please build and use the `dev` docker image.
+
 ARG ALPINE_VERSION=3.16.2
 
 FROM docker.mirror.hashicorp.services/alpine:${ALPINE_VERSION} as dev
@@ -46,6 +57,59 @@ RUN set -eux && \
 COPY dist/$TARGETOS/$TARGETARCH/vault-k8s /bin/
 
 USER vault
+ENTRYPOINT ["/bin/vault-k8s"]
+
+# This target creates a production ubi release image
+# for the project for use on OpenShift.
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6 as ubi
+
+ARG PRODUCT_NAME
+ARG PRODUCT_VERSION
+ARG BIN_NAME
+
+# PRODUCT_NAME and PRODUCT_VERSION are the name of the software on releases.hashicorp.com
+# and the version to download. Example: PRODUCT_NAME=vault-k8s PRODUCT_VERSION=1.0.0.
+ENV BIN_NAME=$BIN_NAME
+ENV PRODUCT_VERSION=$PRODUCT_VERSION
+
+ARG PRODUCT_NAME=$BIN_NAME
+
+# TARGETOS and TARGETARCH are set automatically when --platform is provided.
+ARG TARGETOS TARGETARCH
+
+# Set ARGs as ENV so that they can be used in ENTRYPOINT/CMD
+ENV PRODUCT_VERSION=$PRODUCT_VERSION
+ENV BIN_NAME=$BIN_NAME
+
+# Additional metadata labels used by container registries, platforms
+# and certification scanners.
+LABEL name="Vault K8s" \
+      maintainer="Vault Team <vault@hashicorp.com>" \
+      vendor="HashiCorp" \
+      version=$PRODUCT_VERSION \
+      release=$PRODUCT_VERSION \
+      summary="The Vault-K8s binary includes first-class integrations between Vault and Kubernetes." \
+      description="Vault-K8s includes first-class integrations between Vault and Kuberentes. Integrations include the Vault Agent Injector mutating admission webhook."
+
+# Copy license for Red Hat certification.
+COPY LICENSE /licenses/mozilla.txt
+
+# Set up certificates and base tools.
+RUN set -eux && \
+    microdnf install -y ca-certificates gnupg openssl tzdata wget unzip procps shadow-utils
+
+# Create a non-root user to run the software.
+# On OpenShift, this will not matter since the container 
+# is run as a random user and group. 
+# This is just kept for consistency with our other images.
+RUN groupadd --gid 1000 vault && \
+    adduser --uid 100 --system -g vault vault && \
+    usermod -a -G root vault
+
+# Copy the CI-built binary of vault-k8s into /bin/
+COPY dist/$TARGETOS/$TARGETARCH/$BIN_NAME /bin/
+
+USER 100
 ENTRYPOINT ["/bin/vault-k8s"]
 
 # ===================================
