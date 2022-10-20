@@ -66,12 +66,6 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6 as ubi
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
 ARG BIN_NAME
-
-# PRODUCT_NAME and PRODUCT_VERSION are the name of the software on releases.hashicorp.com
-# and the version to download. Example: PRODUCT_NAME=vault-k8s PRODUCT_VERSION=1.0.0.
-ENV BIN_NAME=$BIN_NAME
-ENV PRODUCT_VERSION=$PRODUCT_VERSION
-
 ARG PRODUCT_NAME=$BIN_NAME
 
 # TARGETOS and TARGETARCH are set automatically when --platform is provided.
