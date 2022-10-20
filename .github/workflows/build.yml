@@ -137,5 +137,4 @@ jobs:
           target: ubi
           arch: amd64
           redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi
-          # On oct 20, this tag will need to be updated to the following:
-          # quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b/${{env.repo}}:${{env.version}}-ubi
+
