@@ -21,7 +21,7 @@ spec:
       serviceAccountName: "vault-injector"
       containers:
         - name: sidecar-injector
-          image: "hashicorp/vault-k8s:1.0.0"
+          image: "hashicorp/vault-k8s:1.0.1"
           imagePullPolicy: IfNotPresent
           env:
             - name: NAMESPACE
@@ -41,7 +41,7 @@ spec:
             - name: AGENT_INJECT_VAULT_ADDR
               value: "https://vault.$(NAMESPACE).svc:8200"
             - name: AGENT_INJECT_VAULT_IMAGE
-              value: "hashicorp/vault:1.11.3"
+              value: "hashicorp/vault:1.12.0"
             - name: AGENT_INJECT_TLS_AUTO
               value: vault-agent-injector-cfg
             - name: AGENT_INJECT_TLS_AUTO_HOSTS
