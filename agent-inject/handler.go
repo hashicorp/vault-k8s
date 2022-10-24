@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
-	"github.com/mattbaird/jsonpatch"
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -183,7 +182,6 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	}
 
 	h.Log.Debug("setting default annotations..")
-	var patches []*jsonpatch.JsonPatchOperation
 	cfg := agent.AgentConfig{
 		Image:                      h.ImageVault,
 		Address:                    h.VaultAddress,
@@ -218,7 +216,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	}
 
 	h.Log.Debug("creating new agent..")
-	agentSidecar, err := agent.New(&pod, patches)
+	agentSidecar, err := agent.New(&pod)
 	if err != nil {
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
 		return admissionError(req.UID, err)
@@ -232,7 +230,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	}
 
 	h.Log.Debug("creating patches for the pod..")
-	patch, err := agentSidecar.Patch()
+	_, patch, err := agentSidecar.Patch()
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)
 		return admissionError(req.UID, err)

@@ -7,12 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
-	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
 )
-
-// TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
 
 const (
 	DefaultVaultImage                       = "hashicorp/vault:1.12.0"
@@ -72,9 +70,6 @@ type Agent struct {
 
 	// Namespace is the Kubernetes namespace the request originated from.
 	Namespace string
-
-	// Patches are all the mutations we will make to the pod request.
-	Patches []*jsonpatch.JsonPatchOperation
 
 	// Pod is the original Kubernetes pod spec.
 	Pod *corev1.Pod
@@ -319,7 +314,7 @@ type VaultAgentTemplateConfig struct {
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
-func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
+func New(pod *corev1.Pod) (*Agent, error) {
 	sa, err := serviceaccount(pod)
 	if err != nil {
 		return nil, err
@@ -338,7 +333,6 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		LimitsMem:                 pod.Annotations[AnnotationAgentLimitsMem],
 		LimitsEphemeral:           pod.Annotations[AnnotationAgentLimitsEphemeral],
 		Namespace:                 pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:                   patches,
 		Pod:                       pod,
 		Containers:                []string{},
 		RequestsCPU:               pod.Annotations[AnnotationAgentRequestsCPU],
@@ -524,25 +518,23 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 
 // Patch creates the necessary pod patches to inject the Vault Agent
 // containers.
-func (a *Agent) Patch() ([]byte, error) {
-	var patches []byte
-
+func (a *Agent) Patch() (patches jsonpatch.Patch, patchesBytes []byte, err error) {
 	// Add a volume for the token sink
-	a.Patches = append(a.Patches, addVolumes(
+	patches = append(patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		a.ContainerTokenVolume(),
 		"/spec/volumes")...)
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
-	a.Patches = append(a.Patches, addVolumes(
+	patches = append(patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		a.ContainerVolumes(),
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
 	if a.ConfigMapName != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
 			"/spec/volumes")...)
@@ -550,7 +542,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add ExtraSecret if one was provided
 	if a.ExtraSecret != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerExtraSecretVolume()},
 			"/spec/volumes")...)
@@ -558,7 +550,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add TLS Secret if one was provided
 	if a.Vault.TLSSecret != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
 			"/spec/volumes")...)
@@ -566,7 +558,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add persistent cache volume if configured
 	if a.VaultAgentCache.Persist {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.cacheVolume()},
 			"/spec/volumes")...)
@@ -575,7 +567,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
 		if strutil.StrListContains(a.Containers, container.Name) {
-			a.Patches = append(a.Patches, addVolumeMounts(
+			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
@@ -584,9 +576,10 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Init Container
 	if a.PrePopulate {
-		container, err := a.ContainerInitSidecar()
+		var container corev1.Container
+		container, err = a.ContainerInitSidecar()
 		if err != nil {
-			return patches, err
+			return
 		}
 
 		containers := a.Pod.Spec.InitContainers
@@ -599,18 +592,18 @@ func (a *Agent) Patch() ([]byte, error) {
 
 			// Remove all init containers from the document so we can re-add them after the agent.
 			if len(a.Pod.Spec.InitContainers) != 0 {
-				a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+				patches = append(patches, removeContainers("/spec/initContainers")...)
 			}
 
 			containers = []corev1.Container{container}
 			containers = append(containers, a.Pod.Spec.InitContainers...)
 
-			a.Patches = append(a.Patches, addContainers(
+			patches = append(patches, addContainers(
 				[]corev1.Container{},
 				containers,
 				"/spec/initContainers")...)
 		} else {
-			a.Patches = append(a.Patches, addContainers(
+			patches = append(patches, addContainers(
 				a.Pod.Spec.InitContainers,
 				[]corev1.Container{container},
 				"/spec/initContainers")...)
@@ -621,7 +614,7 @@ func (a *Agent) Patch() ([]byte, error) {
 			if container.Name == "vault-agent-init" {
 				continue
 			}
-			a.Patches = append(a.Patches, addVolumeMounts(
+			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
@@ -630,30 +623,27 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Sidecar Container
 	if !a.PrePopulateOnly {
-		container, err := a.ContainerSidecar()
+		var container corev1.Container
+		container, err = a.ContainerSidecar()
 		if err != nil {
-			return patches, err
+			return
 		}
-		a.Patches = append(a.Patches, addContainers(
+		patches = append(patches, addContainers(
 			a.Pod.Spec.Containers,
 			[]corev1.Container{container},
 			"/spec/containers")...)
 	}
 
 	// Add annotations so that we know we're injected
-	a.Patches = append(a.Patches, updateAnnotations(
+	patches = append(patches, updateAnnotations(
 		a.Pod.Annotations,
 		map[string]string{AnnotationAgentStatus: "injected"})...)
 
 	// Generate the patch
-	if len(a.Patches) > 0 {
-		var err error
-		patches, err = json.Marshal(a.Patches)
-		if err != nil {
-			return patches, err
-		}
+	if len(patches) > 0 {
+		patchesBytes, err = json.Marshal(patches)
 	}
-	return patches, nil
+	return
 }
 
 // Validate the instance of Agent to ensure we have everything needed

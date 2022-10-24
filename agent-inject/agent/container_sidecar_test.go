@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/evanphx/json-patch"
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
-	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +40,6 @@ func TestContainerSidecarVolume(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
 		Address:            "http://foobar:1234",
@@ -64,7 +64,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -133,7 +133,6 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	}
 
 	pod := testPodIRSA(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -159,7 +158,7 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	require.NoError(t, err)
 	assert.Equal(t, "aws-iam-token", agent.AwsIamTokenAccountName)
 	assert.Equal(t, "/var/run/secrets/eks.amazonaws.com/serviceaccount", agent.AwsIamTokenAccountPath)
@@ -210,7 +209,6 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -236,7 +234,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -350,7 +348,6 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			}
 
 			pod := testPod(annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
 				Image:              "foobar-image",
@@ -376,7 +373,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -418,7 +415,6 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -444,7 +440,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -1143,14 +1139,13 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			tt.annotations[AnnotationVaultRole] = "foobar"
 			pod := testPod(tt.annotations)
 			pod.Spec.Containers[0].SecurityContext = tt.appSCC
-			var patches []*jsonpatch.JsonPatchOperation
 
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -1173,21 +1168,17 @@ func TestContainerCache(t *testing.T) {
 			ReadOnly:  false,
 		},
 	}
-	cacheVolumePatch := []*jsonpatch.JsonPatchOperation{
-		{
-			Operation: "add",
-			Path:      "/spec/volumes",
-			Value: []v1.Volume{
-				{
-					Name: "vault-agent-cache",
-					VolumeSource: v1.VolumeSource{
-						EmptyDir: &v1.EmptyDirVolumeSource{
-							Medium: "Memory",
-						},
+	cacheVolumePatch := []jsonpatch.Operation{
+		internal.AddOp("/spec/volumes", []v1.Volume{
+			{
+				Name: "vault-agent-cache",
+				VolumeSource: v1.VolumeSource{
+					EmptyDir: &v1.EmptyDirVolumeSource{
+						Medium: "Memory",
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	tests := []struct {
@@ -1233,8 +1224,6 @@ func TestContainerCache(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
-
 			agentConfig := AgentConfig{
 				Image:              "foobar-image",
 				Address:            "http://foobar:1234",
@@ -1257,7 +1246,7 @@ func TestContainerCache(t *testing.T) {
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err)
 			err = agent.Validate()
 			require.NoError(t, err)
@@ -1268,17 +1257,17 @@ func TestContainerCache(t *testing.T) {
 			sidecar, err := agent.ContainerSidecar()
 			require.NoError(t, err)
 
-			_, err = agent.Patch()
+			patches, _, err := agent.Patch()
 			require.NoError(t, err)
 
 			if tt.expectCacheVolAndMount {
 				assert.Subset(t, init.VolumeMounts, cacheMount)
 				assert.Subset(t, sidecar.VolumeMounts, cacheMount)
-				assert.Subset(t, agent.Patches, cacheVolumePatch)
+				assert.Subset(t, patches, cacheVolumePatch)
 			} else {
 				assert.NotSubset(t, init.VolumeMounts, cacheMount)
 				assert.NotSubset(t, sidecar.VolumeMounts, cacheMount)
-				assert.NotSubset(t, agent.Patches, cacheVolumePatch)
+				assert.NotSubset(t, patches, cacheVolumePatch)
 			}
 		})
 	}

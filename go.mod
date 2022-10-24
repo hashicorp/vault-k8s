@@ -4,12 +4,12 @@ go 1.17
 
 require (
 	github.com/cenkalti/backoff/v4 v4.1.1
+	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/hashicorp/go-hclog v1.0.0
 	github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.1
 	github.com/hashicorp/vault/sdk v0.2.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/text v0.2.0
-	github.com/mattbaird/jsonpatch v0.0.0-20200820163806-098863c1fc24
 	github.com/mitchellh/cli v1.1.4
 	github.com/operator-framework/operator-lib v0.8.0
 	github.com/pkg/errors v0.9.1
@@ -30,7 +30,6 @@ require (
 	github.com/bgentry/speakeasy v0.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
