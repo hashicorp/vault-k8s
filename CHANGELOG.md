@@ -1,5 +1,10 @@
 ## Unreleased
 
+## 1.0.1 (October 24, 2022)
+
+Changes:
+* Default to Vault v1.12.0
+
 Bugs:
 * Default ephemeral storage resources to unset for injected containers [GH-386](https://github.com/hashicorp/vault-k8s/pull/386)
 
