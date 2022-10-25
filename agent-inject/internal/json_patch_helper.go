@@ -46,7 +46,7 @@ func RemoveOp(path string) jsonpatch.Operation {
 // JavaScript Object Notation (JSON) Pointer syntax RFC:
 // https://tools.ietf.org/html/rfc6901.
 func EscapeJSONPointer(s string) string {
-	s = strings.Replace(s, "~", "~0", -1)
-	s = strings.Replace(s, "/", "~1", -1)
+	s = strings.ReplaceAll(s, "~", "~0")
+	s = strings.ReplaceAll(s, "/", "~1")
 	return s
 }
