@@ -518,7 +518,8 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 
 // Patch creates the necessary pod patches to inject the Vault Agent
 // containers.
-func (a *Agent) Patch() (patches jsonpatch.Patch, patchesBytes []byte, err error) {
+func (a *Agent) Patch() ([]byte, error) {
+	var patches jsonpatch.Patch
 	// Add a volume for the token sink
 	patches = append(patches, addVolumes(
 		a.Pod.Spec.Volumes,
@@ -576,10 +577,9 @@ func (a *Agent) Patch() (patches jsonpatch.Patch, patchesBytes []byte, err error
 
 	// Init Container
 	if a.PrePopulate {
-		var container corev1.Container
-		container, err = a.ContainerInitSidecar()
+		container, err := a.ContainerInitSidecar()
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		containers := a.Pod.Spec.InitContainers
@@ -623,10 +623,9 @@ func (a *Agent) Patch() (patches jsonpatch.Patch, patchesBytes []byte, err error
 
 	// Sidecar Container
 	if !a.PrePopulateOnly {
-		var container corev1.Container
-		container, err = a.ContainerSidecar()
+		container, err := a.ContainerSidecar()
 		if err != nil {
-			return
+			return nil, err
 		}
 		patches = append(patches, addContainers(
 			a.Pod.Spec.Containers,
@@ -641,9 +640,9 @@ func (a *Agent) Patch() (patches jsonpatch.Patch, patchesBytes []byte, err error
 
 	// Generate the patch
 	if len(patches) > 0 {
-		patchesBytes, err = json.Marshal(patches)
+		return json.Marshal(patches)
 	}
-	return
+	return nil, nil
 }
 
 // Validate the instance of Agent to ensure we have everything needed

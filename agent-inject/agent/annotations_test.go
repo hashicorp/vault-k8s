@@ -1023,7 +1023,7 @@ func TestInjectContainers(t *testing.T) {
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
-			_, patch, err := agent.Patch()
+			patch, err := agent.Patch()
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}

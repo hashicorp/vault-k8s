@@ -230,7 +230,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	}
 
 	h.Log.Debug("creating patches for the pod..")
-	_, patch, err := agentSidecar.Patch()
+	patch, err := agentSidecar.Patch()
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)
 		return admissionError(req.UID, err)

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"testing"
@@ -1257,8 +1258,10 @@ func TestContainerCache(t *testing.T) {
 			sidecar, err := agent.ContainerSidecar()
 			require.NoError(t, err)
 
-			patches, _, err := agent.Patch()
+			patch, err := agent.Patch()
 			require.NoError(t, err)
+			var patches jsonpatch.Patch
+			require.NoError(t, json.Unmarshal(patch, &patches))
 
 			if tt.expectCacheVolAndMount {
 				assert.Subset(t, init.VolumeMounts, cacheMount)
