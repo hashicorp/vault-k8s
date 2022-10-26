@@ -6,9 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/evanphx/json-patch"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
-	"github.com/mattbaird/jsonpatch"
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	"github.com/stretchr/testify/require"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -63,7 +64,7 @@ func TestHandlerHandle(t *testing.T) {
 		Handler Handler
 		Req     admissionv1.AdmissionRequest
 		Err     string // expected error string, not exact
-		Patches []jsonpatch.JsonPatchOperation
+		Patches jsonpatch.Patch
 	}{
 		{
 			"kube-system namespace",
@@ -149,39 +150,15 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -202,47 +179,17 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "remove",
-					Path:      "/spec/initContainers",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/1/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.RemoveOp("/spec/initContainers"),
+				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/1/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -262,43 +209,16 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -319,47 +239,17 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -380,43 +270,16 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -438,31 +301,13 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -484,35 +329,14 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 
@@ -533,39 +357,15 @@ func TestHandlerHandle(t *testing.T) {
 				}),
 			},
 			"",
-			[]jsonpatch.JsonPatchOperation{
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/volumes",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/initContainers/0/volumeMounts/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/spec/containers/-",
-				},
-				{
-					Operation: "add",
-					Path:      "/metadata/annotations/" + agent.EscapeJSONPointer(agent.AnnotationAgentStatus),
-				},
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
 		{
@@ -601,12 +401,15 @@ func TestHandlerHandle(t *testing.T) {
 				return
 			}
 
-			var actual []jsonpatch.JsonPatchOperation
+			var actual jsonpatch.Patch
 			if len(resp.Patch) > 0 {
 				req.NoError(json.Unmarshal(resp.Patch, &actual))
 				for i := range actual {
-					actual[i].Value = nil
+					delete(actual[i], "value")
 				}
+			}
+			for i := range tt.Patches {
+				delete(tt.Patches[i], "value")
 			}
 			req.Equal(tt.Patches, actual)
 		})

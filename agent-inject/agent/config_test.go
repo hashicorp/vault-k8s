@@ -6,7 +6,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -45,7 +44,6 @@ func TestNewConfig(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
@@ -53,7 +51,7 @@ func TestNewConfig(t *testing.T) {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err != nil {
 		t.Errorf("got error creating agent, shouldn't have: %s", err)
 	}
@@ -214,7 +212,6 @@ func TestFilePathAndName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
@@ -222,7 +219,7 @@ func TestFilePathAndName(t *testing.T) {
 				t.Errorf("got error initialising pod, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err != nil {
 				t.Errorf("got error creating agent, shouldn't have: %s", err)
 			}
@@ -302,7 +299,6 @@ func TestFilePermission(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
@@ -310,7 +306,7 @@ func TestFilePermission(t *testing.T) {
 				t.Errorf("got error initialising pod, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err != nil {
 				t.Errorf("got error creating agent, shouldn't have: %s", err)
 			}
@@ -334,7 +330,6 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	annotations := map[string]string{}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
@@ -342,7 +337,7 @@ func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err != nil {
 		t.Errorf("got error creating agent, shouldn't have: %s", err)
 	}
@@ -370,7 +365,6 @@ func TestConfigVaultAgentCache(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := basicAgentConfig()
 	err := Init(pod, agentConfig)
@@ -378,7 +372,7 @@ func TestConfigVaultAgentCache(t *testing.T) {
 		t.Errorf("got error initialising pod, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err != nil {
 		t.Errorf("got error creating agent, shouldn't have: %s", err)
 	}
@@ -499,13 +493,12 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err, "got error initialising pod: %s", err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err, "got error creating agent: %s", err)
 
 			initCfg, err := agent.newConfig(true)
@@ -573,13 +566,12 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err)
 			cfg, err := agent.newConfig(true)
 			require.NoError(t, err)
@@ -647,13 +639,12 @@ func TestInjectTokenSink(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err)
 			cfg, err := agent.newConfig(true)
 			require.NoError(t, err)
@@ -745,13 +736,12 @@ func TestConfigAgentQuit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err)
 			// create sidecar config
 			cfg, err := agent.newConfig(false)
