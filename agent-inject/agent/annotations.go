@@ -536,12 +536,12 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	// validate JSON patches
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]; ok {
+	if patch, ok := pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]; ok {
 		// ignore empty string
-		if pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch] == "" {
+		if patch == "" {
 			delete(pod.ObjectMeta.Annotations, AnnotationAgentJsonPatch)
 		} else {
-			_, err := jsonpatch.DecodePatch([]byte(pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]))
+			_, err := jsonpatch.DecodePatch([]byte(patch))
 			if err != nil {
 				return fmt.Errorf("error parsing JSON patch for annotation %s: %+v", AnnotationAgentJsonPatch, err)
 			}
