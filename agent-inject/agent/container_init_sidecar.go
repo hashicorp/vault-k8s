@@ -104,16 +104,16 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	}
 	patch, err := jsonpatch.DecodePatch([]byte(a.InitJsonPatch))
 	if err != nil {
-		return newContainer, fmt.Errorf("failed to decode JSON patch: %v", err)
+		return newContainer, fmt.Errorf("failed to decode JSON patch: %w", err)
 	}
 	newContainerJson, err := patch.Apply(containerJson)
 	if err != nil {
-		return newContainer, fmt.Errorf("failed to apply JSON patch: %+v", err)
+		return newContainer, fmt.Errorf("failed to apply JSON patch: %w", err)
 	}
-	newNewContainer := corev1.Container{}
-	err = json.Unmarshal(newContainerJson, &newNewContainer)
+	newContainer = corev1.Container{}
+	err = json.Unmarshal(newContainerJson, &newContainer)
 	if err != nil {
 		return newContainer, err
 	}
-	return newNewContainer, nil
+	return newContainer, nil
 }

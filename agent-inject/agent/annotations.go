@@ -543,18 +543,18 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		} else {
 			_, err := jsonpatch.DecodePatch([]byte(patch))
 			if err != nil {
-				return fmt.Errorf("error parsing JSON patch for annotation %s: %+v", AnnotationAgentJsonPatch, err)
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %w", AnnotationAgentJsonPatch, err)
 			}
 		}
 	}
-	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]; ok {
+	if patch, ok := pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]; ok {
 		// ignore empty string
-		if pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch] == "" {
+		if patch == "" {
 			delete(pod.ObjectMeta.Annotations, AnnotationAgentInitJsonPatch)
 		} else {
-			_, err := jsonpatch.DecodePatch([]byte(pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]))
+			_, err := jsonpatch.DecodePatch([]byte(patch))
 			if err != nil {
-				return fmt.Errorf("error parsing JSON patch for annotation %s: %+v", AnnotationAgentInitJsonPatch, err)
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %w", AnnotationAgentInitJsonPatch, err)
 			}
 		}
 	}
