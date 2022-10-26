@@ -1,8 +1,10 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/evanphx/json-patch"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -91,5 +93,27 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		newContainer.SecurityContext = a.securityContext()
 	}
 
-	return newContainer, nil
+	// apply any JSON patch requested
+	if a.InitJsonPatch == "" {
+		return newContainer, nil
+	}
+
+	containerJson, err := json.Marshal(newContainer)
+	if err != nil {
+		return newContainer, err
+	}
+	patch, err := jsonpatch.DecodePatch([]byte(a.InitJsonPatch))
+	if err != nil {
+		return newContainer, fmt.Errorf("failed to decode JSON patch: %v", err)
+	}
+	newContainerJson, err := patch.Apply(containerJson)
+	if err != nil {
+		return newContainer, fmt.Errorf("failed to apply JSON patch: %+v", err)
+	}
+	newNewContainer := corev1.Container{}
+	err = json.Unmarshal(newContainerJson, &newNewContainer)
+	if err != nil {
+		return newContainer, err
+	}
+	return newNewContainer, nil
 }

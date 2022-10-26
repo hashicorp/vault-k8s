@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -286,6 +287,14 @@ const (
 	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
 	// templating.
 	AnnotationAgentDisableKeepAlives = "vault.hashicorp.com/agent-disable-keep-alives"
+
+	// AnnotationAgentJsonPatch is used to specify a JSON patch to be applied to the agent sidecar container before
+	// it is created.
+	AnnotationAgentJsonPatch = "vault.hashicorp.com/agent-json-patch"
+
+	// AnnotationAgentInitJsonPatch is used to specify a JSON patch to be applied to the agent init container before
+	// it is created.
+	AnnotationAgentInitJsonPatch = "vault.hashicorp.com/agent-init-json-patch"
 )
 
 type AgentConfig struct {
@@ -524,6 +533,30 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives] = cfg.DisableKeepAlives
+	}
+
+	// validate JSON patches
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]; ok {
+		// ignore empty string
+		if pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch] == "" {
+			delete(pod.ObjectMeta.Annotations, AnnotationAgentJsonPatch)
+		} else {
+			_, err := jsonpatch.DecodePatch([]byte(pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]))
+			if err != nil {
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %+v", AnnotationAgentJsonPatch, err)
+			}
+		}
+	}
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]; ok {
+		// ignore empty string
+		if pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch] == "" {
+			delete(pod.ObjectMeta.Annotations, AnnotationAgentInitJsonPatch)
+		} else {
+			_, err := jsonpatch.DecodePatch([]byte(pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]))
+			if err != nil {
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %+v", AnnotationAgentInitJsonPatch, err)
+			}
+		}
 	}
 
 	return nil

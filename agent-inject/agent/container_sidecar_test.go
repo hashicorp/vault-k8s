@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestContainerSidecarVolume(t *testing.T) {
@@ -1274,4 +1275,221 @@ func TestContainerCache(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAgentJsonPatch(t *testing.T) {
+
+	baseContainer := corev1.Container{
+		Name:    "vault-agent",
+		Image:   "foobar-image",
+		Command: []string{"/bin/sh", "-ec"},
+		Args:    []string{`echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json`},
+		Env: []v1.EnvVar{
+			{Name: "VAULT_LOG_LEVEL", Value: "info"},
+			{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+			{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6ZmFsc2UsInBpZF9maWxlIjoiL2hvbWUvdmF1bHQvLnBpZCIsInZhdWx0Ijp7ImFkZHJlc3MiOiJodHRwOi8vZm9vYmFyOjEyMzQifSwidGVtcGxhdGVfY29uZmlnIjp7ImV4aXRfb25fcmV0cnlfZmFpbHVyZSI6dHJ1ZX19"},
+		},
+		Resources: v1.ResourceRequirements{
+			Limits:   v1.ResourceList{"cpu": resource.MustParse("500m"), "memory": resource.MustParse("128Mi")},
+			Requests: v1.ResourceList{"cpu": resource.MustParse("250m"), "memory": resource.MustParse("64Mi")},
+		},
+		VolumeMounts: []v1.VolumeMount{
+			{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
+			{Name: "home-sidecar", MountPath: "/home/vault"},
+			{Name: "vault-secrets", MountPath: "/vault/secrets"},
+		},
+		Lifecycle: &v1.Lifecycle{
+			PreStop: &v1.Handler{
+				Exec: &v1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "/bin/sleep 5 && /bin/vault token revoke -address=http://foobar:1234 -self"},
+				},
+			},
+		},
+		SecurityContext: &v1.SecurityContext{
+			Capabilities: &v1.Capabilities{
+				Drop: []v1.Capability{"ALL"},
+			},
+			RunAsGroup:               optional[int64](100),
+			RunAsUser:                optional[int64](1000),
+			RunAsNonRoot:             optional[bool](true),
+			ReadOnlyRootFilesystem:   optional[bool](true),
+			AllowPrivilegeEscalation: optional[bool](false),
+		},
+	}
+
+	baseInitContainer := corev1.Container{
+		Name:    "vault-agent-init",
+		Image:   "foobar-image",
+		Command: []string{"/bin/sh", "-ec"},
+		Args:    []string{`echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json`},
+		Env: []v1.EnvVar{
+			{Name: "VAULT_LOG_LEVEL", Value: "info"},
+			{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+			{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
+		},
+		Resources: v1.ResourceRequirements{
+			Limits:   v1.ResourceList{"cpu": resource.MustParse("500m"), "memory": resource.MustParse("128Mi")},
+			Requests: v1.ResourceList{"cpu": resource.MustParse("250m"), "memory": resource.MustParse("64Mi")},
+		},
+		VolumeMounts: []v1.VolumeMount{
+			{Name: "home-init", MountPath: "/home/vault"},
+			{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
+			{Name: "vault-secrets", MountPath: "/vault/secrets"},
+		},
+		SecurityContext: &v1.SecurityContext{
+			Capabilities: &v1.Capabilities{
+				Drop: []v1.Capability{"ALL"},
+			},
+			RunAsGroup:               optional[int64](100),
+			RunAsUser:                optional[int64](1000),
+			RunAsNonRoot:             optional[bool](true),
+			ReadOnlyRootFilesystem:   optional[bool](true),
+			AllowPrivilegeEscalation: optional[bool](false),
+		},
+	}
+
+	differentName := baseContainer
+	differentName.Name = "different-name"
+
+	differentNameInit := baseInitContainer
+	differentNameInit.Name = "different-name-init"
+
+	tests := []struct {
+		name          string
+		jsonPatch     string
+		jsonInitPatch string
+		expectedValue corev1.Container
+		init          bool
+		expectErr     bool
+	}{
+		{
+			"null patch",
+			"null",
+			"null",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"null patch (init)",
+			"null",
+			"null",
+			baseInitContainer,
+			true,
+			false,
+		},
+		{
+			"empty patch",
+			"",
+			"",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"empty list",
+			"[]",
+			"[]",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"invalid JSON",
+			`abc`,
+			`abc`,
+			baseContainer,
+			false,
+			true,
+		},
+		{
+			"invalid operation",
+			`[{"op": "invalid"}]`,
+			`[{"op": "invalid"}]`,
+			baseContainer,
+			false,
+			true,
+		},
+		{
+			"set different name",
+			`[{"op": "replace", "path": "/name", "value": "different-name"}]`,
+			"",
+			differentName,
+			false,
+			false,
+		},
+		{
+			"set different name (init)",
+			"",
+			`[{"op": "replace", "path": "/name", "value": "different-name-init"}]`,
+			differentNameInit,
+			true,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(map[string]string{
+				AnnotationVaultRole:          "role",
+				AnnotationAgentJsonPatch:     tt.jsonPatch,
+				AnnotationAgentInitJsonPatch: tt.jsonInitPatch,
+			})
+			agentConfig := AgentConfig{
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+			}
+
+			err := Init(pod, agentConfig)
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+			err = agent.Validate()
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+
+			var sidecar corev1.Container
+			if tt.init {
+				sidecar, err = agent.ContainerInitSidecar()
+			} else {
+				sidecar, err = agent.ContainerSidecar()
+			}
+
+			if tt.expectErr && err != nil {
+				// ok
+			} else if tt.expectErr && err == nil {
+				t.Error("Expected an error but got none")
+			} else if err != nil {
+				t.Error(err)
+			} else {
+				require.Equal(t, tt.expectedValue, sidecar)
+			}
+		})
+	}
+}
+
+func optional[T any](x T) *T {
+	return &x
 }
