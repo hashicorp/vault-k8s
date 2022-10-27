@@ -171,6 +171,12 @@ type Agent struct {
 
 	// DisableKeepAlives controls which Agent features have keep-alives disabled.
 	DisableKeepAlives []string
+
+	// JsonPatch can be used to modify the agent sidecar container before it is created.
+	JsonPatch string
+
+	// InitJsonPatch can be used to modify the agent-init container before it is created.
+	InitJsonPatch string
 }
 
 type ServiceAccountTokenVolume struct {
@@ -344,6 +350,8 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		CopyVolumeMounts:          pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName:    iamName,
 		AwsIamTokenAccountPath:    iamPath,
+		JsonPatch:                 pod.Annotations[AnnotationAgentJsonPatch],
+		InitJsonPatch:             pod.Annotations[AnnotationAgentInitJsonPatch],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
