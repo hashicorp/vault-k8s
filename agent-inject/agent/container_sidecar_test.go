@@ -1317,36 +1317,19 @@ func TestAgentJsonPatch(t *testing.T) {
 		},
 	}
 
-	baseInitContainer := corev1.Container{
-		Name:    "vault-agent-init",
-		Image:   "foobar-image",
-		Command: []string{"/bin/sh", "-ec"},
-		Args:    []string{`echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json`},
-		Env: []v1.EnvVar{
-			{Name: "VAULT_LOG_LEVEL", Value: "info"},
-			{Name: "VAULT_LOG_FORMAT", Value: "standard"},
-			{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
-		},
-		Resources: v1.ResourceRequirements{
-			Limits:   v1.ResourceList{"cpu": resource.MustParse("500m"), "memory": resource.MustParse("128Mi")},
-			Requests: v1.ResourceList{"cpu": resource.MustParse("250m"), "memory": resource.MustParse("64Mi")},
-		},
-		VolumeMounts: []v1.VolumeMount{
-			{Name: "home-init", MountPath: "/home/vault"},
-			{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
-			{Name: "vault-secrets", MountPath: "/vault/secrets"},
-		},
-		SecurityContext: &v1.SecurityContext{
-			Capabilities: &v1.Capabilities{
-				Drop: []v1.Capability{"ALL"},
-			},
-			RunAsGroup:               optional[int64](100),
-			RunAsUser:                optional[int64](1000),
-			RunAsNonRoot:             optional[bool](true),
-			ReadOnlyRootFilesystem:   optional[bool](true),
-			AllowPrivilegeEscalation: optional[bool](false),
-		},
+	baseInitContainer := baseContainer
+	baseInitContainer.Name = "vault-agent-init"
+	baseInitContainer.Env = []v1.EnvVar{
+		{Name: "VAULT_LOG_LEVEL", Value: "info"},
+		{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+		{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
 	}
+	baseInitContainer.VolumeMounts = []v1.VolumeMount{
+		{Name: "home-init", MountPath: "/home/vault"},
+		{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
+		{Name: "vault-secrets", MountPath: "/vault/secrets"},
+	}
+	baseInitContainer.Lifecycle = nil
 
 	differentName := baseContainer
 	differentName.Name = "different-name"
