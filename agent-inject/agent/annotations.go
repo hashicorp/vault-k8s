@@ -295,6 +295,9 @@ const (
 	// AnnotationAgentInitJsonPatch is used to specify a JSON patch to be applied to the agent init container before
 	// it is created.
 	AnnotationAgentInitJsonPatch = "vault.hashicorp.com/agent-init-json-patch"
+
+	// AnnotationAgentAutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
+	AnnotationAgentAutoAuthExitOnError = "vault.hashicorp.com/agent-auto-auth-exit-on-err"
 )
 
 type AgentConfig struct {
@@ -757,6 +760,14 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 		return DefaultTemplateConfigExitOnRetryFailure, nil
 	}
 
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) getAutoAuthExitOnError() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentAutoAuthExitOnError]
+	if !ok {
+		return DefaultAutoAuthEnableOnExit, nil
+	}
 	return strconv.ParseBool(raw)
 }
 

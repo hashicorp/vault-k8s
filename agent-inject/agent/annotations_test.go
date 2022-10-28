@@ -1142,6 +1142,24 @@ func TestAuthMinMaxBackoff(t *testing.T) {
 	require.Equal(t, "10s", agent.Vault.AuthMaxBackoff, "expected 10s, got %v", agent.Vault.AuthMaxBackoff)
 }
 
+func TestAutoAuthExitOnError(t *testing.T) {
+	pod := testPod(map[string]string{
+		"vault.hashicorp.com/agent-auto-auth-exit-on-err": "true",
+	})
+	agentConfig := basicAgentConfig()
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	require.Equal(t, true, agent.AutoAuthExitOnError)
+}
+
 func TestDisableIdleConnections(t *testing.T) {
 	tests := map[string]struct {
 		annotations   map[string]string
