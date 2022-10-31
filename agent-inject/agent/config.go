@@ -58,6 +58,7 @@ type Method struct {
 	MaxBackoff string                 `json:"max_backoff,omitempty"`
 	Namespace  string                 `json:"namespace,omitempty"`
 	Config     map[string]interface{} `json:"config,omitempty"`
+	ExitOnErr  bool                   `json:"exit_on_err,omitempty"`
 }
 
 // Sink defines a location to write the authenticated token
@@ -177,6 +178,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 				Config:     a.Vault.AuthConfig,
 				MinBackoff: a.Vault.AuthMinBackoff,
 				MaxBackoff: a.Vault.AuthMaxBackoff,
+				ExitOnErr:  a.AutoAuthExitOnError,
 			},
 			Sinks: []*Sink{
 				{

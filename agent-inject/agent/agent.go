@@ -32,6 +32,7 @@ const (
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
+	DefaultAutoAuthEnableOnExit             = false
 )
 
 // Agent is the top level structure holding all the
@@ -177,6 +178,9 @@ type Agent struct {
 
 	// InitJsonPatch can be used to modify the agent-init container before it is created.
 	InitJsonPatch string
+
+	// AutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
+	AutoAuthExitOnError bool
 }
 
 type ServiceAccountTokenVolume struct {
@@ -486,6 +490,11 @@ func New(pod *corev1.Pod) (*Agent, error) {
 
 	if pod.Annotations[AnnotationAgentDisableKeepAlives] != "" {
 		agent.DisableKeepAlives = strings.Split(pod.Annotations[AnnotationAgentDisableKeepAlives], ",")
+	}
+
+	agent.AutoAuthExitOnError, err = agent.getAutoAuthExitOnError()
+	if err != nil {
+		return nil, err
 	}
 
 	return agent, nil
