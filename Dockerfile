@@ -9,7 +9,7 @@
 # `default` is the production docker image which cannot be built locally. 
 # For local dev and testing purposes, please build and use the `dev` docker image.
 
-ARG ALPINE_VERSION=3.16.2
+ARG ALPINE_VERSION=3.16.3
 
 FROM docker.mirror.hashicorp.services/alpine:${ALPINE_VERSION} as dev
 
@@ -61,7 +61,7 @@ ENTRYPOINT ["/bin/vault-k8s"]
 
 # This target creates a production ubi release image
 # for the project for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.6 as ubi
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7 as ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
