@@ -1,7 +1,26 @@
 ## Unreleased
 
+Changes:
+* Building with go 1.19.3
+* Default to Vault v1.12.1
+
 Features:
+* Allow modifying agent and agent-init containers with json-patch [GH-399](https://github.com/hashicorp/vault-k8s/pull/399)
 * Support for setting [`exit_on_err`](https://github.com/hashicorp/vault/pull/17091) in the agent auto-auth method config [GH-400](https://github.com/hashicorp/vault-k8s/pull/400).
+
+Improvements:
+* Dependency updates:
+  * github.com/cenkalti/backoff/v4 v4.1.1 => v4.1.3
+  * github.com/hashicorp/go-hclog v1.0.0 => v1.3.1
+  * github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.1 => v0.1.2
+  * github.com/hashicorp/vault/sdk v0.2.1 => v0.6.1
+  * github.com/mitchellh/cli v1.1.4 => v1.1.5
+  * github.com/operator-framework/operator-lib v0.8.0 => v0.11.0
+  * github.com/prometheus/client_golang v1.11.1 => v1.12.1
+  * github.com/stretchr/testify v1.8.0 => v1.8.1
+  * k8s.io/api v0.22.2 => v0.25.4
+  * k8s.io/apimachinery v0.22.2 => v0.25.4
+  * k8s.io/client-go v0.22.2 => v0.25.4
 
 ## 1.0.1 (October 24, 2022)
 
