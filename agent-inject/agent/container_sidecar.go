@@ -214,7 +214,7 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 		flags := a.vaultCliFlags()
 		flags = append(flags, "-self")
 
-		lifecycle.PreStop = &corev1.Handler{
+		lifecycle.PreStop = &corev1.LifecycleHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke %s", a.RevokeGrace, strings.Join(flags[:], " "))},
 			},
