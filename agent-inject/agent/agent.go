@@ -7,13 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.12.0"
+	DefaultVaultImage                       = "hashicorp/vault:1.12.1"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
