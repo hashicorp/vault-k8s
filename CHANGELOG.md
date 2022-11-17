@@ -1,5 +1,7 @@
 ## Unreleased
 
+## 1.1.0 (November 17, 2022)
+
 Changes:
 * Building with go 1.19.3
 * Default to Vault v1.12.1
