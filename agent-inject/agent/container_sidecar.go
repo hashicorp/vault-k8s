@@ -239,5 +239,8 @@ func (a *Agent) securityContext() *corev1.SecurityContext {
 			Drop: []corev1.Capability{DefaultAgentDropCapabilities},
 		},
 		AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
+		SeccompProfile: &corev1.SeccompProfile{
+			Type: corev1.SeccompProfileTypeRuntimeDefault,
+		},
 	}
 }
