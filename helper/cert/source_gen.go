@@ -236,7 +236,7 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, b
 }
 
 func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
-	secret, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Get(ctx, certSecretName, metav1.GetOptions{})
+	secret, err := s.SecretsCache.Lister().Secrets(s.Namespace).Get(certSecretName)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
