@@ -168,6 +168,77 @@ func TestGenSource_leader(t *testing.T) {
 	)
 }
 
+func TestGenSource_leader_expiry(t *testing.T) {
+
+	if !hasOpenSSL {
+		t.Skip("openssl not found")
+		return
+	}
+
+	source := testGenSource()
+	source.Expiry = 5 * time.Second
+	source.ExpiryWithin = 2 * time.Second
+	source.Namespace = "default"
+	source.K8sClient = fake.NewSimpleClientset()
+
+	// Pretend this host is the leader
+	source.LeaderElector = newFakeLeader(true)
+
+	// setup a Secret informer cache with the fake clientset for the leader to use
+	factory := informers.NewSharedInformerFactoryWithOptions(source.K8sClient, 0, informers.WithNamespace(source.Namespace))
+	secrets := factory.Core().V1().Secrets()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go secrets.Informer().Run(ctx.Done())
+	synced := cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced)
+	require.True(t, synced, "timeout syncing Secrets informer")
+	source.SecretsCache = secrets
+
+	// Generate the first bundle, storing it in a secret
+	bundle, err := source.Certificate(ctx, nil)
+	require.NoError(t, err)
+	testBundleVerify(t, &bundle)
+
+	// Check that the Secret has been created correctly
+	secret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(ctx, certSecretName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, secret.Data["cert"], bundle.Cert,
+		"cert in the Secret should've matched what was returned from source.Certificate()",
+	)
+	require.Equal(t, secret.Data["key"], bundle.Key,
+		"key in the Secret should've matched what was returned from source.Certificate()",
+	)
+
+	// Add some metadata to the Secret
+	addedAnnotations := map[string]string{
+		"not-owner-by-vault-agent": "some-value",
+	}
+	secret.SetAnnotations(addedAnnotations)
+	_, err = source.K8sClient.CoreV1().Secrets(source.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
+	require.NoError(t, err)
+
+	// Generate a new bundle, updating the Secret
+	next, err := source.Certificate(context.Background(), &bundle)
+	require.NoError(t, err)
+	require.False(t, bundle.Equal(&next))
+	testBundleVerify(t, &next)
+
+	// Check that the secret contains the new bundle data
+	secret, err = source.K8sClient.CoreV1().Secrets(source.Namespace).Get(ctx, certSecretName, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.Equal(t, secret.Data["cert"], next.Cert,
+		"cert in the Secret should've matched what was returned from source.Certificate()",
+	)
+	require.Equal(t, secret.Data["key"], next.Key,
+		"key in the Secret should've matched what was returned from source.Certificate()",
+	)
+
+	// Check that the secret still has the metadata added prior to its update
+	require.Equal(t, addedAnnotations, secret.Annotations,
+		"updating the secret should not remove metadata like annotations",
+	)
+}
+
 func TestGenSource_follower(t *testing.T) {
 
 	if !hasOpenSSL {
