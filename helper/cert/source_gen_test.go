@@ -142,12 +142,23 @@ func TestGenSource_leader(t *testing.T) {
 
 	source.Namespace = "default"
 	source.K8sClient = fake.NewSimpleClientset()
-	bundle, err := source.Certificate(context.Background(), nil)
+
+	// setup a Secret informer cache with the fake clientset for the leader to use
+	factory := informers.NewSharedInformerFactoryWithOptions(source.K8sClient, 0, informers.WithNamespace(source.Namespace))
+	secrets := factory.Core().V1().Secrets()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go secrets.Informer().Run(ctx.Done())
+	synced := cache.WaitForCacheSync(ctx.Done(), secrets.Informer().HasSynced)
+	require.True(t, synced, "timeout syncing Secrets informer")
+	source.SecretsCache = secrets
+
+	bundle, err := source.Certificate(ctx, nil)
 	require.NoError(t, err)
 	testBundleVerify(t, &bundle)
 
 	// check that the Secret has been created
-	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(context.Background(), certSecretName, metav1.GetOptions{})
+	checkSecret, err := source.K8sClient.CoreV1().Secrets(source.Namespace).Get(ctx, certSecretName, metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, checkSecret.Data["cert"], bundle.Cert,
 		"cert in the Secret should've matched what was returned from source.Certificate()",
