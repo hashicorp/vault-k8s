@@ -3,6 +3,9 @@
 Features:
 * Support for setting [`exit_on_err`](https://github.com/hashicorp/vault/pull/17091) in the agent auto-auth method config [GH-400](https://github.com/hashicorp/vault-k8s/pull/400).
 
+Bugs:
+* Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)
+
 ## 1.0.1 (October 24, 2022)
 
 Changes:
