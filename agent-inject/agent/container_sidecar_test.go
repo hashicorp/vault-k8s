@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/stretchr/testify/assert"
@@ -115,7 +115,6 @@ func TestContainerSidecarVolume(t *testing.T) {
 }
 
 func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
-
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
 		// this will have different mount path
@@ -1278,7 +1277,6 @@ func TestContainerCache(t *testing.T) {
 }
 
 func TestAgentJsonPatch(t *testing.T) {
-
 	baseContainer := corev1.Container{
 		Name:    "vault-agent",
 		Image:   "foobar-image",
@@ -1299,7 +1297,7 @@ func TestAgentJsonPatch(t *testing.T) {
 			{Name: "vault-secrets", MountPath: "/vault/secrets"},
 		},
 		Lifecycle: &v1.Lifecycle{
-			PreStop: &v1.Handler{
+			PreStop: &v1.LifecycleHandler{
 				Exec: &v1.ExecAction{
 					Command: []string{"/bin/sh", "-c", "/bin/sleep 5 && /bin/vault token revoke -address=http://foobar:1234 -self"},
 				},
