@@ -1,5 +1,8 @@
 ## Unreleased
 
+Bugs:
+* Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)
+
 ## 1.1.0 (November 17, 2022)
 
 Changes:

@@ -236,25 +236,31 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, b
 }
 
 func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: certSecretName,
-		},
-		Data: map[string][]byte{
-			"cert": bundle.Cert,
-			"key":  bundle.Key,
-		},
-	}
-	// Attempt updating the Secret first, and if it doesn't exist, fallback to
-	// create
-	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
-	if errors.IsNotFound(err) {
-		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(ctx, secret, metav1.CreateOptions{})
-	}
-	if err != nil {
+	secret, err := s.SecretsCache.Lister().Secrets(s.Namespace).Get(certSecretName)
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
-	return nil
+	if errors.IsNotFound(err) {
+		// The Secret does not exist, so create it.
+		secret = &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certSecretName,
+			},
+			Data: map[string][]byte{
+				"cert": bundle.Cert,
+				"key":  bundle.Key,
+			},
+		}
+		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(ctx, secret, metav1.CreateOptions{})
+		return err
+	}
+	// The Secret exists, so update it.
+	secret.Data = map[string][]byte{
+		"cert": bundle.Cert,
+		"key":  bundle.Key,
+	}
+	_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
+	return err
 }
 
 func (s *GenSource) getBundleFromSecret() (Bundle, error) {
