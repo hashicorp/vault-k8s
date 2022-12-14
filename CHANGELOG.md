@@ -1,5 +1,8 @@
 ## Unreleased
 
+Changes:
+* Building with Go 1.19.4
+
 Bugs:
 * Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)
 
