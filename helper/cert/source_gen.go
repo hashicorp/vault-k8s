@@ -11,6 +11,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -27,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -236,19 +238,28 @@ func (s *GenSource) retryUpdateSecret(ctx context.Context, leaderCh chan bool, b
 }
 
 func (s *GenSource) updateSecret(ctx context.Context, bundle Bundle) error {
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: certSecretName,
-		},
-		Data: map[string][]byte{
-			"cert": bundle.Cert,
-			"key":  bundle.Key,
-		},
-	}
-	// Attempt updating the Secret first, and if it doesn't exist, fallback to
-	// create
-	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Update(ctx, secret, metav1.UpdateOptions{})
+	certB64 := base64.StdEncoding.EncodeToString(bundle.CACert)
+	keyB64 := base64.StdEncoding.EncodeToString(bundle.Key)
+	payload_str := fmt.Sprintf(
+		`{
+			"data": {
+				"cert": %q,
+				"key": %q
+			}
+		}`, certB64, keyB64)
+	payload := []byte(payload_str)
+
+	_, err := s.K8sClient.CoreV1().Secrets(s.Namespace).Patch(ctx, certSecretName, types.MergePatchType, payload, metav1.PatchOptions{})
 	if errors.IsNotFound(err) {
+		secret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: certSecretName,
+			},
+			Data: map[string][]byte{
+				"cert": bundle.Cert,
+				"key":  bundle.Key,
+			},
+		}
 		_, err = s.K8sClient.CoreV1().Secrets(s.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	}
 	if err != nil {
