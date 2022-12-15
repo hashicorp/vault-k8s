@@ -616,7 +616,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		// to run first.
 		if a.InitFirst {
 
-			// Remove all init containers from the document so we can re-add them after the agent.
+			// Remove all init containers from the document, so we can re-add them after the agent.
 			if len(a.Pod.Spec.InitContainers) != 0 {
 				patches = append(patches, removeContainers("/spec/initContainers")...)
 			}
@@ -647,8 +647,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		}
 
 		// Add shareProcessNamespace
-		a.Patches = append(a.Patches, updateShareProcessNamespace(
-			a.ShareProcessNamespace)...)
+		patches = append(patches, updateShareProcessNamespace(a.ShareProcessNamespace)...)
 	}
 
 	// Sidecar Container
