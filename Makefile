@@ -12,6 +12,7 @@ GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
 XC_PUBLISH?=
 PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
+TESTARGS ?= '-test.v'
 
 .PHONY: all test build image clean version
 all: build
@@ -35,7 +36,7 @@ clean:
 test: unit-test
 
 unit-test:
-	go test -race ./...
+	go test -race $(TESTARGS) ./...
 
 .PHONY: mod
 mod:

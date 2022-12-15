@@ -746,20 +746,25 @@ func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
 }
 
 func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, error) {
-	raw, ok := a.Annotations[AnnotationAgentShareProcessNamespace]
+	annotation := AnnotationAgentShareProcessNamespace
+	raw, ok := a.Annotations[annotation]
 	if !ok {
 		return DefaultAgentShareProcessNamespace, nil
 	}
 	shareProcessNamespace, err := strconv.ParseBool(raw)
 	if err != nil {
-		return DefaultAgentShareProcessNamespace, err
+		return DefaultAgentShareProcessNamespace, fmt.Errorf(
+			"invalid value %v for annotation %q, err=%w", raw, annotation, err)
 	}
 	if pod.Spec.ShareProcessNamespace != nil {
-		if *pod.Spec.ShareProcessNamespace == false && shareProcessNamespace == true {
-			return DefaultAgentShareProcessNamespace, errors.New("Will not override shareProcessNamespace already set to false")
+		if !*pod.Spec.ShareProcessNamespace && shareProcessNamespace {
+			return DefaultAgentShareProcessNamespace,
+			errors.New("shareProcessNamespace explicitly disabled on the pod, " +
+				"refusing to enable it")
 		}
 	}
-	return strconv.ParseBool(raw)
+
+	return shareProcessNamespace, nil
 }
 
 func (a *Agent) setSecurityContext() (bool, error) {
