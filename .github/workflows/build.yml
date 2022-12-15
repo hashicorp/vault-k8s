@@ -20,25 +20,26 @@ jobs:
     outputs:
       go-version: ${{ steps.get-go-version.outputs.go-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Determine Go version
         id: get-go-version
         run: |
           echo "Building with Go $(cat .go-version)"
-          echo "::set-output name=go-version::$(cat .go-version)"
+          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
 
   get-product-version:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: get product version
         id: get-product-version
         run: |
           VERSION="${{ github.event.inputs.version || '0.0.0-dev' }}"
           echo "Using version ${VERSION}"
-          echo "::set-output name=product-version::${VERSION}"
+          echo "product-version=${VERSION}" >> $GITHUB_OUTPUT
+
   generate-metadata-file:
     needs: get-product-version
     runs-on: ubuntu-latest
@@ -46,7 +47,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -72,10 +73,10 @@ jobs:
     name: Go linux ${{ matrix.arch }} build
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -107,7 +108,7 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
         with:
@@ -116,3 +117,23 @@ jobs:
           arch: ${{matrix.arch}}
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
+
+  build-docker-ubi-redhat:
+    name: Docker Build UBI Image for RedHat Registry
+    needs:
+      - get-product-version
+      - build
+    runs-on: ubuntu-latest
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.get-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: ubi
+          arch: amd64
+          redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi

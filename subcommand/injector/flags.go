@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
@@ -68,6 +69,9 @@ type Specification struct {
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
 
+	// VaultNamespace is the AGENT_INJECT_VAULT_NAMESPACE environment variable.
+	VaultNamespace string `split_words:"true"`
+
 	// RevokeOnShutdown is AGENT_INJECT_REVOKE_ON_SHUTDOWN environment variable.
 	RevokeOnShutdown string `split_words:"true"`
 
@@ -98,17 +102,35 @@ type Specification struct {
 	// ResourceRequestMem is the AGENT_INJECT_MEM_REQUEST environment variable.
 	ResourceRequestMem string `envconfig:"AGENT_INJECT_MEM_REQUEST"`
 
+	// ResourceRequestEphemeral is the AGENT_INJECT_EPHEMERAL_REQUEST environment variable.
+	ResourceRequestEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_REQUEST"`
+
 	// ResourceLimitCPU is the AGENT_INJECT_CPU_LIMIT environment variable.
 	ResourceLimitCPU string `envconfig:"AGENT_INJECT_CPU_LIMIT"`
 
 	// ResourceLimitMem is the AGENT_INJECT_MEM_LIMIT environment variable.
 	ResourceLimitMem string `envconfig:"AGENT_INJECT_MEM_LIMIT"`
 
+	// ResourceLimitEphemeral is the AGENT_INJECT_EPHEMERAL_LIMIT environment variable.
+	ResourceLimitEphemeral string `envconfig:"AGENT_INJECT_EPHEMERAL_LIMIT"`
+
 	// TLSMinVersion is the AGENT_INJECT_TLS_MIN_VERSION environment variable
 	TLSMinVersion string `envconfig:"tls_min_version"`
 
 	// TLSCipherSuites is the AGENT_INJECT_TLS_CIPHER_SUITES environment variable
 	TLSCipherSuites string `envconfig:"tls_cipher_suites"`
+
+	// AuthMinBackoff is the AGENT_MIN_BACKOFF environment variable
+	AuthMinBackoff string `envconfig:"AGENT_INJECT_AUTH_MIN_BACKOFF"`
+
+	// AuthMaxBackoff is the AGENT_MAX_BACKOFF environment variable
+	AuthMaxBackoff string `envconfig:"AGENT_INJECT_AUTH_MAX_BACKOFF"`
+
+	// DisableIdleConnections is the AGENT_INJECT_DISABLE_IDLE_CONNECTIONS environment variable
+	DisableIdleConnections string `split_words:"true"`
+
+	// DisableKeepAlives is the AGENT_INJECT_DISABLE_KEEP_ALIVES environment variable
+	DisableKeepAlives string `split_words:"true"`
 }
 
 func (c *Command) init() {
@@ -140,6 +162,7 @@ func (c *Command) init() {
 		fmt.Sprintf("Type of Vault Auth Method to use. Defaults to %q.", agent.DefaultVaultAuthType))
 	c.flagSet.StringVar(&c.flagVaultAuthPath, "vault-auth-path", agent.DefaultVaultAuthPath,
 		fmt.Sprintf("Mount path of the Vault Auth Method. Defaults to %q.", agent.DefaultVaultAuthPath))
+	c.flagSet.StringVar(&c.flagVaultNamespace, "vault-namespace", "", "Vault enterprise namespace.")
 	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
 		"Automatically revoke Vault Token on Pod termination.")
 	c.flagSet.StringVar(&c.flagRunAsUser, "run-as-user", strconv.Itoa(agent.DefaultAgentRunAsUser),
@@ -158,16 +181,27 @@ func (c *Command) init() {
 		"Use leader elector to coordinate multiple replicas when updating CA and Certs with auto-tls")
 	c.flagSet.StringVar(&c.flagDefaultTemplate, "default-template", agent.DefaultTemplateType,
 		"Sets the default template type (map or json). Defaults to map.")
-
 	c.flagSet.StringVar(&c.flagResourceRequestCPU, "cpu-request", agent.DefaultResourceRequestCPU,
 		fmt.Sprintf("CPU resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestCPU))
 	c.flagSet.StringVar(&c.flagResourceRequestMem, "memory-request", agent.DefaultResourceRequestMem,
 		fmt.Sprintf("Memory resource request set in injected containers. Defaults to %s", agent.DefaultResourceRequestMem))
+	c.flagSet.StringVar(&c.flagResourceRequestEphemeral, "ephemeral-storage-request", "",
+		"Ephemeral Storage resource request set in injected containers. Defaults to unset")
 
 	c.flagSet.StringVar(&c.flagResourceLimitCPU, "cpu-limit", agent.DefaultResourceLimitCPU,
 		fmt.Sprintf("CPU resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitCPU))
 	c.flagSet.StringVar(&c.flagResourceLimitMem, "memory-limit", agent.DefaultResourceLimitMem,
 		fmt.Sprintf("Memory resource limit set in injected containers. Defaults to %s", agent.DefaultResourceLimitMem))
+	c.flagSet.StringVar(&c.flagResourceLimitEphemeral, "ephemeral-storage-limit", "",
+		"Ephemeral Storage resource limit set in injected containers. Defaults to unset")
+	c.flagSet.StringVar(&c.flagAuthMinBackoff, "auth-min-backoff", "",
+		"Sets the minimum backoff on auto-auth failure. Default is 1s")
+	c.flagSet.StringVar(&c.flagAuthMaxBackoff, "auth-max-backoff", "",
+		"Sets the maximum backoff on auto-auth failure. Default is 5m")
+	c.flagSet.StringVar(&c.flagDisableIdleConnections, "disable-idle-connections", "",
+		"Comma-separated list of Vault features where idle connections should be disabled.")
+	c.flagSet.StringVar(&c.flagDisableKeepAlives, "disable-keep-alives", "",
+		"Comma-separated list of Vault features where keep-alives should be disabled.")
 
 	tlsVersions := []string{}
 	for v := range tlsutil.TLSLookup {
@@ -271,6 +305,10 @@ func (c *Command) parseEnvs() error {
 		c.flagVaultAuthPath = envs.VaultAuthPath
 	}
 
+	if envs.VaultNamespace != "" {
+		c.flagVaultNamespace = envs.VaultNamespace
+	}
+
 	if envs.RevokeOnShutdown != "" {
 		c.flagRevokeOnShutdown, err = strconv.ParseBool(envs.RevokeOnShutdown)
 		if err != nil {
@@ -323,6 +361,10 @@ func (c *Command) parseEnvs() error {
 		c.flagResourceRequestMem = envs.ResourceRequestMem
 	}
 
+	if envs.ResourceRequestEphemeral != "" {
+		c.flagResourceRequestEphemeral = envs.ResourceRequestEphemeral
+	}
+
 	if envs.ResourceLimitCPU != "" {
 		c.flagResourceLimitCPU = envs.ResourceLimitCPU
 	}
@@ -331,12 +373,46 @@ func (c *Command) parseEnvs() error {
 		c.flagResourceLimitMem = envs.ResourceLimitMem
 	}
 
+	if envs.ResourceLimitEphemeral != "" {
+		c.flagResourceLimitEphemeral = envs.ResourceLimitEphemeral
+	}
+
 	if envs.TLSMinVersion != "" {
 		c.flagTLSMinVersion = envs.TLSMinVersion
 	}
 
 	if envs.TLSCipherSuites != "" {
 		c.flagTLSCipherSuites = envs.TLSCipherSuites
+	}
+
+	if envs.AuthMinBackoff != "" {
+		c.flagAuthMinBackoff = envs.AuthMinBackoff
+	}
+
+	if c.flagAuthMinBackoff != "" {
+		_, err = time.ParseDuration(c.flagAuthMinBackoff)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.AuthMaxBackoff != "" {
+		c.flagAuthMaxBackoff = envs.AuthMaxBackoff
+	}
+
+	if c.flagAuthMaxBackoff != "" {
+		_, err = time.ParseDuration(c.flagAuthMaxBackoff)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.DisableIdleConnections != "" {
+		c.flagDisableIdleConnections = envs.DisableIdleConnections
+	}
+
+	if envs.DisableKeepAlives != "" {
+		c.flagDisableKeepAlives = envs.DisableKeepAlives
 	}
 
 	return nil

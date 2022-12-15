@@ -29,12 +29,6 @@ build:
 image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
-prod-ubi-image:
-	docker build -t $(IMAGE_TAG)_ubi \
-    --build-arg VERSION=$(VERSION) \
-    --build-arg LOCATION=$(PUBLISH_LOCATION) \
-    -f $(DOCKER_DIR)/Release.ubi.dockerfile .
-
 clean:
 	-rm -rf $(BUILD_DIR)
 

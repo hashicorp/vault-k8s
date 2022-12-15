@@ -15,11 +15,12 @@ func TestContainerEnvs(t *testing.T) {
 		expectedEnvs []string
 	}{
 		{Agent{}, []string{"VAULT_CONFIG"}},
-		{Agent{ConfigMapName: "foobar"}, []string{}},
+		{Agent{Vault: Vault{Address: "http://localhost:8200"}, ConfigMapName: "foobar"}, []string{"VAULT_SKIP_VERIFY", "VAULT_ADDR"}},
 		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES"}},
 		{Agent{Vault: Vault{ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_CLIENT_TIMEOUT"}},
 		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
-		{Agent{ConfigMapName: "foobar", Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY"}},
+		{Agent{ConfigMapName: "foobar", Vault: Vault{Address: "http://localhost:8200", ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY", "VAULT_SKIP_VERIFY", "VAULT_ADDR"}},
+		{Agent{Vault: Vault{GoMaxProcs: "1"}}, []string{"VAULT_CONFIG", "GOMAXPROCS"}},
 	}
 
 	for _, tt := range tests {

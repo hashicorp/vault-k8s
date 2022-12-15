@@ -1,7 +1,92 @@
 ## Unreleased
 
+Improvements:
+* Building with Go 1.19.4
+* Update golang.org/x/net to v0.0.0-20220722155237-a158d28d115b
+
+Bugs:
+* Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)
+
+## 1.1.0 (November 17, 2022)
+
+Changes:
+* Building with go 1.19.3
+* Default to Vault v1.12.1
+
+Features:
+* Allow modifying agent and agent-init containers with json-patch [GH-399](https://github.com/hashicorp/vault-k8s/pull/399)
+* Support for setting [`exit_on_err`](https://github.com/hashicorp/vault/pull/17091) in the agent auto-auth method config [GH-400](https://github.com/hashicorp/vault-k8s/pull/400).
+
+Improvements:
+* Dependency updates:
+  * github.com/cenkalti/backoff/v4 v4.1.1 => v4.1.3
+  * github.com/hashicorp/go-hclog v1.0.0 => v1.3.1
+  * github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.1 => v0.1.2
+  * github.com/hashicorp/vault/sdk v0.2.1 => v0.6.1
+  * github.com/mitchellh/cli v1.1.4 => v1.1.5
+  * github.com/operator-framework/operator-lib v0.8.0 => v0.11.0
+  * github.com/prometheus/client_golang v1.11.1 => v1.12.1
+  * github.com/stretchr/testify v1.8.0 => v1.8.1
+  * k8s.io/api v0.22.2 => v0.25.4
+  * k8s.io/apimachinery v0.22.2 => v0.25.4
+  * k8s.io/client-go v0.22.2 => v0.25.4
+
+## 1.0.1 (October 24, 2022)
+
+Changes:
+* Default to Vault v1.12.0
+
+Bugs:
+* Default ephemeral storage resources to unset for injected containers [GH-386](https://github.com/hashicorp/vault-k8s/pull/386)
+
+Improvements:
+* Upgrade dependency `golang.org/x/net` from `v0.0.0-20220708220712-1185a9018129` to `v0.0.0-20221004154528-8021a29435af`
+* Upgrade dependency `golang.org/x/sys` from `v0.0.0-20220520151302-bc2c85ada10a` to `v0.0.0-20220728004956-3c1f35247d10`
+* Upgrade dependency `golang.org/x/text` from v0.3.7 to v0.3.8
+
+## 1.0.0 (September 6, 2022)
+
+Changes:
+* Upgrade Docker base image to alpine:3.16.2 [GH-382](https://github.com/hashicorp/vault-k8s/pull/382)
+* Default to Vault v1.11.3
+
+Features:
+* Support for setting [`disable_keep_alives`](https://github.com/hashicorp/vault/pull/16479) in the agent config [GH-376](https://github.com/hashicorp/vault-k8s/pull/376)
+* Added flags, envs and annotations to control ephemeral storage resources for injected containers [GH-360](https://github.com/hashicorp/vault-k8s/pull/360)
+
+## 0.17.0 (July 28, 2022)
+
+Features:
+* Support for setting [`disable_idle_connections`](https://github.com/hashicorp/vault/pull/15986) in the agent config [GH-366](https://github.com/hashicorp/vault-k8s/pull/366)
+
+Improvements:
+* Added support to configure default vault namespace on the agent config [GH-345](https://github.com/hashicorp/vault-k8s/pull/345)
+
+Bugs:
+* Properly return admission errors [GH-363](https://github.com/hashicorp/vault-k8s/pull/363)
+
+## 0.16.1 (May 25, 2022)
+
+Improvements:
+* ConfigMap with missing vault section should default to env vars [GH-353](https://github.com/hashicorp/vault-k8s/pull/353)
+* Wait for certificate before starting HTTP listener [GH-354](https://github.com/hashicorp/vault-k8s/pull/354)
+* Update example injector mutating webhook config to exclude agent pod [GH-351](https://github.com/hashicorp/vault-k8s/pull/351)
+
+Bugs:
+* Certificate watcher timer deadlock fix [GH-350](https://github.com/hashicorp/vault-k8s/pull/350)
+
+## 0.16.0 (May 11, 2022)
+
 Features:
 * Add agent-enable-quit annotation [GH-330](https://github.com/hashicorp/vault-k8s/pull/330)
+* Add go-max-procs annotation [GH-333](https://github.com/hashicorp/vault-k8s/pull/333)
+* Add min and max auth backoff annotations and environment variables [GH-341](https://github.com/hashicorp/vault-k8s/pull/341)
+
+Improvements:
+* Add a name to the service port [GH-262](https://github.com/hashicorp/vault-k8s/pull/262)
+
+Changes:
+* Only update webhook CA bundles when needed [GH-336](https://github.com/hashicorp/vault-k8s/pull/336)
 
 ## 0.15.0 (March 21, 2022)
 

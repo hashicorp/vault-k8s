@@ -19,14 +19,16 @@ const (
 // Config is the top level struct that composes a Vault Agent
 // configuration file.
 type Config struct {
-	AutoAuth       *AutoAuth       `json:"auto_auth"`
-	ExitAfterAuth  bool            `json:"exit_after_auth"`
-	PidFile        string          `json:"pid_file"`
-	Vault          *VaultConfig    `json:"vault"`
-	Templates      []*Template     `json:"template,omitempty"`
-	Listener       []*Listener     `json:"listener,omitempty"`
-	Cache          *Cache          `json:"cache,omitempty"`
-	TemplateConfig *TemplateConfig `json:"template_config,omitempty"`
+	AutoAuth               *AutoAuth       `json:"auto_auth"`
+	ExitAfterAuth          bool            `json:"exit_after_auth"`
+	PidFile                string          `json:"pid_file"`
+	Vault                  *VaultConfig    `json:"vault"`
+	Templates              []*Template     `json:"template,omitempty"`
+	Listener               []*Listener     `json:"listener,omitempty"`
+	Cache                  *Cache          `json:"cache,omitempty"`
+	TemplateConfig         *TemplateConfig `json:"template_config,omitempty"`
+	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
+	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -52,8 +54,11 @@ type Method struct {
 	MountPath  string                 `json:"mount_path,omitempty"`
 	WrapTTLRaw interface{}            `json:"wrap_ttl,omitempty"`
 	WrapTTL    time.Duration          `json:"-"`
+	MinBackoff string                 `json:"min_backoff,omitempty"`
+	MaxBackoff string                 `json:"max_backoff,omitempty"`
 	Namespace  string                 `json:"namespace,omitempty"`
 	Config     map[string]interface{} `json:"config,omitempty"`
+	ExitOnErr  bool                   `json:"exit_on_err,omitempty"`
 }
 
 // Sink defines a location to write the authenticated token
@@ -167,10 +172,13 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		AutoAuth: &AutoAuth{
 			Method: &Method{
-				Type:      a.Vault.AuthType,
-				Namespace: a.Vault.Namespace,
-				MountPath: a.Vault.AuthPath,
-				Config:    a.Vault.AuthConfig,
+				Type:       a.Vault.AuthType,
+				Namespace:  a.Vault.Namespace,
+				MountPath:  a.Vault.AuthPath,
+				Config:     a.Vault.AuthConfig,
+				MinBackoff: a.Vault.AuthMinBackoff,
+				MaxBackoff: a.Vault.AuthMaxBackoff,
+				ExitOnErr:  a.AutoAuthExitOnError,
 			},
 			Sinks: []*Sink{
 				{
@@ -186,6 +194,8 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			ExitOnRetryFailure:         a.VaultAgentTemplateConfig.ExitOnRetryFailure,
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
 		},
+		DisableIdleConnections: a.DisableIdleConnections,
+		DisableKeepAlives:      a.DisableKeepAlives,
 	}
 
 	if a.InjectToken {

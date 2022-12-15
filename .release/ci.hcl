@@ -3,8 +3,7 @@ schema = "1"
 project "vault-k8s" {
   team = "vault"
   slack {
-    // #vault-releases channel
-    notification_channel = "CRF6FFKEW"
+    notification_channel = "C03RXFX5M4L" // #feed-vault-releases
   }
   github {
     organization = "hashicorp"
@@ -109,6 +108,7 @@ event "promote-staging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "promote-staging"
+    config = "release-metadata.hcl"
   }
 
   notification {

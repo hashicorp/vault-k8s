@@ -1,16 +1,15 @@
 package agent
 
 import (
-	"strings"
-
-	"github.com/mattbaird/jsonpatch"
+	"github.com/evanphx/json-patch"
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // TODO this can be broken down into a common code and type switched.
 
-func addVolumes(target, volumes []corev1.Volume, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
+func addVolumes(target, volumes []corev1.Volume, base string) jsonpatch.Patch {
+	var result jsonpatch.Patch
 	first := len(target) == 0
 	var value interface{}
 	for _, v := range volumes {
@@ -23,17 +22,13 @@ func addVolumes(target, volumes []corev1.Volume, base string) []*jsonpatch.JsonP
 			path = path + "/-"
 		}
 
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
+		result = append(result, internal.AddOp(path, value))
 	}
 	return result
 }
 
-func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
+func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) jsonpatch.Patch {
+	var result jsonpatch.Patch
 	first := len(target) == 0
 	var value interface{}
 	for _, v := range mounts {
@@ -46,26 +41,17 @@ func addVolumeMounts(target, mounts []corev1.VolumeMount, base string) []*jsonpa
 			path = path + "/-"
 		}
 
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
+		result = append(result, internal.AddOp(path, value))
 	}
 	return result
 }
 
-func removeContainers(path string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
-
-	return append(result, &jsonpatch.JsonPatchOperation{
-		Operation: "remove",
-		Path:      path,
-	})
+func removeContainers(path string) jsonpatch.Patch {
+	return []jsonpatch.Operation{internal.RemoveOp(path)}
 }
 
-func addContainers(target, containers []corev1.Container, base string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
+func addContainers(target, containers []corev1.Container, base string) jsonpatch.Patch {
+	var result jsonpatch.Patch
 	first := len(target) == 0
 	var value interface{}
 	for _, container := range containers {
@@ -78,55 +64,27 @@ func addContainers(target, containers []corev1.Container, base string) []*jsonpa
 			path = path + "/-"
 		}
 
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      path,
-			Value:     value,
-		})
+		result = append(result, internal.AddOp(path, value))
 	}
 
 	return result
 }
 
-func updateAnnotations(target, annotations map[string]string) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
+func updateAnnotations(target, annotations map[string]string) jsonpatch.Patch {
+	var result jsonpatch.Patch
 	if len(target) == 0 {
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      "/metadata/annotations",
-			Value:     annotations,
-		})
-
-		return result
+		return []jsonpatch.Operation{internal.AddOp("/metadata/annotations", annotations)}
 	}
 
 	for key, value := range annotations {
-		result = append(result, &jsonpatch.JsonPatchOperation{
-			Operation: "add",
-			Path:      "/metadata/annotations/" + EscapeJSONPointer(key),
-			Value:     value,
-		})
+		result = append(result, internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(key), value))
 	}
 
 	return result
 }
 
-func updateShareProcessNamespace(shareProcessNamespace bool) []*jsonpatch.JsonPatchOperation {
-	var result []*jsonpatch.JsonPatchOperation
-	result = append(result, &jsonpatch.JsonPatchOperation{
-		Operation: "add",
-		Path:      "/spec/shareProcessNamespace",
-		Value:     shareProcessNamespace,
-	})
-
-	return result
-}
-
-// EscapeJSONPointer escapes a JSON string to be compliant with the
-// JavaScript Object Notation (JSON) Pointer syntax RFC:
-// https://tools.ietf.org/html/rfc6901.
-func EscapeJSONPointer(s string) string {
-	s = strings.Replace(s, "~", "~0", -1)
-	s = strings.Replace(s, "/", "~1", -1)
-	return s
+func updateShareProcessNamespace(shareProcessNamespace bool) jsonpatch.Patch {
+	return []jsonpatch.Operation{
+		internal.AddOp("/spec/shareProcessNamespace", shareProcessNamespace),
+	}
 }

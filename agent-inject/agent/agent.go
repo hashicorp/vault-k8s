@@ -7,15 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
-	"github.com/mattbaird/jsonpatch"
 	corev1 "k8s.io/api/core/v1"
 )
 
-// TODO swap out 'github.com/mattbaird/jsonpatch' for 'github.com/evanphx/json-patch'
-
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.9.4"
+	DefaultVaultImage                       = "hashicorp/vault:1.12.1"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
@@ -35,6 +33,7 @@ const (
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
+	DefaultAutoAuthEnableOnExit             = false
 )
 
 // Agent is the top level structure holding all the
@@ -68,11 +67,11 @@ type Agent struct {
 	// LimitsMem is the upper memory limit the sidecar container is allowed to consume.
 	LimitsMem string
 
+	// LimitsEphemeral is the upper ephemeral storage limit the sidecar container is allowed to consume.
+	LimitsEphemeral string
+
 	// Namespace is the Kubernetes namespace the request originated from.
 	Namespace string
-
-	// Patches are all the mutations we will make to the pod request.
-	Patches []*jsonpatch.JsonPatchOperation
 
 	// Pod is the original Kubernetes pod spec.
 	Pod *corev1.Pod
@@ -97,6 +96,9 @@ type Agent struct {
 
 	// RequestsMem is the requested minimum memory amount required when being scheduled to deploy.
 	RequestsMem string
+
+	// RequestsEphemeral is the requested minimum ephemeral storage amount required when being scheduled to deploy.
+	RequestsEphemeral string
 
 	// Secrets are all the templates, the path in Vault where the secret can be
 	// found, and the unique name of the secret which will be used for the filename.
@@ -167,6 +169,22 @@ type Agent struct {
 	// EnableQuit controls whether the quit endpoint is enabled on a localhost
 	// listener
 	EnableQuit bool
+
+	// DisableIdleConnections controls which Agent features have idle
+	// connections disabled
+	DisableIdleConnections []string
+
+	// DisableKeepAlives controls which Agent features have keep-alives disabled.
+	DisableKeepAlives []string
+
+	// JsonPatch can be used to modify the agent sidecar container before it is created.
+	JsonPatch string
+
+	// InitJsonPatch can be used to modify the agent-init container before it is created.
+	InitJsonPatch string
+
+	// AutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
+	AutoAuthExitOnError bool
 }
 
 type ServiceAccountTokenVolume struct {
@@ -248,6 +266,9 @@ type Vault struct {
 	// make a request to the Vault server.
 	ClientTimeout string
 
+	// GoMaxProcs sets the Vault Agent go max procs.
+	GoMaxProcs string
+
 	// LogLevel sets the Vault Agent log level.  Defaults to info.
 	LogLevel string
 
@@ -270,6 +291,12 @@ type Vault struct {
 	// TLSServerName is the name of the Vault server to use when validating Vault's
 	// TLS certificates.
 	TLSServerName string
+
+	// AuthMinBackoff is the minimum time to backoff if auto auth fails.
+	AuthMinBackoff string
+
+	// AuthMinBackoff is the maximum time to backoff if auto auth fails.
+	AuthMaxBackoff string
 }
 
 type VaultAgentCache struct {
@@ -301,7 +328,7 @@ type VaultAgentTemplateConfig struct {
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
-func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, error) {
+func New(pod *corev1.Pod) (*Agent, error) {
 	sa, err := serviceaccount(pod)
 	if err != nil {
 		return nil, err
@@ -318,18 +345,21 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		DefaultTemplate:           pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:                 pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:                 pod.Annotations[AnnotationAgentLimitsMem],
+		LimitsEphemeral:           pod.Annotations[AnnotationAgentLimitsEphemeral],
 		Namespace:                 pod.Annotations[AnnotationAgentRequestNamespace],
-		Patches:                   patches,
 		Pod:                       pod,
 		Containers:                []string{},
 		RequestsCPU:               pod.Annotations[AnnotationAgentRequestsCPU],
 		RequestsMem:               pod.Annotations[AnnotationAgentRequestsMem],
+		RequestsEphemeral:         pod.Annotations[AnnotationAgentRequestsEphemeral],
 		ServiceAccountTokenVolume: sa,
 		Status:                    pod.Annotations[AnnotationAgentStatus],
 		ExtraSecret:               pod.Annotations[AnnotationAgentExtraSecret],
 		CopyVolumeMounts:          pod.Annotations[AnnotationAgentCopyVolumeMounts],
 		AwsIamTokenAccountName:    iamName,
 		AwsIamTokenAccountPath:    iamPath,
+		JsonPatch:                 pod.Annotations[AnnotationAgentJsonPatch],
+		InitJsonPatch:             pod.Annotations[AnnotationAgentInitJsonPatch],
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
@@ -341,12 +371,15 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 			ClientKey:        pod.Annotations[AnnotationVaultClientKey],
 			ClientMaxRetries: pod.Annotations[AnnotationVaultClientMaxRetries],
 			ClientTimeout:    pod.Annotations[AnnotationVaultClientTimeout],
+			GoMaxProcs:       pod.Annotations[AnnotationVaultGoMaxProcs],
 			LogLevel:         pod.Annotations[AnnotationVaultLogLevel],
 			LogFormat:        pod.Annotations[AnnotationVaultLogFormat],
 			Namespace:        pod.Annotations[AnnotationVaultNamespace],
 			Role:             pod.Annotations[AnnotationVaultRole],
 			TLSSecret:        pod.Annotations[AnnotationVaultTLSSecret],
 			TLSServerName:    pod.Annotations[AnnotationVaultTLSServerName],
+			AuthMinBackoff:   pod.Annotations[AnnotationAgentAuthMinBackoff],
+			AuthMaxBackoff:   pod.Annotations[AnnotationAgentAuthMaxBackoff],
 		},
 	}
 
@@ -460,6 +493,19 @@ func New(pod *corev1.Pod, patches []*jsonpatch.JsonPatchOperation) (*Agent, erro
 		return nil, err
 	}
 
+	if pod.Annotations[AnnotationAgentDisableIdleConnections] != "" {
+		agent.DisableIdleConnections = strings.Split(pod.Annotations[AnnotationAgentDisableIdleConnections], ",")
+	}
+
+	if pod.Annotations[AnnotationAgentDisableKeepAlives] != "" {
+		agent.DisableKeepAlives = strings.Split(pod.Annotations[AnnotationAgentDisableKeepAlives], ",")
+	}
+
+	agent.AutoAuthExitOnError, err = agent.getAutoAuthExitOnError()
+	if err != nil {
+		return nil, err
+	}
+
 	return agent, nil
 }
 
@@ -499,24 +545,23 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 // Patch creates the necessary pod patches to inject the Vault Agent
 // containers.
 func (a *Agent) Patch() ([]byte, error) {
-	var patches []byte
-
+	var patches jsonpatch.Patch
 	// Add a volume for the token sink
-	a.Patches = append(a.Patches, addVolumes(
+	patches = append(patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		a.ContainerTokenVolume(),
 		"/spec/volumes")...)
 
 	// Add our volume that will be shared by the containers
 	// for passing data in the pod.
-	a.Patches = append(a.Patches, addVolumes(
+	patches = append(patches, addVolumes(
 		a.Pod.Spec.Volumes,
 		a.ContainerVolumes(),
 		"/spec/volumes")...)
 
 	// Add ConfigMap if one was provided
 	if a.ConfigMapName != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerConfigMapVolume()},
 			"/spec/volumes")...)
@@ -524,7 +569,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add ExtraSecret if one was provided
 	if a.ExtraSecret != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerExtraSecretVolume()},
 			"/spec/volumes")...)
@@ -532,7 +577,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add TLS Secret if one was provided
 	if a.Vault.TLSSecret != "" {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.ContainerTLSSecretVolume()},
 			"/spec/volumes")...)
@@ -540,7 +585,7 @@ func (a *Agent) Patch() ([]byte, error) {
 
 	// Add persistent cache volume if configured
 	if a.VaultAgentCache.Persist {
-		a.Patches = append(a.Patches, addVolumes(
+		patches = append(patches, addVolumes(
 			a.Pod.Spec.Volumes,
 			[]corev1.Volume{a.cacheVolume()},
 			"/spec/volumes")...)
@@ -549,7 +594,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	// Add Volume Mounts
 	for i, container := range a.Pod.Spec.Containers {
 		if strutil.StrListContains(a.Containers, container.Name) {
-			a.Patches = append(a.Patches, addVolumeMounts(
+			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
@@ -560,7 +605,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	if a.PrePopulate {
 		container, err := a.ContainerInitSidecar()
 		if err != nil {
-			return patches, err
+			return nil, err
 		}
 
 		containers := a.Pod.Spec.InitContainers
@@ -573,18 +618,18 @@ func (a *Agent) Patch() ([]byte, error) {
 
 			// Remove all init containers from the document so we can re-add them after the agent.
 			if len(a.Pod.Spec.InitContainers) != 0 {
-				a.Patches = append(a.Patches, removeContainers("/spec/initContainers")...)
+				patches = append(patches, removeContainers("/spec/initContainers")...)
 			}
 
 			containers = []corev1.Container{container}
 			containers = append(containers, a.Pod.Spec.InitContainers...)
 
-			a.Patches = append(a.Patches, addContainers(
+			patches = append(patches, addContainers(
 				[]corev1.Container{},
 				containers,
 				"/spec/initContainers")...)
 		} else {
-			a.Patches = append(a.Patches, addContainers(
+			patches = append(patches, addContainers(
 				a.Pod.Spec.InitContainers,
 				[]corev1.Container{container},
 				"/spec/initContainers")...)
@@ -595,7 +640,7 @@ func (a *Agent) Patch() ([]byte, error) {
 			if container.Name == "vault-agent-init" {
 				continue
 			}
-			a.Patches = append(a.Patches, addVolumeMounts(
+			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
@@ -610,28 +655,24 @@ func (a *Agent) Patch() ([]byte, error) {
 	if !a.PrePopulateOnly {
 		container, err := a.ContainerSidecar()
 		if err != nil {
-			return patches, err
+			return nil, err
 		}
-		a.Patches = append(a.Patches, addContainers(
+		patches = append(patches, addContainers(
 			a.Pod.Spec.Containers,
 			[]corev1.Container{container},
 			"/spec/containers")...)
 	}
 
 	// Add annotations so that we know we're injected
-	a.Patches = append(a.Patches, updateAnnotations(
+	patches = append(patches, updateAnnotations(
 		a.Pod.Annotations,
 		map[string]string{AnnotationAgentStatus: "injected"})...)
 
 	// Generate the patch
-	if len(a.Patches) > 0 {
-		var err error
-		patches, err = json.Marshal(a.Patches)
-		if err != nil {
-			return patches, err
-		}
+	if len(patches) > 0 {
+		return json.Marshal(patches)
 	}
-	return patches, nil
+	return nil, nil
 }
 
 // Validate the instance of Agent to ensure we have everything needed

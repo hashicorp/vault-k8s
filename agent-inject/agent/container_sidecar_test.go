@@ -1,16 +1,19 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"testing"
 
+	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
-	"github.com/mattbaird/jsonpatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 )
 
 func TestContainerSidecarVolume(t *testing.T) {
@@ -39,7 +42,6 @@ func TestContainerSidecarVolume(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
 		Address:            "http://foobar:1234",
@@ -64,7 +66,7 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -113,7 +115,6 @@ func TestContainerSidecarVolume(t *testing.T) {
 }
 
 func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
-
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
 		// this will have different mount path
@@ -133,7 +134,6 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 	}
 
 	pod := testPodIRSA(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -159,7 +159,7 @@ func TestContainerSidecarVolumeWithIRSA(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	require.NoError(t, err)
 	assert.Equal(t, "aws-iam-token", agent.AwsIamTokenAccountName)
 	assert.Equal(t, "/var/run/secrets/eks.amazonaws.com/serviceaccount", agent.AwsIamTokenAccountPath)
@@ -210,7 +210,6 @@ func TestContainerSidecar(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -236,7 +235,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -295,12 +294,20 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("resource memory limit value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Limits.Memory().String())
 	}
 
+	if value, ok := container.Resources.Limits.StorageEphemeral().AsInt64(); !ok || value != 0 {
+		t.Errorf("resource ephemeral storage limit value is wrong, should have been unset, got %s", container.Resources.Limits.StorageEphemeral().String())
+	}
+
 	if container.Resources.Requests.Cpu().String() != DefaultResourceRequestCPU {
 		t.Errorf("resource cpu requests value wrong, should have been %s, got %s", DefaultResourceRequestCPU, container.Resources.Requests.Cpu().String())
 	}
 
 	if container.Resources.Requests.Memory().String() != DefaultResourceRequestMem {
-		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceLimitMem, container.Resources.Requests.Memory().String())
+		t.Errorf("resource memory requests value wrong, should have been %s, got %s", DefaultResourceRequestMem, container.Resources.Requests.Memory().String())
+	}
+
+	if value, ok := container.Resources.Requests.StorageEphemeral().AsInt64(); !ok || value != 0 {
+		t.Errorf("resource ephemeral storage requests value is wrong, should have been unset, got %s", container.Resources.Requests.Memory().String())
 	}
 
 	for _, volumeMount := range container.VolumeMounts {
@@ -342,7 +349,6 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 			}
 
 			pod := testPod(annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := AgentConfig{
 				Image:              "foobar-image",
@@ -368,7 +374,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -410,7 +416,6 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 	}
 
 	pod := testPod(annotations)
-	var patches []*jsonpatch.JsonPatchOperation
 
 	agentConfig := AgentConfig{
 		Image:              "foobar-image",
@@ -436,7 +441,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod, patches)
+	agent, err := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -446,7 +451,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 2
+	expectedEnvs := 9
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -465,176 +470,262 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 		agent              Agent
 		expectedLimitCPU   string
 		expectedLimitMem   string
+		expectedLimitEph   string
 		expectedRequestCPU string
 		expectedRequestMem string
+		expectedRequestEph string
 		expectedErr        bool
 	}{
 		{
 			name: "valid M",
 			agent: Agent{
-				LimitsCPU:   "500M",
-				LimitsMem:   "128M",
-				RequestsCPU: "250M",
-				RequestsMem: "64M",
+				LimitsCPU:         "500M",
+				LimitsMem:         "128M",
+				LimitsEphemeral:   "128M",
+				RequestsCPU:       "250M",
+				RequestsMem:       "64M",
+				RequestsEphemeral: "64M",
 			},
 			expectedLimitCPU:   "500M",
 			expectedLimitMem:   "128M",
+			expectedLimitEph:   "128M",
 			expectedRequestCPU: "250M",
 			expectedRequestMem: "64M",
+			expectedRequestEph: "64M",
 			expectedErr:        false,
 		},
 		{
 			name: "valid G",
 			agent: Agent{
-				LimitsCPU:   "500G",
-				LimitsMem:   "128G",
-				RequestsCPU: "250G",
-				RequestsMem: "64G",
+				LimitsCPU:         "500G",
+				LimitsMem:         "128G",
+				LimitsEphemeral:   "128G",
+				RequestsCPU:       "250G",
+				RequestsMem:       "64G",
+				RequestsEphemeral: "64G",
 			},
 			expectedLimitCPU:   "500G",
 			expectedLimitMem:   "128G",
+			expectedLimitEph:   "128G",
 			expectedRequestCPU: "250G",
 			expectedRequestMem: "64G",
+			expectedRequestEph: "64G",
 			expectedErr:        false,
 		},
 		{
 			name: "valid Mi",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "128Mi",
-				RequestsCPU: "250Mi",
-				RequestsMem: "64Mi",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "128Mi",
+				LimitsEphemeral:   "128Mi",
+				RequestsCPU:       "250Mi",
+				RequestsMem:       "64Mi",
+				RequestsEphemeral: "64Mi",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128Mi",
+			expectedLimitEph:   "128Mi",
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64Mi",
+			expectedRequestEph: "64Mi",
 			expectedErr:        false,
 		},
 		{
 			name: "valid Gi",
 			agent: Agent{
-				LimitsCPU:   "500Gi",
-				LimitsMem:   "128Gi",
-				RequestsCPU: "250Gi",
-				RequestsMem: "64Gi",
+				LimitsCPU:         "500Gi",
+				LimitsMem:         "128Gi",
+				LimitsEphemeral:   "128Gi",
+				RequestsCPU:       "250Gi",
+				RequestsMem:       "64Gi",
+				RequestsEphemeral: "64Gi",
 			},
 			expectedLimitCPU:   "500Gi",
 			expectedLimitMem:   "128Gi",
+			expectedLimitEph:   "128Gi",
 			expectedRequestCPU: "250Gi",
 			expectedRequestMem: "64Gi",
+			expectedRequestEph: "64Gi",
 			expectedErr:        false,
 		},
 		{
 			name: "valid none",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid 0",
 			agent: Agent{
-				LimitsCPU:   "0",
-				LimitsMem:   "0",
-				RequestsCPU: "0",
-				RequestsMem: "0",
+				LimitsCPU:         "0",
+				LimitsMem:         "0",
+				LimitsEphemeral:   "0",
+				RequestsCPU:       "0",
+				RequestsMem:       "0",
+				RequestsEphemeral: "0",
 			},
 			expectedLimitCPU:   "0",
 			expectedLimitMem:   "0",
+			expectedLimitEph:   "0",
 			expectedRequestCPU: "0",
 			expectedRequestMem: "0",
+			expectedRequestEph: "0",
 			expectedErr:        false,
 		},
 		{
 			name: "valid no requests",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "128m",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "128m",
+				LimitsEphemeral:   "128m",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   "128m",
+			expectedLimitEph:   "128m",
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid no limits",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "250Mi",
-				RequestsMem: "64m",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "250Mi",
+				RequestsMem:       "64m",
+				RequestsEphemeral: "64m",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: "250Mi",
 			expectedRequestMem: "64m",
+			expectedRequestEph: "64m",
 			expectedErr:        false,
 		},
 		{
 			name: "valid just cpu limit",
 			agent: Agent{
-				LimitsCPU:   "500Mi",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "500Mi",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   "500Mi",
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just mem limit",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "128m",
-				RequestsCPU: "",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "128m",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   "128m",
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid just eph storage limit",
+			agent: Agent{
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "128m",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
+			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedLimitEph:   "128m",
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just cpu request",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "500Mi",
-				RequestsMem: "",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "500Mi",
+				RequestsMem:       "",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: "500Mi",
 			expectedRequestMem: absent,
+			expectedRequestEph: absent,
 			expectedErr:        false,
 		},
 		{
 			name: "valid just mem request",
 			agent: Agent{
-				LimitsCPU:   "",
-				LimitsMem:   "",
-				RequestsCPU: "",
-				RequestsMem: "128m",
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "128m",
+				RequestsEphemeral: "",
 			},
 			expectedLimitCPU:   absent,
 			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
 			expectedRequestCPU: absent,
 			expectedRequestMem: "128m",
+			expectedRequestEph: absent,
+			expectedErr:        false,
+		},
+		{
+			name: "valid just eph storage request",
+			agent: Agent{
+				LimitsCPU:         "",
+				LimitsMem:         "",
+				LimitsEphemeral:   "",
+				RequestsCPU:       "",
+				RequestsMem:       "",
+				RequestsEphemeral: "128m",
+			},
+			expectedLimitCPU:   absent,
+			expectedLimitMem:   absent,
+			expectedLimitEph:   absent,
+			expectedRequestCPU: absent,
+			expectedRequestMem: absent,
+			expectedRequestEph: "128m",
 			expectedErr:        false,
 		},
 		{
@@ -735,6 +826,13 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 					t.Errorf("expected mem limit mismatch: wanted %s, got %s", tt.expectedLimitMem, mem.String())
 				}
 
+				eph, exists := resources.Limits["ephemeral-storage"]
+				if tt.expectedLimitEph == absent && exists {
+					t.Errorf("expected eph storage limit to not exist")
+				} else if tt.expectedLimitEph != absent && eph.String() != tt.expectedLimitEph {
+					t.Errorf("expected eph storage limit mismatch: wanted %s, got %s", tt.expectedLimitEph, eph.String())
+				}
+
 				cpu, exists = resources.Requests["cpu"]
 				if tt.expectedRequestCPU == absent && exists {
 					t.Errorf("expected cpu request to not exist")
@@ -747,6 +845,13 @@ func TestContainerSidecarCustomResources(t *testing.T) {
 					t.Errorf("expected mem limit to not exist")
 				} else if tt.expectedRequestMem != absent && mem.String() != tt.expectedRequestMem {
 					t.Errorf("expected mem request mismatch: wanted %s, got %s", tt.expectedRequestMem, mem.String())
+				}
+
+				eph, exists = resources.Requests["ephemeral-storage"]
+				if tt.expectedRequestEph == absent && exists {
+					t.Errorf("expected eph storage limit to not exist")
+				} else if tt.expectedRequestEph != absent && eph.String() != tt.expectedRequestEph {
+					t.Errorf("expected eph storage request mismatch: wanted %s, got %s", tt.expectedRequestMem, eph.String())
 				}
 			}
 		})
@@ -1035,14 +1140,13 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 			tt.annotations[AnnotationVaultRole] = "foobar"
 			pod := testPod(tt.annotations)
 			pod.Spec.Containers[0].SecurityContext = tt.appSCC
-			var patches []*jsonpatch.JsonPatchOperation
 
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -1065,21 +1169,17 @@ func TestContainerCache(t *testing.T) {
 			ReadOnly:  false,
 		},
 	}
-	cacheVolumePatch := []*jsonpatch.JsonPatchOperation{
-		{
-			Operation: "add",
-			Path:      "/spec/volumes",
-			Value: []v1.Volume{
-				{
-					Name: "vault-agent-cache",
-					VolumeSource: v1.VolumeSource{
-						EmptyDir: &v1.EmptyDirVolumeSource{
-							Medium: "Memory",
-						},
+	cacheVolumePatch := []jsonpatch.Operation{
+		internal.AddOp("/spec/volumes", []v1.Volume{
+			{
+				Name: "vault-agent-cache",
+				VolumeSource: v1.VolumeSource{
+					EmptyDir: &v1.EmptyDirVolumeSource{
+						Medium: "Memory",
 					},
 				},
 			},
-		},
+		}),
 	}
 
 	tests := []struct {
@@ -1125,8 +1225,6 @@ func TestContainerCache(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
-
 			agentConfig := AgentConfig{
 				Image:              "foobar-image",
 				Address:            "http://foobar:1234",
@@ -1149,7 +1247,7 @@ func TestContainerCache(t *testing.T) {
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			require.NoError(t, err)
 			err = agent.Validate()
 			require.NoError(t, err)
@@ -1160,18 +1258,219 @@ func TestContainerCache(t *testing.T) {
 			sidecar, err := agent.ContainerSidecar()
 			require.NoError(t, err)
 
-			_, err = agent.Patch()
+			patch, err := agent.Patch()
 			require.NoError(t, err)
+			var patches jsonpatch.Patch
+			require.NoError(t, json.Unmarshal(patch, &patches))
 
 			if tt.expectCacheVolAndMount {
 				assert.Subset(t, init.VolumeMounts, cacheMount)
 				assert.Subset(t, sidecar.VolumeMounts, cacheMount)
-				assert.Subset(t, agent.Patches, cacheVolumePatch)
+				assert.Subset(t, patches, cacheVolumePatch)
 			} else {
 				assert.NotSubset(t, init.VolumeMounts, cacheMount)
 				assert.NotSubset(t, sidecar.VolumeMounts, cacheMount)
-				assert.NotSubset(t, agent.Patches, cacheVolumePatch)
+				assert.NotSubset(t, patches, cacheVolumePatch)
 			}
 		})
 	}
+}
+
+func TestAgentJsonPatch(t *testing.T) {
+	baseContainer := corev1.Container{
+		Name:    "vault-agent",
+		Image:   "foobar-image",
+		Command: []string{"/bin/sh", "-ec"},
+		Args:    []string{`echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json`},
+		Env: []v1.EnvVar{
+			{Name: "VAULT_LOG_LEVEL", Value: "info"},
+			{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+			{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6ZmFsc2UsInBpZF9maWxlIjoiL2hvbWUvdmF1bHQvLnBpZCIsInZhdWx0Ijp7ImFkZHJlc3MiOiJodHRwOi8vZm9vYmFyOjEyMzQifSwidGVtcGxhdGVfY29uZmlnIjp7ImV4aXRfb25fcmV0cnlfZmFpbHVyZSI6dHJ1ZX19"},
+		},
+		Resources: v1.ResourceRequirements{
+			Limits:   v1.ResourceList{"cpu": resource.MustParse("500m"), "memory": resource.MustParse("128Mi")},
+			Requests: v1.ResourceList{"cpu": resource.MustParse("250m"), "memory": resource.MustParse("64Mi")},
+		},
+		VolumeMounts: []v1.VolumeMount{
+			{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
+			{Name: "home-sidecar", MountPath: "/home/vault"},
+			{Name: "vault-secrets", MountPath: "/vault/secrets"},
+		},
+		Lifecycle: &v1.Lifecycle{
+			PreStop: &v1.LifecycleHandler{
+				Exec: &v1.ExecAction{
+					Command: []string{"/bin/sh", "-c", "/bin/sleep 5 && /bin/vault token revoke -address=http://foobar:1234 -self"},
+				},
+			},
+		},
+		SecurityContext: &v1.SecurityContext{
+			Capabilities: &v1.Capabilities{
+				Drop: []v1.Capability{"ALL"},
+			},
+			RunAsGroup:               optional[int64](100),
+			RunAsUser:                optional[int64](1000),
+			RunAsNonRoot:             optional[bool](true),
+			ReadOnlyRootFilesystem:   optional[bool](true),
+			AllowPrivilegeEscalation: optional[bool](false),
+		},
+	}
+
+	baseInitContainer := baseContainer
+	baseInitContainer.Name = "vault-agent-init"
+	baseInitContainer.Env = []v1.EnvVar{
+		{Name: "VAULT_LOG_LEVEL", Value: "info"},
+		{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+		{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
+	}
+	baseInitContainer.VolumeMounts = []v1.VolumeMount{
+		{Name: "home-init", MountPath: "/home/vault"},
+		{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
+		{Name: "vault-secrets", MountPath: "/vault/secrets"},
+	}
+	baseInitContainer.Lifecycle = nil
+
+	differentName := baseContainer
+	differentName.Name = "different-name"
+
+	differentNameInit := baseInitContainer
+	differentNameInit.Name = "different-name-init"
+
+	tests := []struct {
+		name          string
+		jsonPatch     string
+		jsonInitPatch string
+		expectedValue corev1.Container
+		init          bool
+		expectErr     bool
+	}{
+		{
+			"null patch",
+			"null",
+			"null",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"null patch (init)",
+			"null",
+			"null",
+			baseInitContainer,
+			true,
+			false,
+		},
+		{
+			"empty patch",
+			"",
+			"",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"empty list",
+			"[]",
+			"[]",
+			baseContainer,
+			false,
+			false,
+		},
+		{
+			"invalid JSON",
+			`abc`,
+			`abc`,
+			baseContainer,
+			false,
+			true,
+		},
+		{
+			"invalid operation",
+			`[{"op": "invalid"}]`,
+			`[{"op": "invalid"}]`,
+			baseContainer,
+			false,
+			true,
+		},
+		{
+			"set different name",
+			`[{"op": "replace", "path": "/name", "value": "different-name"}]`,
+			"",
+			differentName,
+			false,
+			false,
+		},
+		{
+			"set different name (init)",
+			"",
+			`[{"op": "replace", "path": "/name", "value": "different-name-init"}]`,
+			differentNameInit,
+			true,
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(map[string]string{
+				AnnotationVaultRole:          "role",
+				AnnotationAgentJsonPatch:     tt.jsonPatch,
+				AnnotationAgentInitJsonPatch: tt.jsonInitPatch,
+			})
+			agentConfig := AgentConfig{
+				Image:              "foobar-image",
+				Address:            "http://foobar:1234",
+				AuthType:           DefaultVaultAuthType,
+				AuthPath:           "test",
+				Namespace:          "test",
+				RevokeOnShutdown:   true,
+				UserID:             "1000",
+				GroupID:            "100",
+				SameID:             DefaultAgentRunAsSameUser,
+				SetSecurityContext: DefaultAgentSetSecurityContext,
+				DefaultTemplate:    "map",
+				ResourceRequestCPU: DefaultResourceRequestCPU,
+				ResourceRequestMem: DefaultResourceRequestMem,
+				ResourceLimitCPU:   DefaultResourceLimitCPU,
+				ResourceLimitMem:   DefaultResourceLimitMem,
+				ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+			}
+
+			err := Init(pod, agentConfig)
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+			err = agent.Validate()
+			if tt.expectErr && err != nil {
+				return
+			}
+			require.NoError(t, err)
+
+			var sidecar corev1.Container
+			if tt.init {
+				sidecar, err = agent.ContainerInitSidecar()
+			} else {
+				sidecar, err = agent.ContainerSidecar()
+			}
+
+			if tt.expectErr && err != nil {
+				// ok
+			} else if tt.expectErr && err == nil {
+				t.Error("Expected an error but got none")
+			} else if err != nil {
+				t.Error(err)
+			} else {
+				require.Equal(t, tt.expectedValue, sidecar)
+			}
+		})
+	}
+}
+
+func optional[T any](x T) *T {
+	return &x
 }

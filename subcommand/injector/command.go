@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/base64"
@@ -15,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
@@ -30,6 +32,7 @@ import (
 	"k8s.io/client-go/informers"
 	informerv1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/listers/admissionregistration/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -51,6 +54,7 @@ type Command struct {
 	flagVaultImage                 string // Name of the Vault Image to use
 	flagVaultAuthType              string // Type of Vault Auth Method to use
 	flagVaultAuthPath              string // Mount path of the Vault Auth Method
+	flagVaultNamespace             string // Vault enterprise namespace
 	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser                  string // User (uid) to run Vault agent as
 	flagRunAsGroup                 string // Group (gid) to run Vault agent as
@@ -61,10 +65,16 @@ type Command struct {
 	flagDefaultTemplate            string // Toggles which default template to use
 	flagResourceRequestCPU         string // Set CPU request in the injected containers
 	flagResourceRequestMem         string // Set Memory request in the injected containers
+	flagResourceRequestEphemeral   string // Set Ephemeral Storage request in the injected containers
 	flagResourceLimitCPU           string // Set CPU limit in the injected containers
 	flagResourceLimitMem           string // Set Memory limit in the injected containers
+	flagResourceLimitEphemeral     string // Set Ephemeral storage limit in the injected containers
 	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
 	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
+	flagAuthMinBackoff             string // Auth min backoff on failure
+	flagAuthMaxBackoff             string // Auth min backoff on failure
+	flagDisableIdleConnections     string // Idle connections control
+	flagDisableKeepAlives          string // Keep-alives control
 
 	flagSet *flag.FlagSet
 
@@ -171,15 +181,17 @@ func (c *Command) Run(args []string) int {
 	// Create the certificate notifier so we can update for certificates,
 	// then start all the background routines for updating certificates.
 	certCh := make(chan cert.Bundle)
-	certNotify := cert.NewNotify(ctx, certCh, certSource, logger.Named("notify"))
+	certReady := make(chan bool)
+	certNotify := cert.NewNotify(ctx, certCh, certReady, certSource, logger.Named("notify"))
 	go certNotify.Run()
-	go c.certWatcher(ctx, certCh, clientset, leaderElector, adminAPIVersion, logger.Named("certwatcher"))
+	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:               c.flagVaultService,
 		VaultAuthType:              c.flagVaultAuthType,
 		VaultAuthPath:              c.flagVaultAuthPath,
+		VaultNamespace:             c.flagVaultNamespace,
 		ProxyAddress:               c.flagProxyAddress,
 		ImageVault:                 c.flagVaultImage,
 		Clientset:                  clientset,
@@ -193,10 +205,16 @@ func (c *Command) Run(args []string) int {
 		DefaultTemplate:            c.flagDefaultTemplate,
 		ResourceRequestCPU:         c.flagResourceRequestCPU,
 		ResourceRequestMem:         c.flagResourceRequestMem,
+		ResourceRequestEphemeral:   c.flagResourceRequestEphemeral,
 		ResourceLimitCPU:           c.flagResourceLimitCPU,
 		ResourceLimitMem:           c.flagResourceLimitMem,
+		ResourceLimitEphemeral:     c.flagResourceLimitEphemeral,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
+		AuthMinBackoff:             c.flagAuthMinBackoff,
+		AuthMaxBackoff:             c.flagAuthMaxBackoff,
+		DisableIdleConnections:     c.flagDisableIdleConnections,
+		DisableKeepAlives:          c.flagDisableKeepAlives,
 	}
 
 	mux := http.NewServeMux()
@@ -215,6 +233,18 @@ func (c *Command) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Failed to configure TLS: %s", err))
 		return 1
 	}
+
+	// if we don't have a certificate given to us, wait for cert to generate to prevent
+	// TLS errors on startup
+	if c.flagCertFile == "" && c.flagKeyFile == "" {
+		<-certReady
+	} else {
+		// otherwise drain async just to clean up the sending goroutine
+		go func() {
+			<-certReady
+		}()
+	}
+
 	server := &http.Server{
 		Addr:      c.flagListen,
 		Handler:   handler,
@@ -316,82 +346,149 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
-func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, adminAPIVersion string, log hclog.Logger) {
+func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, log hclog.Logger) {
 	var bundle cert.Bundle
+	webhooksCache, webhooksWatcher, err := watchWebhooks(ctx, clientset)
+	if err != nil {
+		log.Error("Error watching webhooks", "error", err)
+		panic(err)
+	}
+
+	defaultLoopTime := 1 * time.Hour // update after this amount of time even if nothing has happened
+	timer := time.NewTimer(defaultLoopTime)
+	expBackoff := backoff.NewExponentialBackOff()
 
 	for {
 		select {
 		case bundle = <-ch:
-			log.Info("Updated certificate bundle received. Updating certs...")
 			// Bundle is updated, set it up
+			log.Info("Updated certificate bundle received. Updating certs...")
 
-		case <-time.After(1 * time.Second):
-			// This forces the mutating webhook config to remain updated
-			// fairly quickly. This is a jank way to do this and we should
-			// look to improve it in the future. Since we use Patch requests
-			// it is pretty cheap to do, though.
+		case <-webhooksWatcher:
+			// Webhooks changed, make sure the CA bundle is up-to-date.
+			log.Info("Webhooks changed. Updating certs...")
 
 		case <-ctx.Done():
 			// Quit
 			return
+
+		case <-timer.C:
+			// we are told to retry or periodically update
 		}
 
-		crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
-		if err != nil {
-			log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
-			continue
-		}
-
-		isLeader := true
-		if c.flagUseLeaderElector {
-			// Only the leader should do the caBundle patching in k8s API
-			var err error
-			isLeader, err = leaderElector.IsLeader()
-			if err != nil {
-				log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
-				continue
+		// clear the timer
+		if !timer.Stop() {
+			// non-blocking drain
+			select {
+			case <-timer.C:
+			default:
 			}
 		}
 
-		// If there is a MWC name set, then update the CA bundle.
-		if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
-			// The CA Bundle value must be base64 encoded
-			value := base64.StdEncoding.EncodeToString(bundle.CACert)
-			payload := []byte(fmt.Sprintf(
-				`[{
+		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
+		if err != nil {
+			// retry after a delay
+			timer.Reset(expBackoff.NextBackOff())
+		} else {
+			expBackoff.Reset()
+			timer.Reset(defaultLoopTime)
+		}
+	}
+}
+
+func (c *Command) fetchWebhook(ctx context.Context, clientset *kubernetes.Clientset) (*adminv1.MutatingWebhookConfiguration, error) {
+	return clientset.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(ctx, c.flagAutoName, metav1.GetOptions{})
+}
+
+func (c *Command) updateCertificate(ctx context.Context, clientset *kubernetes.Clientset, bundle cert.Bundle, webhooksCache v1.MutatingWebhookConfigurationLister, leaderElector leader.Elector, log hclog.Logger) error {
+	crt, err := tls.X509KeyPair(bundle.Cert, bundle.Key)
+	if err != nil {
+		log.Warn(fmt.Sprintf("Could not load TLS keypair: %s. Trying again...", err))
+		return err
+	}
+
+	isLeader := true
+	if c.flagUseLeaderElector {
+		// Only the leader should do the caBundle patching in k8s API
+		var err error
+		isLeader, err = leaderElector.IsLeader()
+		if err != nil {
+			log.Warn(fmt.Sprintf("Could not check leader: %s. Trying again...", err))
+			return err
+		}
+	}
+
+	// If there is an MWC name set, then update the CA bundle.
+	if isLeader && c.flagAutoName != "" && len(bundle.CACert) > 0 {
+		config, err := webhooksCache.Get(c.flagAutoName)
+		if err != nil {
+			log.Warn("Getting webhook config from cache failed", "err", err)
+			config, err = c.fetchWebhook(ctx, clientset)
+			if err != nil {
+				log.Warn("Fetching webhook config directly failed; will try again", "err", err)
+				return err
+			}
+		}
+
+		// Check the current bundles and only update if necessary.
+		if len(config.Webhooks) == 0 || !bytes.Equal(config.Webhooks[0].ClientConfig.CABundle, bundle.CACert) {
+			err = c.updateCABundle(ctx, &bundle, clientset)
+			if err != nil {
+				c.UI.Error(fmt.Sprintf(
+					"Error updating MutatingWebhookConfiguration: %s",
+					err))
+				return err
+			}
+		}
+	}
+
+	// Update the certificate
+	c.cert.Store(&crt)
+	return nil
+}
+
+func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (v1.MutatingWebhookConfigurationLister, <-chan interface{}, error) {
+	factory := informers.NewSharedInformerFactoryWithOptions(clientset, 0)
+	webhooks := factory.Admissionregistration().V1().MutatingWebhookConfigurations()
+	go webhooks.Informer().Run(ctx.Done())
+	if !cache.WaitForCacheSync(ctx.Done(), webhooks.Informer().HasSynced) {
+		return nil, nil, fmt.Errorf("timeout syncing Webhooks informer")
+	}
+	notifyCh := make(webhookWatcher)
+	webhooks.Informer().AddEventHandler(notifyCh)
+	return webhooks.Lister(), notifyCh, nil
+}
+
+type webhookWatcher chan interface{}
+
+func (w webhookWatcher) OnAdd(_ interface{}) {
+	w <- nil
+}
+
+func (w webhookWatcher) OnUpdate(_, _ interface{}) {
+	w <- nil
+}
+
+func (w webhookWatcher) OnDelete(_ interface{}) {
+	w <- nil
+}
+
+// updateCABundle updates the current CA bundle for the first mutating webhook
+func (c *Command) updateCABundle(ctx context.Context, bundle *cert.Bundle, clientset *kubernetes.Clientset) error {
+	// The CA Bundle value must be base64 encoded
+	value := base64.StdEncoding.EncodeToString(bundle.CACert)
+	payload := []byte(fmt.Sprintf(
+		`[{
 					"op": "add",
 					"path": "/webhooks/0/clientConfig/caBundle",
 					"value": %q
 				}]`, value))
 
-			var err error
-			switch adminAPIVersion {
-			// AdmissionregistrationV1 is valid in k8s 1.16+
-			case "v1":
-				_, err = clientset.AdmissionregistrationV1().
-					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
-						metav1.PatchOptions{})
-			// AdmissionregistrationV1beta1 is present in k8s 1.9 - 1.19
-			case "v1beta1":
-				_, err = clientset.AdmissionregistrationV1beta1().
-					MutatingWebhookConfigurations().
-					Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
-						metav1.PatchOptions{})
-			default:
-				err = fmt.Errorf("unknown Admissionregistration API version %q", adminAPIVersion)
-			}
-			if err != nil {
-				c.UI.Error(fmt.Sprintf(
-					"Error updating MutatingWebhookConfiguration: %s",
-					err))
-				continue
-			}
-		}
-
-		// Update the certificate
-		c.cert.Store(&crt)
-	}
+	_, err := clientset.AdmissionregistrationV1().
+		MutatingWebhookConfigurations().
+		Patch(ctx, c.flagAutoName, types.JSONPatchType, payload,
+			metav1.PatchOptions{})
+	return err
 }
 
 func (c *Command) Synopsis() string { return synopsis }

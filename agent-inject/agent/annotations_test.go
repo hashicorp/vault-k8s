@@ -8,10 +8,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
-	"github.com/mattbaird/jsonpatch"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,7 +68,6 @@ func TestInitCanSet(t *testing.T) {
 
 		if raw != tt.annotationValue {
 			t.Errorf("Default annotation confiured value incorrect, wanted %s, got %s", tt.annotationValue, raw)
-
 		}
 	}
 }
@@ -173,7 +174,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 			fmt.Sprintf("%s-%s", AnnotationPreserveSecretCase, "FOOBAR_EXPLICIT"): "true",
 		}
 		pod := testPod(annotation)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -181,7 +181,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -196,7 +196,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 			if agent.Secrets[0].Path != tt.expectedPath {
 				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
 			}
 		} else if len(agent.Secrets) > 0 {
 			t.Errorf("Secrets length was greater than zero, it shouldn't have been: %s", tt.key)
@@ -221,7 +220,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 			AnnotationPreserveSecretCase: "true",
 		}
 		pod := testPod(annotation)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -229,7 +227,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -244,7 +242,6 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOn(t *testing.T) {
 
 			if agent.Secrets[0].Path != tt.expectedPath {
 				t.Errorf("expected %s, got %s", tt.expectedPath, agent.Secrets[0].Path)
-
 			}
 		} else if len(agent.Secrets) > 0 {
 			t.Error("Secrets length was greater than zero, it shouldn't have been")
@@ -305,7 +302,6 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
@@ -313,7 +309,7 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -387,7 +383,6 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -395,7 +390,7 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -429,14 +424,14 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
 			},
 			map[string]Secret{
-				"foobar": Secret{
+				"foobar": {
 					Name:         "foobar",
 					Path:         "test1",
 					Template:     "",
 					TemplateFile: "/etc/config.tmpl",
 					MountPath:    secretVolumePath,
 				},
-				"test2": Secret{
+				"test2": {
 					Name:         "test2",
 					Path:         "test2",
 					Template:     "foobarTemplate",
@@ -454,9 +449,7 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		var patches []*jsonpatch.JsonPatchOperation
-
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -507,7 +500,6 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -515,7 +507,7 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -567,9 +559,7 @@ func TestSecretPermissionAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		var patches []*jsonpatch.JsonPatchOperation
-
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -616,9 +606,7 @@ func TestSecretCommandAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		var patches []*jsonpatch.JsonPatchOperation
-
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -741,19 +729,32 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentCacheEnable, "tRuE", false},
 		{AnnotationAgentCacheEnable, "fAlSe", false},
 		{AnnotationAgentCacheEnable, "", false},
+
+		{AnnotationAgentAuthMinBackoff, "", true},
+		{AnnotationAgentAuthMinBackoff, "1s", true},
+		{AnnotationAgentAuthMinBackoff, "1m", true},
+		{AnnotationAgentAuthMinBackoff, "x", false},
+
+		{AnnotationAgentAuthMaxBackoff, "", true},
+		{AnnotationAgentAuthMaxBackoff, "1s", true},
+		{AnnotationAgentAuthMaxBackoff, "1m", true},
+		{AnnotationAgentAuthMaxBackoff, "x", false},
 	}
 
 	for i, tt := range tests {
 		annotations := map[string]string{tt.key: tt.value}
 		pod := testPod(annotations)
-		var patches []*jsonpatch.JsonPatchOperation
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
 		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
+			if tt.valid {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
+			// if !tt.valid, that is okay, we expected an error
+			continue
 		}
 
-		_, err = New(pod, patches)
+		_, err = New(pod)
 		if err != nil && tt.valid {
 			t.Errorf("[%d] got error, shouldn't have: %s", i, err)
 		} else if err == nil && !tt.valid {
@@ -773,14 +774,17 @@ func TestInitEmptyPod(t *testing.T) {
 
 func TestVaultNamespaceAnnotation(t *testing.T) {
 	tests := []struct {
-		key           string
-		value         string
-		expectedValue string
+		key                       string
+		value                     string
+		agentVaultNamespaceConfig string
+		expectedValue             string
 	}{
-		{"", "", ""},
-		{"vault.hashicorp.com/namespace", "", ""},
-		{"vault.hashicorp.com/namespace", "foobar", "foobar"},
-		{"vault.hashicorp.com/namespace", "fooBar", "fooBar"},
+		{"", "", "", ""},
+		{"", "", "test-namespace", "test-namespace"},
+		{"vault.hashicorp.com/namespace", "", "", ""},
+		{"vault.hashicorp.com/namespace", "foobar", "", "foobar"},
+		{"vault.hashicorp.com/namespace", "foobar", "test-namespace", "foobar"},
+		{"vault.hashicorp.com/namespace", "fooBar", "", "fooBar"},
 	}
 
 	for _, tt := range tests {
@@ -788,15 +792,15 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 			tt.key: tt.value,
 		}
 		pod := testPod(annotation)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
+		agentConfig.VaultNamespace = tt.agentVaultNamespaceConfig
 		err := Init(pod, agentConfig)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -808,7 +812,6 @@ func TestVaultNamespaceAnnotation(t *testing.T) {
 }
 
 func Test_runAsSameID(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		runAsSameUser  string
@@ -883,7 +886,6 @@ func Test_runAsSameID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			annotations := map[string]string{}
 			if len(tt.runAsSameUser) > 0 {
 				annotations[AnnotationAgentRunAsSameUser] = tt.runAsSameUser
@@ -948,7 +950,6 @@ func TestAuthConfigAnnotations(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -956,7 +957,7 @@ func TestAuthConfigAnnotations(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
@@ -970,54 +971,54 @@ func TestInjectContainers(t *testing.T) {
 		name          string
 		annotations   map[string]string
 		expectedValue string
-		ExpectedPatch []jsonpatch.JsonPatchOperation
+		ExpectedPatch jsonpatch.Patch
 	}{
 		{
 			name:          "No InjectionContainers annotations",
 			annotations:   map[string]string{},
 			expectedValue: "foobar,foo1,foo2",
-			ExpectedPatch: []jsonpatch.JsonPatchOperation{
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/volumes/-"},
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/containers/0/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/initContainers"},
-				{Operation: "add", Path: "/spec/shareProcessNamespace"},
-				{Operation: "add", Path: "/spec/containers/-"},
-				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+			ExpectedPatch: []jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/2/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},
 		},
 		{
 			name:          "InjectionContainers annotation with container name",
 			annotations:   map[string]string{AnnotationAgentInjectContainers: "foo1"},
 			expectedValue: "foo1",
-			ExpectedPatch: []jsonpatch.JsonPatchOperation{
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/volumes/-"},
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/initContainers"},
-				{Operation: "add", Path: "/spec/shareProcessNamespace"},
-				{Operation: "add", Path: "/spec/containers/-"},
-				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+			ExpectedPatch: []jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},
 		},
 		{
 			name:          "InjectionContainer annotations with multiple containers names",
 			annotations:   map[string]string{AnnotationAgentInjectContainers: "foo1,foo2"},
 			expectedValue: "foo1,foo2",
-			ExpectedPatch: []jsonpatch.JsonPatchOperation{
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/volumes/-"},
-				{Operation: "add", Path: "/spec/volumes"},
-				{Operation: "add", Path: "/spec/containers/1/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/containers/2/volumeMounts/-"},
-				{Operation: "add", Path: "/spec/initContainers"},
-				{Operation: "add", Path: "/spec/shareProcessNamespace"},
-				{Operation: "add", Path: "/spec/containers/-"},
-				{Operation: "add", Path: "/metadata/annotations/" + EscapeJSONPointer(AnnotationAgentStatus)},
+			ExpectedPatch: []jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
+				internal.AddOp("/spec/containers/2/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},
 		},
 	}
@@ -1025,13 +1026,12 @@ func TestInjectContainers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
-			var patches []*jsonpatch.JsonPatchOperation
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
-			agent, err := New(pod, patches)
+			agent, err := New(pod)
 			if err != nil {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
@@ -1041,16 +1041,17 @@ func TestInjectContainers(t *testing.T) {
 			}
 			require.Equal(t, pod.Annotations[AnnotationAgentInjectContainers], tt.expectedValue)
 
-			var output []jsonpatch.JsonPatchOperation
+			var output jsonpatch.Patch
 			require.NoError(t, json.Unmarshal(patch, &output))
+			for i := range tt.ExpectedPatch {
+				delete(tt.ExpectedPatch[i], "value")
+			}
 			for i := range output {
-				output[i].Value = nil
+				delete(output[i], "value")
 			}
 			require.Equal(t, tt.ExpectedPatch, output)
-
 		})
 	}
-
 }
 
 func TestDefaultTemplateOverride(t *testing.T) {
@@ -1112,7 +1113,6 @@ func TestDefaultTemplateOverride(t *testing.T) {
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
-		var patches []*jsonpatch.JsonPatchOperation
 
 		agentConfig := basicAgentConfig()
 		err := Init(pod, agentConfig)
@@ -1120,7 +1120,7 @@ func TestDefaultTemplateOverride(t *testing.T) {
 			t.Errorf("got error, shouldn't have: %s", err)
 		}
 
-		agent, err := New(pod, patches)
+		agent, err := New(pod)
 		if err != nil && !tt.expectedErr {
 			t.Errorf("got error, shouldn't have: %s", err)
 		} else if err == nil && tt.expectedErr {
@@ -1131,5 +1131,115 @@ func TestDefaultTemplateOverride(t *testing.T) {
 			require.Equal(t, agent.DefaultTemplate, tt.expectedValue,
 				"expected %v, got %v", tt.expectedValue, agent.DefaultTemplate)
 		}
+	}
+}
+
+func TestAuthMinMaxBackoff(t *testing.T) {
+	pod := testPod(map[string]string{
+		"vault.hashicorp.com/auth-min-backoff": "5s",
+		"vault.hashicorp.com/auth-max-backoff": "10s",
+	})
+	agentConfig := basicAgentConfig()
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	require.Equal(t, "5s", agent.Vault.AuthMinBackoff, "expected 5s, got %v", agent.Vault.AuthMinBackoff)
+	require.Equal(t, "10s", agent.Vault.AuthMaxBackoff, "expected 10s, got %v", agent.Vault.AuthMaxBackoff)
+}
+
+func TestAutoAuthExitOnError(t *testing.T) {
+	pod := testPod(map[string]string{
+		"vault.hashicorp.com/agent-auto-auth-exit-on-err": "true",
+	})
+	agentConfig := basicAgentConfig()
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	require.Equal(t, true, agent.AutoAuthExitOnError)
+}
+
+func TestDisableIdleConnections(t *testing.T) {
+	tests := map[string]struct {
+		annotations   map[string]string
+		expectedValue []string
+	}{
+		"full list": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-idle-connections": "auto-auth,caching,templating",
+			},
+			expectedValue: []string{"auto-auth", "caching", "templating"},
+		},
+		"one": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-idle-connections": "auto-auth",
+			},
+			expectedValue: []string{"auto-auth"},
+		},
+		"none": {
+			annotations:   map[string]string{},
+			expectedValue: nil,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			pod := testPod(tc.annotations)
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+			agent, err := New(pod)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedValue, agent.DisableIdleConnections)
+		})
+	}
+}
+
+func TestDisableKeepAlives(t *testing.T) {
+	tests := map[string]struct {
+		annotations   map[string]string
+		expectedValue []string
+	}{
+		"full list": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-keep-alives": "auto-auth,caching,templating",
+			},
+			expectedValue: []string{"auto-auth", "caching", "templating"},
+		},
+		"one": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-disable-keep-alives": "auto-auth",
+			},
+			expectedValue: []string{"auto-auth"},
+		},
+		"none": {
+			annotations:   map[string]string{},
+			expectedValue: nil,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			pod := testPod(tc.annotations)
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+			agent, err := New(pod)
+			require.NoError(t, err)
+
+			assert.Equal(t, tc.expectedValue, agent.DisableKeepAlives)
+		})
 	}
 }

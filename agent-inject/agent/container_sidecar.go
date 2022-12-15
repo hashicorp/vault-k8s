@@ -1,9 +1,11 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -106,6 +108,28 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		newContainer.SecurityContext = a.securityContext()
 	}
 
+	// apply any JSON patch requested
+	if a.JsonPatch == "" {
+		return newContainer, nil
+	}
+
+	containerJson, err := json.Marshal(newContainer)
+	if err != nil {
+		return newContainer, err
+	}
+	patch, err := jsonpatch.DecodePatch([]byte(a.JsonPatch))
+	if err != nil {
+		return newContainer, fmt.Errorf("failed to decode JSON patch: %w", err)
+	}
+	newContainerJson, err := patch.Apply(containerJson)
+	if err != nil {
+		return newContainer, fmt.Errorf("failed to apply JSON patch: %w", err)
+	}
+	newContainer = corev1.Container{}
+	err = json.Unmarshal(newContainerJson, &newContainer)
+	if err != nil {
+		return newContainer, err
+	}
 	return newContainer, nil
 }
 
@@ -133,6 +157,14 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 		limits[corev1.ResourceMemory] = mem
 	}
 
+	if a.LimitsEphemeral != "" {
+		ephemeral, err := parseQuantity(a.LimitsEphemeral)
+		if err != nil {
+			return resources, err
+		}
+		limits[corev1.ResourceEphemeralStorage] = ephemeral
+	}
+
 	resources.Limits = limits
 
 	// Requests
@@ -150,6 +182,14 @@ func (a *Agent) parseResources() (corev1.ResourceRequirements, error) {
 			return resources, err
 		}
 		requests[corev1.ResourceMemory] = mem
+	}
+
+	if a.RequestsEphemeral != "" {
+		ephemeral, err := parseQuantity(a.RequestsEphemeral)
+		if err != nil {
+			return resources, err
+		}
+		requests[corev1.ResourceEphemeralStorage] = ephemeral
 	}
 
 	resources.Requests = requests
@@ -174,7 +214,7 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 		flags := a.vaultCliFlags()
 		flags = append(flags, "-self")
 
-		lifecycle.PreStop = &corev1.Handler{
+		lifecycle.PreStop = &corev1.LifecycleHandler{
 			Exec: &corev1.ExecAction{
 				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke %s", a.RevokeGrace, strings.Join(flags[:], " "))},
 			},

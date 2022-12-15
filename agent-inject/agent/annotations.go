@@ -5,7 +5,9 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -112,18 +114,23 @@ const (
 	// AnnotationAgentExtraSecret is the name of a Kubernetes secret that will be mounted
 	// into the Vault agent container so that the agent config can reference secrets.
 	AnnotationAgentExtraSecret = "vault.hashicorp.com/agent-extra-secret"
-
 	// AnnotationAgentLimitsCPU sets the CPU limit on the Vault Agent containers.
 	AnnotationAgentLimitsCPU = "vault.hashicorp.com/agent-limits-cpu"
 
 	// AnnotationAgentLimitsMem sets the memory limit on the Vault Agent containers.
 	AnnotationAgentLimitsMem = "vault.hashicorp.com/agent-limits-mem"
 
+	// AnnotationAgentLimitsEphemeral sets the ephemeral storage limit on the Vault Agent containers.
+	AnnotationAgentLimitsEphemeral = "vault.hashicorp.com/agent-limits-ephemeral"
+
 	// AnnotationAgentRequestsCPU sets the requested CPU amount on the Vault Agent containers.
 	AnnotationAgentRequestsCPU = "vault.hashicorp.com/agent-requests-cpu"
 
 	// AnnotationAgentRequestsMem sets the requested memory amount on the Vault Agent containers.
 	AnnotationAgentRequestsMem = "vault.hashicorp.com/agent-requests-mem"
+
+	// AnnotationAgentRequestsEphemeral sets the ephemeral storage request on the Vault Agent containers.
+	AnnotationAgentRequestsEphemeral = "vault.hashicorp.com/agent-requests-ephemeral"
 
 	// AnnotationAgentRevokeOnShutdown controls whether a sidecar container will revoke its
 	// own Vault token before shutting down. If you are using a custom agent template, you must
@@ -200,6 +207,9 @@ const (
 	// AnnotationVaultClientTimeout sets the request timeout when communicating with Vault.
 	AnnotationVaultClientTimeout = "vault.hashicorp.com/client-timeout"
 
+	// AnnotationVaultGoMaxProcs sets the Vault Agent go max procs.
+	AnnotationVaultGoMaxProcs = "vault.hashicorp.com/go-max-procs"
+
 	// AnnotationVaultLogLevel sets the Vault Agent log level.
 	AnnotationVaultLogLevel = "vault.hashicorp.com/log-level"
 
@@ -262,6 +272,35 @@ const (
 	// AnnotationAgentEnableQuit configures whether the quit endpoint is
 	// enabled in the injected agent config
 	AnnotationAgentEnableQuit = "vault.hashicorp.com/agent-enable-quit"
+
+	// AnnotationAgentAuthMinBackoff specifies the minimum backoff duration used when the agent auto auth fails.
+	// Defaults to 1 second.
+	AnnotationAgentAuthMinBackoff = "vault.hashicorp.com/auth-min-backoff"
+
+	// AnnotationAgentAuthMaxBackoff specifies the maximum backoff duration used when the agent auto auth fails.
+	// Defaults to 5 minutes.
+	AnnotationAgentAuthMaxBackoff = "vault.hashicorp.com/auth-max-backoff"
+
+	// AnnotationAgentDisableIdleConnections specifies disabling idle connections for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableIdleConnections = "vault.hashicorp.com/agent-disable-idle-connections"
+
+	// AnnotationAgentDisableKeepAlives specifies disabling keep-alives for various
+	// features in Vault Agent. Comma-separated string, with valid values auto-auth, caching,
+	// templating.
+	AnnotationAgentDisableKeepAlives = "vault.hashicorp.com/agent-disable-keep-alives"
+
+	// AnnotationAgentJsonPatch is used to specify a JSON patch to be applied to the agent sidecar container before
+	// it is created.
+	AnnotationAgentJsonPatch = "vault.hashicorp.com/agent-json-patch"
+
+	// AnnotationAgentInitJsonPatch is used to specify a JSON patch to be applied to the agent init container before
+	// it is created.
+	AnnotationAgentInitJsonPatch = "vault.hashicorp.com/agent-init-json-patch"
+
+	// AnnotationAgentAutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
+	AnnotationAgentAutoAuthExitOnError = "vault.hashicorp.com/agent-auto-auth-exit-on-err"
 )
 
 type AgentConfig struct {
@@ -269,6 +308,7 @@ type AgentConfig struct {
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
+	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
 	UserID                     string
@@ -280,10 +320,16 @@ type AgentConfig struct {
 	DefaultTemplate            string
 	ResourceRequestCPU         string
 	ResourceRequestMem         string
+	ResourceRequestEphemeral   string
 	ResourceLimitCPU           string
 	ResourceLimitMem           string
+	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	AuthMinBackoff             string
+	AuthMaxBackoff             string
+	DisableIdleConnections     string
+	DisableKeepAlives          string
 }
 
 // Init configures the expected annotations required to create a new instance
@@ -331,6 +377,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultNamespace]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationVaultNamespace] = cfg.VaultNamespace
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationProxyAddress]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationProxyAddress] = cfg.ProxyAddress
 	}
@@ -354,12 +404,20 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentLimitsMem] = cfg.ResourceLimitMem
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentLimitsEphemeral]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentLimitsEphemeral] = cfg.ResourceLimitEphemeral
+	}
+
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsCPU] = cfg.ResourceRequestCPU
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRequestsMem] = cfg.ResourceRequestMem
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentRequestsEphemeral] = cfg.ResourceRequestEphemeral
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultSecretVolumePath]; !ok {
@@ -455,6 +513,62 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
+	}
+
+	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
+		if minBackoffString != "" {
+			_, err := time.ParseDuration(minBackoffString)
+			if err != nil {
+				return fmt.Errorf("error parsing min backoff as duration: %v", err)
+			}
+		}
+	} else if cfg.AuthMinBackoff != "" {
+		// set default from env/flag
+		pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff] = cfg.AuthMinBackoff
+	}
+
+	if maxBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff]; ok {
+		if maxBackoffString != "" {
+			_, err := time.ParseDuration(maxBackoffString)
+			if err != nil {
+				return fmt.Errorf("error parsing max backoff as duration: %v", err)
+			}
+		}
+	} else if cfg.AuthMaxBackoff != "" {
+		// set default from env/flag
+		pod.ObjectMeta.Annotations[AnnotationAgentAuthMaxBackoff] = cfg.AuthMaxBackoff
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableIdleConnections] = cfg.DisableIdleConnections
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives] = cfg.DisableKeepAlives
+	}
+
+	// validate JSON patches
+	if patch, ok := pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]; ok {
+		// ignore empty string
+		if patch == "" {
+			delete(pod.ObjectMeta.Annotations, AnnotationAgentJsonPatch)
+		} else {
+			_, err := jsonpatch.DecodePatch([]byte(patch))
+			if err != nil {
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %w", AnnotationAgentJsonPatch, err)
+			}
+		}
+	}
+	if patch, ok := pod.ObjectMeta.Annotations[AnnotationAgentInitJsonPatch]; ok {
+		// ignore empty string
+		if patch == "" {
+			delete(pod.ObjectMeta.Annotations, AnnotationAgentInitJsonPatch)
+		} else {
+			_, err := jsonpatch.DecodePatch([]byte(patch))
+			if err != nil {
+				return fmt.Errorf("error parsing JSON patch for annotation %s: %w", AnnotationAgentInitJsonPatch, err)
+			}
+		}
 	}
 
 	return nil
@@ -672,6 +786,14 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 		return DefaultTemplateConfigExitOnRetryFailure, nil
 	}
 
+	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) getAutoAuthExitOnError() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentAutoAuthExitOnError]
+	if !ok {
+		return DefaultAutoAuthEnableOnExit, nil
+	}
 	return strconv.ParseBool(raw)
 }
 
