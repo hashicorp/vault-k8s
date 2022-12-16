@@ -1,8 +1,8 @@
 ## Unreleased
 
 Improvements:
-* Building with Go 1.19.4
-* Update golang.org/x/net to v0.0.0-20220722155237-a158d28d115b
+* Building with Go 1.19.4 [GH-406](https://github.com/hashicorp/vault-k8s/pull/406)
+* Update golang.org/x/net to v0.4.0 [GH-409](https://github.com/hashicorp/vault-k8s/pull/409)
 * Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
 
 Bugs:
