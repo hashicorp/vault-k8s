@@ -94,6 +94,7 @@ func TestInitDefaults(t *testing.T) {
 		{annotationKey: AnnotationAgentImage, annotationValue: DefaultVaultImage},
 		{annotationKey: AnnotationAgentRunAsUser, annotationValue: strconv.Itoa(DefaultAgentRunAsUser)},
 		{annotationKey: AnnotationAgentRunAsGroup, annotationValue: strconv.Itoa(DefaultAgentRunAsGroup)},
+		{annotationKey: AnnotationAgentShareProcessNamespace, annotationValue: strconv.FormatBool(DefaultAgentShareProcessNamespace)},
 	}
 
 	for _, tt := range tests {
@@ -704,6 +705,14 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRunAsGroup, "100", true},
 		{AnnotationAgentRunAsGroup, "root", false},
 
+		{AnnotationAgentShareProcessNamespace, "true", true},
+		{AnnotationAgentShareProcessNamespace, "false", true},
+		{AnnotationAgentShareProcessNamespace, "TRUE", true},
+		{AnnotationAgentShareProcessNamespace, "FALSE", true},
+		{AnnotationAgentShareProcessNamespace, "tRuE", false},
+		{AnnotationAgentShareProcessNamespace, "fAlSe", false},
+		{AnnotationAgentShareProcessNamespace, "", false},
+
 		{AnnotationAgentSetSecurityContext, "true", true},
 		{AnnotationAgentSetSecurityContext, "false", true},
 		{AnnotationAgentSetSecurityContext, "secure", false},
@@ -976,6 +985,7 @@ func TestInjectContainers(t *testing.T) {
 				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
 				internal.AddOp("/spec/containers/2/volumeMounts/-", nil),
 				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
 				internal.AddOp("/spec/containers/-", nil),
 				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},
@@ -990,6 +1000,7 @@ func TestInjectContainers(t *testing.T) {
 				internal.AddOp("/spec/volumes", nil),
 				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
 				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
 				internal.AddOp("/spec/containers/-", nil),
 				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},
@@ -1005,6 +1016,7 @@ func TestInjectContainers(t *testing.T) {
 				internal.AddOp("/spec/containers/1/volumeMounts/-", nil),
 				internal.AddOp("/spec/containers/2/volumeMounts/-", nil),
 				internal.AddOp("/spec/initContainers", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
 				internal.AddOp("/spec/containers/-", nil),
 				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(AnnotationAgentStatus), nil),
 			},

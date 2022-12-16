@@ -3,6 +3,7 @@
 Improvements:
 * Building with Go 1.19.4
 * Update golang.org/x/net to v0.0.0-20220722155237-a158d28d115b
+* Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
 
 Bugs:
 * Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)

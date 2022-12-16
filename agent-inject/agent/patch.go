@@ -82,3 +82,9 @@ func updateAnnotations(target, annotations map[string]string) jsonpatch.Patch {
 
 	return result
 }
+
+func updateShareProcessNamespace(shareProcessNamespace bool) jsonpatch.Patch {
+	return []jsonpatch.Operation{
+		internal.AddOp("/spec/shareProcessNamespace", shareProcessNamespace),
+	}
+}

@@ -19,6 +19,7 @@ const (
 	DefaultAgentRunAsUser                   = 100
 	DefaultAgentRunAsGroup                  = 1000
 	DefaultAgentRunAsSameUser               = false
+	DefaultAgentShareProcessNamespace       = false
 	DefaultAgentAllowPrivilegeEscalation    = false
 	DefaultAgentDropCapabilities            = "ALL"
 	DefaultAgentSetSecurityContext          = true
@@ -136,6 +137,9 @@ type Agent struct {
 	// RunAsSameID sets the user ID of the Vault agent container(s) to be the
 	// same as the first application container
 	RunAsSameID bool
+
+	// ShareProcessNamespace sets the shareProcessNamespace value on the pod spec.
+	ShareProcessNamespace bool
 
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
@@ -433,6 +437,11 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, err
 	}
 
+	agent.ShareProcessNamespace, err = agent.setShareProcessNamespace(pod)
+	if err != nil {
+		return agent, err
+	}
+
 	agent.SetSecurityContext, err = agent.setSecurityContext()
 	if err != nil {
 		return agent, err
@@ -607,7 +616,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		// to run first.
 		if a.InitFirst {
 
-			// Remove all init containers from the document so we can re-add them after the agent.
+			// Remove all init containers from the document, so we can re-add them after the agent.
 			if len(a.Pod.Spec.InitContainers) != 0 {
 				patches = append(patches, removeContainers("/spec/initContainers")...)
 			}
@@ -636,6 +645,9 @@ func (a *Agent) Patch() ([]byte, error) {
 				a.ContainerVolumeMounts(),
 				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
 		}
+
+		// Add shareProcessNamespace
+		patches = append(patches, updateShareProcessNamespace(a.ShareProcessNamespace)...)
 	}
 
 	// Sidecar Container
