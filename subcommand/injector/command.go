@@ -22,6 +22,7 @@ import (
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/hashicorp/vault-k8s/leader"
+	"github.com/hashicorp/vault-k8s/version"
 	"github.com/mitchellh/cli"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -117,6 +118,7 @@ func (c *Command) Run(args []string) int {
 		c.UI.Error(fmt.Sprintf("Error loading in-cluster K8S config: %s", err))
 		return 1
 	}
+	config.UserAgent = fmt.Sprintf("vault-k8s/%s", version.Version)
 
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
