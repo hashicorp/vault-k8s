@@ -1,8 +1,11 @@
 ## Unreleased
 
-Improvements:
+Changes:
 * Building with Go 1.19.4 [GH-406](https://github.com/hashicorp/vault-k8s/pull/406)
 * Update golang.org/x/net to v0.4.0 [GH-409](https://github.com/hashicorp/vault-k8s/pull/409)
+* Set Kubernetes user-agent to include vault-k8s version [GH-411](https://github.com/hashicorp/vault-k8s/pull/411)
+
+Improvements:
 * Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
 
 Bugs:
