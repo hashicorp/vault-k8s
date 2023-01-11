@@ -785,7 +785,7 @@ func TestConfigTelemetry(t *testing.T) {
 			},
 			&Telemetry{
 				PrometheusRetentionTime: "5s",
-				PrefixFilter:            []string{"+vault.token", "-vault.expire", "+vault.expire.num_leases"},
+				PrefixFilter:            "[\"+vault.token\", \"-vault.expire\", \"+vault.expire.num_leases\"]",
 				MaximumGaugeCardinality: 3,
 				LeaseMetricsEpsilon:     "foo",
 				DisableHostname:         true,
