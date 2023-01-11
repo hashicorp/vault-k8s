@@ -766,3 +766,58 @@ func TestConfigAgentQuit(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigTelemetry(t *testing.T) {
+	tests := []struct {
+		name              string
+		annotations       map[string]string
+		expectedTelemetry *Telemetry
+	}{
+		{
+			"annotations that exercise all of the types",
+			map[string]string{
+				"vault.hashicorp.com/agent-telemetry-prometheus_retention_time": "5s",
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":             "[\"+vault.token\", \"-vault.expire\", \"+vault.expire.num_leases\"]",
+				"vault.hashicorp.com/agent-telemetry-maximum_gauge_cardinality": "3",
+				"vault.hashicorp.com/agent-telemetry-lease_metrics_epsilon":     "foo",
+				"vault.hashicorp.com/agent-telemetry-enable_hostname_label":     "true",
+				"vault.hashicorp.com/agent-telemetry-disable_hostname":          "true",
+			},
+			&Telemetry{
+				PrometheusRetentionTime: "5s",
+				PrefixFilter:            []string{"+vault.token", "-vault.expire", "+vault.expire.num_leases"},
+				MaximumGaugeCardinality: 3,
+				LeaseMetricsEpsilon:     "foo",
+				DisableHostname:         true,
+				EnableHostnameLabel:     true,
+			},
+		},
+		{
+			"everything empty",
+			map[string]string{},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			require.NoError(t, err)
+			// create sidecar config
+			cfg, err := agent.newConfig(false)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectedTelemetry, config.Telemetry)
+		})
+	}
+}

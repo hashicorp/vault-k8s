@@ -29,6 +29,7 @@ type Config struct {
 	TemplateConfig         *TemplateConfig `json:"template_config,omitempty"`
 	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
 	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
+	Telemetry              *Telemetry      `json:"telemetry,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -119,6 +120,69 @@ type TemplateConfig struct {
 	StaticSecretRenderInterval string `json:"static_secret_render_interval,omitempty"`
 }
 
+// Telemetry defines the configuration for telemetry in Vault Agent.
+type Telemetry struct {
+	//
+	// Common Telemetry.
+	//
+	UsageGaugePeriod               string   `json:"usage_gauge_period,omitempty"`
+	MaximumGaugeCardinality        int      `json:"maximum_gauge_cardinality,omitempty"`
+	DisableHostname                bool     `json:"disable_hostname,omitempty"`
+	EnableHostnameLabel            bool     `json:"enable_hostname_label,omitempty"`
+	LeaseMetricsEpsilon            string   `json:"lease_metrics_epsilon,omitempty"`
+	AddLeaseMetricsNamespaceLabels bool     `json:"add_lease_metrics_namespace_labels,omitempty"`
+	FilterDefault                  bool     `json:"filter_default,omitempty"`
+	PrefixFilter                   []string `json:"prefix_filter,omitempty"`
+	StatsiteAddress                string   `json:"statsite_address,omitempty"`
+	//
+	// Statsd related Telemetry.
+	//
+	StatsdAddress string `json:"statsd_address,omitempty"`
+	//
+	// Circonus related Telemetry.
+	//
+	CirconusApiToken                   string `json:"circonus_api_token,omitempty"`
+	CirconusApiURL                     string `json:"circonus_api_url,omitempty"`
+	CirconusSubmissionInterval         string `json:"circonus_submission_interval,omitempty"`
+	CirconusSubmissionURL              string `json:"circonus_submission_url,omitempty"`
+	CirconusCheckID                    string `json:"circonus_check_id,omitempty"`
+	CirconusCheckForceMetricActivation bool   `json:"circonus_check_force_metric_activation,omitempty"`
+	CirconusCheckInstanceID            string `json:"circonus_check_instance_id,omitempty"`
+	CirconusCheckSearchTag             string `json:"circonus_check_search_tag,omitempty"`
+	CirconusCheckDisplayName           string `json:"circonus_check_display_name,omitempty"`
+	CirconusCheckTags                  string `json:"circonus_check_tags,omitempty"`
+	CirconusBrokerID                   string `json:"circonus_broker_id,omitempty"`
+	CirconusBrokerSelectTag            string `json:"circonus_broker_select_tag,omitempty"`
+	//
+	// DogStatsD related Telemetry.
+	//
+	DogstatsdAddr string   `json:"dogstatsd_addr,omitempty"`
+	DogstatsdTags []string `json:"dogstatsd_tags,omitempty"`
+	//
+	// Prometheus related Telemetry.
+	//
+	PrometheusRetentionTime string `json:"prometheus_retention_time,omitempty"`
+	//
+	// StackDriver related Telemetry.
+	//
+	StackdriverProjectID string `json:"stackdriver_project_id,omitempty"`
+	StackdriverLocation  string `json:"stackdriver_location,omitempty"`
+	StackdriverNamespace string `json:"stackdriver_namespace,omitempty"`
+	StackdriverDebugLogs bool   `json:"stackdriver_debug_logs,omitempty"`
+}
+
+func (a *Agent) newTelemetryConfig() *Telemetry {
+	var tel Telemetry
+	telemetryBytes, err := json.Marshal(a.Vault.AgentTelemetryConfig)
+	if err != nil {
+		return nil
+	}
+	if err = json.Unmarshal(telemetryBytes, &tel); err != nil {
+		return nil
+	}
+	return &tel
+}
+
 func (a *Agent) newTemplateConfigs() []*Template {
 	var templates []*Template
 	for _, secret := range a.Secrets {
@@ -190,6 +254,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		},
 		Templates: a.newTemplateConfigs(),
+		Telemetry: a.newTelemetryConfig(),
 		TemplateConfig: &TemplateConfig{
 			ExitOnRetryFailure:         a.VaultAgentTemplateConfig.ExitOnRetryFailure,
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
