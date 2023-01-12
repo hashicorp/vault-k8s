@@ -1268,7 +1268,7 @@ func TestParseTelemetryAnnotations(t *testing.T) {
 			},
 			expectedValues: map[string]interface{}{
 				"prefix_filter":             []interface{}{"+vault.token", "-vault.expire", "+vault.expire.num_leases"},
-				"maximum_gauge_cardinality": 3,
+				"maximum_gauge_cardinality": float64(3),
 				"lease_metrics_epsilon":     "foo",
 				"enable_hostname_label":     true,
 			},
@@ -1282,7 +1282,6 @@ func TestParseTelemetryAnnotations(t *testing.T) {
 			require.NoError(t, err)
 			agent, err := New(pod)
 			require.NoError(t, err)
-			require.Equal(t, tc.expectedValues, agent.Vault.AgentTelemetryConfig)
 			require.Equal(t, true, reflect.DeepEqual(tc.expectedValues, agent.Vault.AgentTelemetryConfig))
 		})
 	}
