@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -847,7 +848,11 @@ func (a *Agent) telemetryConfig() map[string]interface{} {
 		if strings.HasPrefix(annotation, prefix) {
 			param := strings.TrimPrefix(annotation, prefix)
 			param = strings.ReplaceAll(param, "-", "_")
-			telemetryConfig[param] = value
+			var v interface{}
+			if err := json.Unmarshal([]byte(value), &v); err != nil {
+				v = value
+			}
+			telemetryConfig[param] = v
 		}
 	}
 	return telemetryConfig
