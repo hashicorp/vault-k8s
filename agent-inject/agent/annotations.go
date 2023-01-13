@@ -840,6 +840,8 @@ func (a *Agent) injectToken() (bool, error) {
 	return strconv.ParseBool(raw)
 }
 
+// telemetryConfig accumulates the agent-telemetry annotations into a map which is
+// later rendered into the telemetry{} stanza of the Vault Agent config.
 func (a *Agent) telemetryConfig() map[string]interface{} {
 	telemetryConfig := make(map[string]interface{})
 

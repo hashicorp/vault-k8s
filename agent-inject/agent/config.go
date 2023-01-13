@@ -120,7 +120,7 @@ type TemplateConfig struct {
 	StaticSecretRenderInterval string `json:"static_secret_render_interval,omitempty"`
 }
 
-// Telemetry defines the configuration for telemetry in Vault Agent.
+// Telemetry defines the configuration for agent telemetry in Vault Agent.
 type Telemetry struct {
 	UsageGaugePeriod                   string   `json:"usage_gauge_period,omitempty"`
 	MaximumGaugeCardinality            int      `json:"maximum_gauge_cardinality,omitempty"`
@@ -153,15 +153,18 @@ type Telemetry struct {
 	StackdriverDebugLogs               bool     `json:"stackdriver_debug_logs,omitempty"`
 }
 
+// newTelemetryConfig creates a Telemetry object from the accumulated agent telemetry annotations.
 func (a *Agent) newTelemetryConfig() *Telemetry {
 	var tel Telemetry
 	if len(a.Vault.AgentTelemetryConfig) == 0 {
 		return nil
 	}
+	// First get it out of the map[string]interface{} which was created when we parsed the annotations.
 	telemetryBytes, err := json.Marshal(a.Vault.AgentTelemetryConfig)
 	if err != nil {
 		return nil
 	}
+	// Unmarshal it into a Telemetry object.
 	if err = json.Unmarshal(telemetryBytes, &tel); err != nil {
 		return nil
 	}
