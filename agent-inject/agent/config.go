@@ -127,12 +127,14 @@ type Telemetry struct {
 	DisableHostname                    bool     `json:"disable_hostname,omitempty"`
 	EnableHostnameLabel                bool     `json:"enable_hostname_label,omitempty"`
 	LeaseMetricsEpsilon                string   `json:"lease_metrics_epsilon,omitempty"`
+	NumLeaseMetricsBuckets             int      `json:"num_lease_metrics_buckets,omitempty"`
 	AddLeaseMetricsNamespaceLabels     bool     `json:"add_lease_metrics_namespace_labels,omitempty"`
 	FilterDefault                      bool     `json:"filter_default,omitempty"`
 	PrefixFilter                       []string `json:"prefix_filter,omitempty"`
 	StatsiteAddress                    string   `json:"statsite_address,omitempty"`
 	StatsdAddress                      string   `json:"statsd_address,omitempty"`
 	CirconusApiToken                   string   `json:"circonus_api_token,omitempty"`
+	CirconusApiApp                     string   `json:"circonus_api_app,omitempty"`
 	CirconusApiURL                     string   `json:"circonus_api_url,omitempty"`
 	CirconusSubmissionInterval         string   `json:"circonus_submission_interval,omitempty"`
 	CirconusSubmissionURL              string   `json:"circonus_submission_url,omitempty"`
