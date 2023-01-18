@@ -766,3 +766,108 @@ func TestConfigAgentQuit(t *testing.T) {
 		})
 	}
 }
+
+func TestConfigTelemetry(t *testing.T) {
+	tests := []struct {
+		name              string
+		annotations       map[string]string
+		expectedTelemetry *Telemetry
+	}{
+		{
+			"annotations that exercise all of the annotations",
+			map[string]string{
+				"vault.hashicorp.com/agent-telemetry-usage_gauge_period":                     "10m",
+				"vault.hashicorp.com/agent-telemetry-maximum_gauge_cardinality":              "500",
+				"vault.hashicorp.com/agent-telemetry-disable_hostname":                       "false",
+				"vault.hashicorp.com/agent-telemetry-enable_hostname_label":                  "false",
+				"vault.hashicorp.com/agent-telemetry-lease_metrics_epsilon":                  "1h",
+				"vault.hashicorp.com/agent-telemetry-num_lease_metrics_buckets":              "168",
+				"vault.hashicorp.com/agent-telemetry-add_lease_metrics_namespace_labels":     "false",
+				"vault.hashicorp.com/agent-telemetry-filter_default":                         "true",
+				"vault.hashicorp.com/agent-telemetry-statsite_address":                       "https://foo.com",
+				"vault.hashicorp.com/agent-telemetry-statsd_address":                         "https://foo.com",
+				"vault.hashicorp.com/agent-telemetry-circonus_api_token":                     "foo",
+				"vault.hashicorp.com/agent-telemetry-circonus_api_app":                       "nomad",
+				"vault.hashicorp.com/agent-telemetry-circonus_api_url":                       "https://api.circonus.com/v2",
+				"vault.hashicorp.com/agent-telemetry-circonus_submission_interval":           "10s",
+				"vault.hashicorp.com/agent-telemetry-circonus_submission_url":                "https://api.circonus.com/v2",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_id":                      "foo",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_force_metric_activation": "false",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_instance_id":             "foo:bar",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_search_tag":              "foo:bar",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_display_name":            "foo",
+				"vault.hashicorp.com/agent-telemetry-circonus_check_tags":                    "foo,bar",
+				"vault.hashicorp.com/agent-telemetry-circonus_broker_id":                     "foo",
+				"vault.hashicorp.com/agent-telemetry-circonus_broker_select_tag":             "foo:bar",
+				"vault.hashicorp.com/agent-telemetry-dogstatsd_addr":                         "https://foo.com",
+				"vault.hashicorp.com/agent-telemetry-dogstatsd_tags":                         `["foo:bar", "foo:baz"]`,
+				"vault.hashicorp.com/agent-telemetry-prometheus_retention_time":              "24h",
+				"vault.hashicorp.com/agent-telemetry-stackdriver_project_id":                 "foo",
+				"vault.hashicorp.com/agent-telemetry-stackdriver_location":                   "useast-1",
+				"vault.hashicorp.com/agent-telemetry-stackdriver_namespace":                  "foo",
+				"vault.hashicorp.com/agent-telemetry-stackdriver_debug_logs":                 "false",
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`, 
+			},
+			&Telemetry{
+				UsageGaugePeriod:                   "10m",
+				MaximumGaugeCardinality:            500,
+				DisableHostname:                    false,
+				EnableHostnameLabel:                false,
+				LeaseMetricsEpsilon:                "1h",
+				NumLeaseMetricsBuckets:             168,
+				AddLeaseMetricsNamespaceLabels:     false,
+				FilterDefault:                      true,
+				PrefixFilter:                       []string{"+vault.token", "-vault.expire", "+vault.expire.num_leases"},
+				StatsiteAddress:                    "https://foo.com",
+				StatsdAddress:                      "https://foo.com",
+				CirconusApiToken:                   "foo",
+				CirconusApiApp:                     "nomad",
+				CirconusApiURL:                     "https://api.circonus.com/v2",
+				CirconusSubmissionInterval:         "10s",
+				CirconusSubmissionURL:              "https://api.circonus.com/v2",
+				CirconusCheckID:                    "foo",
+				CirconusCheckForceMetricActivation: false,
+				CirconusCheckInstanceID:            "foo:bar",
+				CirconusCheckSearchTag:             "foo:bar",
+				CirconusCheckDisplayName:           "foo",
+				CirconusCheckTags:                  "foo,bar",
+				CirconusBrokerID:                   "foo",
+				CirconusBrokerSelectTag:            "foo:bar",
+				DogstatsdAddr:                      "https://foo.com",
+				DogstatsdTags:                      []string{"foo:bar", "foo:baz"},
+				PrometheusRetentionTime:            "24h",
+				StackdriverProjectID:               "foo",
+				StackdriverLocation:                "useast-1",
+				StackdriverNamespace:               "foo",
+				StackdriverDebugLogs:               false,
+			},
+		},
+		{
+			"everything empty",
+			map[string]string{},
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			require.NoError(t, err)
+			// create sidecar config
+			cfg, err := agent.newConfig(false)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.expectedTelemetry, config.Telemetry)
+		})
+	}
+}

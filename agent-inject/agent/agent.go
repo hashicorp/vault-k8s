@@ -297,6 +297,9 @@ type Vault struct {
 
 	// AuthMinBackoff is the maximum time to backoff if auto auth fails.
 	AuthMaxBackoff string
+
+	// AgentTelemetryConfig is the agent telemetry configuration.
+	AgentTelemetryConfig map[string]interface{}
 }
 
 type VaultAgentCache struct {
@@ -389,6 +392,8 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	if err != nil {
 		return agent, err
 	}
+
+	agent.Vault.AgentTelemetryConfig = agent.telemetryConfig()
 
 	agent.InitFirst, err = agent.initFirst()
 	if err != nil {

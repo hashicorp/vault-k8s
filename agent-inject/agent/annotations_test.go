@@ -1243,3 +1243,46 @@ func TestDisableKeepAlives(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTelemetryAnnotations(t *testing.T) {
+	tests := map[string]struct {
+		annotations    map[string]string
+		expectedValues map[string]interface{}
+	}{
+		"prometheus": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-telemetry-prometheus_retention_time": "5s",
+				"vault.hashicorp.com/agent-telemetry-disable_hostname":          "true",
+			},
+			expectedValues: map[string]interface{}{
+				"prometheus_retention_time": "5s",
+				"disable_hostname":          true,
+			},
+		},
+		"common with some list annotations": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":             "[\"+vault.token\", \"-vault.expire\", \"+vault.expire.num_leases\"]",
+				"vault.hashicorp.com/agent-telemetry-maximum_gauge_cardinality": "3",
+				"vault.hashicorp.com/agent-telemetry-lease_metrics_epsilon":     "foo",
+				"vault.hashicorp.com/agent-telemetry-enable_hostname_label":     "true",
+			},
+			expectedValues: map[string]interface{}{
+				"prefix_filter":             []interface{}{"+vault.token", "-vault.expire", "+vault.expire.num_leases"},
+				"maximum_gauge_cardinality": float64(3),
+				"lease_metrics_epsilon":     "foo",
+				"enable_hostname_label":     true,
+			},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			pod := testPod(tc.annotations)
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+			agent, err := New(pod)
+			require.NoError(t, err)
+			require.Equal(t, true, reflect.DeepEqual(tc.expectedValues, agent.Vault.AgentTelemetryConfig))
+		})
+	}
+}

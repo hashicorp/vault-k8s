@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -301,6 +302,11 @@ const (
 
 	// AnnotationAgentAutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
 	AnnotationAgentAutoAuthExitOnError = "vault.hashicorp.com/agent-auto-auth-exit-on-err"
+
+	// AnnotationAgentTelemetryConfig specifies the Agent Telemetry configuration parameters.
+	// The name of the parameter is any unique string after "vault.hashicorp.com/agent-telemetry-",
+	// such as "vault.hashicorp.com/agent-telemetry-foobar".
+	AnnotationAgentTelemetryConfig = "vault.hashicorp.com/agent-telemetry"
 )
 
 type AgentConfig struct {
@@ -759,8 +765,8 @@ func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, error) {
 	if pod.Spec.ShareProcessNamespace != nil {
 		if !*pod.Spec.ShareProcessNamespace && shareProcessNamespace {
 			return DefaultAgentShareProcessNamespace,
-			errors.New("shareProcessNamespace explicitly disabled on the pod, " +
-				"refusing to enable it")
+				errors.New("shareProcessNamespace explicitly disabled on the pod, " +
+					"refusing to enable it")
 		}
 	}
 
@@ -832,6 +838,26 @@ func (a *Agent) injectToken() (bool, error) {
 		return DefaultAgentInjectToken, nil
 	}
 	return strconv.ParseBool(raw)
+}
+
+// telemetryConfig accumulates the agent-telemetry annotations into a map which is
+// later rendered into the telemetry{} stanza of the Vault Agent config.
+func (a *Agent) telemetryConfig() map[string]interface{} {
+	telemetryConfig := make(map[string]interface{})
+
+	prefix := fmt.Sprintf("%s-", AnnotationAgentTelemetryConfig)
+	for annotation, value := range a.Annotations {
+		if strings.HasPrefix(annotation, prefix) {
+			param := strings.TrimPrefix(annotation, prefix)
+			param = strings.ReplaceAll(param, "-", "_")
+			var v interface{}
+			if err := json.Unmarshal([]byte(value), &v); err != nil {
+				v = value
+			}
+			telemetryConfig[param] = v
+		}
+	}
+	return telemetryConfig
 }
 
 func (a *Agent) authConfig() map[string]interface{} {
