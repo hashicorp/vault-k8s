@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.2.0 (February 2, 2023)
+## 1.2.0 (February 6, 2023)
 
 Changes:
 * Building with Go 1.19.5
