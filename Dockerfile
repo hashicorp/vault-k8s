@@ -12,7 +12,7 @@
 # `default` is the production docker image which cannot be built locally. 
 # For local dev and testing purposes, please build and use the `dev` docker image.
 
-ARG ALPINE_VERSION=3.16.3
+ARG ALPINE_VERSION=3.17.1
 
 FROM docker.mirror.hashicorp.services/alpine:${ALPINE_VERSION} as dev
 

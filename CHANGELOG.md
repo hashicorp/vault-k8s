@@ -1,12 +1,18 @@
 ## Unreleased
 
+## 1.2.0 (February 6, 2023)
+
 Changes:
-* Building with Go 1.19.4 [GH-406](https://github.com/hashicorp/vault-k8s/pull/406)
+* Building with Go 1.19.5
 * Update golang.org/x/net to v0.4.0 [GH-409](https://github.com/hashicorp/vault-k8s/pull/409)
-* Set Kubernetes user-agent to include vault-k8s version [GH-411](https://github.com/hashicorp/vault-k8s/pull/411)
+* Default to Vault v1.12.3
+
+Features:
+* Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
+* Add `agent-telemetry` annotation [GH-413](https://github.com/hashicorp/vault-k8s/pull/413)
 
 Improvements:
-* Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
+* Set Kubernetes user-agent to include vault-k8s version [GH-411](https://github.com/hashicorp/vault-k8s/pull/411)
 
 Bugs:
 * Preserve metadata when updating the cert secret [GH-401](https://github.com/hashicorp/vault-k8s/pull/401)
