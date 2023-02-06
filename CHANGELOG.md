@@ -5,7 +5,7 @@
 Changes:
 * Building with Go 1.19.5
 * Update golang.org/x/net to v0.4.0 [GH-409](https://github.com/hashicorp/vault-k8s/pull/409)
-* Default to Vault v1.12.2
+* Default to Vault v1.12.3
 
 Features:
 * Add support for enabling `sharedProcessNamespace` on the Pod `spec` [GH-408](https://github.com/hashicorp/vault-k8s/pull/408)
