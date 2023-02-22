@@ -1,5 +1,12 @@
 ## Unreleased
 
+Changes:
+* Dependency updates:
+  * golang.org/x/net v0.4.0 => v0.7.0
+  * golang.org/x/sys v0.3.0 => v0.5.0
+  * golang.org/x/term v0.3.0 => v0.5.0
+  * golang.org/x/text v0.5.0 => v0.7.0
+
 ## 1.2.0 (February 6, 2023)
 
 Changes:
