@@ -1,6 +1,7 @@
 ## Unreleased
 
 Changes:
+* Building with Go 1.19.6
 * Dependency updates:
   * golang.org/x/net v0.4.0 => v0.7.0
   * golang.org/x/sys v0.3.0 => v0.5.0
