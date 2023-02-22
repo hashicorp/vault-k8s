@@ -14,25 +14,12 @@ env:
   PKG_NAME: "vault-k8s"
 
 jobs:
-  get-go-version:
-    name: "Determine Go toolchain version"
-    runs-on: ubuntu-latest
-    outputs:
-      go-version: ${{ steps.get-go-version.outputs.go-version }}
-    steps:
-      - uses: actions/checkout@v3
-      - name: Determine Go version
-        id: get-go-version
-        run: |
-          echo "Building with Go $(cat .go-version)"
-          echo "go-version=$(cat .go-version)" >> $GITHUB_OUTPUT
-
   get-product-version:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - name: get product version
         id: get-product-version
         run: |
@@ -47,15 +34,15 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@v3
+        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - name: Generate metadata file
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@v1
+        uses: hashicorp/actions-generate-metadata@fdbc8803a0e53bcbb912ddeee3808329033d6357 # v1.1.1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -63,7 +50,6 @@ jobs:
   build:
     needs:
       - get-product-version
-      - get-go-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -73,12 +59,12 @@ jobs:
     name: Go linux ${{ matrix.arch }} build
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
 
       - name: Setup go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@d0a58c1c4d2b25278816e339b944508c875f3613 # v3.4.0
         with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
+          go-version-file: .go-version
 
       - name: Build
         env:
@@ -89,7 +75,7 @@ jobs:
           mkdir dist out
           make build
           zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip dist/
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
         with:
           name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
           path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
@@ -108,9 +94,9 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
       - name: Docker Build (Action)
-        uses: hashicorp/actions-docker-build@v1
+        uses: hashicorp/actions-docker-build@b6fbccf195134607a99816f89a608b0f4ab751e3 # v1.4.0
         with:
           version: ${{env.version}}
           target: default
@@ -130,8 +116,8 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/actions-docker-build@v1
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+      - uses: hashicorp/actions-docker-build@b6fbccf195134607a99816f89a608b0f4ab751e3 # v1.4.0
         with:
           version: ${{env.version}}
           target: ubi
