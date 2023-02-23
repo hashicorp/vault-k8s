@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/evanphx/json-patch v5.6.0+incompatible
-	github.com/hashicorp/go-hclog v1.3.1
+	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.2
 	github.com/hashicorp/vault/sdk v0.6.1
 	github.com/kelseyhightower/envconfig v1.4.0
