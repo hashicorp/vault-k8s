@@ -18,6 +18,6 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     reviewers:
       - "hashicorp/vault-ecosystem-foundations"
