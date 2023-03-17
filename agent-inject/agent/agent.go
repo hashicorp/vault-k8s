@@ -22,7 +22,6 @@ const (
 	DefaultAgentRunAsUser                   = 100
 	DefaultAgentRunAsGroup                  = 1000
 	DefaultAgentRunAsSameUser               = false
-	DefaultAgentShareProcessNamespace       = false
 	DefaultAgentAllowPrivilegeEscalation    = false
 	DefaultAgentDropCapabilities            = "ALL"
 	DefaultAgentSetSecurityContext          = true
@@ -142,7 +141,7 @@ type Agent struct {
 	RunAsSameID bool
 
 	// ShareProcessNamespace sets the shareProcessNamespace value on the pod spec.
-	ShareProcessNamespace bool
+	ShareProcessNamespace *bool
 
 	// SetSecurityContext controls whether the injected containers have a
 	// SecurityContext set.
@@ -445,9 +444,13 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, err
 	}
 
-	agent.ShareProcessNamespace, err = agent.setShareProcessNamespace(pod)
+	setShareProcessNamespace, ok, err := agent.setShareProcessNamespace(pod)
 	if err != nil {
 		return agent, err
+	}
+	if ok {
+		agent.ShareProcessNamespace = new(bool)
+		*agent.ShareProcessNamespace = setShareProcessNamespace
 	}
 
 	agent.SetSecurityContext, err = agent.setSecurityContext()
@@ -655,7 +658,9 @@ func (a *Agent) Patch() ([]byte, error) {
 		}
 
 		// Add shareProcessNamespace
-		patches = append(patches, updateShareProcessNamespace(a.ShareProcessNamespace)...)
+		if a.ShareProcessNamespace != nil {
+			patches = append(patches, updateShareProcessNamespace(*a.ShareProcessNamespace)...)
+		}
 	}
 
 	// Sidecar Container

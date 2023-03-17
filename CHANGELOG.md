@@ -8,6 +8,9 @@ Changes:
   * golang.org/x/term v0.3.0 => v0.5.0
   * golang.org/x/text v0.5.0 => v0.7.0
 
+Bugs:
+* Don't override `shareProcessNamespace` if an annotation is not present [GH-445](https://github.com/hashicorp/vault-k8s/pull/445)
+
 ## 1.2.0 (February 6, 2023)
 
 Changes:
