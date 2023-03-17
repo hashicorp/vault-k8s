@@ -13,6 +13,7 @@ import (
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -449,8 +450,7 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, err
 	}
 	if ok {
-		agent.ShareProcessNamespace = new(bool)
-		*agent.ShareProcessNamespace = setShareProcessNamespace
+		agent.ShareProcessNamespace = pointer.Bool(setShareProcessNamespace)
 	}
 
 	agent.SetSecurityContext, err = agent.setSecurityContext()
