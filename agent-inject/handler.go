@@ -75,6 +75,7 @@ type Handler struct {
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
 	DisableKeepAlives          string
+	VaultCACertValue           string
 }
 
 // Handle is the http.HandlerFunc implementation that actually handles the
@@ -226,6 +227,8 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
 		return admissionError(req.UID, err)
 	}
+
+	agentSidecar.VaultCACertInjectorSupplied = h.VaultCACertValue
 
 	h.Log.Debug("validating agent configuration..")
 	err = agentSidecar.Validate()

@@ -134,6 +134,9 @@ type Specification struct {
 
 	// DisableKeepAlives is the AGENT_INJECT_DISABLE_KEEP_ALIVES environment variable
 	DisableKeepAlives string `split_words:"true"`
+
+	//VaultCACertValue is the AGENT_INJECT_VAULT_CACERT_VALUE environment variable
+	VaultCACertValue string `envconfig:"AGENT_INJECT_VAULT_CACERT_VALUE"`
 }
 
 func (c *Command) init() {
@@ -205,6 +208,8 @@ func (c *Command) init() {
 		"Comma-separated list of Vault features where idle connections should be disabled.")
 	c.flagSet.StringVar(&c.flagDisableKeepAlives, "disable-keep-alives", "",
 		"Comma-separated list of Vault features where keep-alives should be disabled.")
+	c.flagSet.StringVar(&c.flagVaultCACertValue, "vault-ca-cert-value", "",
+		"CA certificate used to validate vault's TLS")
 
 	tlsVersions := []string{}
 	for v := range tlsutil.TLSLookup {
@@ -416,6 +421,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.DisableKeepAlives != "" {
 		c.flagDisableKeepAlives = envs.DisableKeepAlives
+	}
+
+	if envs.VaultCACertValue != "" {
+		c.flagVaultCACertValue = envs.VaultCACertValue
 	}
 
 	return nil

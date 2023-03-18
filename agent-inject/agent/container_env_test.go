@@ -24,6 +24,10 @@ func TestContainerEnvs(t *testing.T) {
 		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
 		{Agent{ConfigMapName: "foobar", Vault: Vault{Address: "http://localhost:8200", ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY", "VAULT_SKIP_VERIFY", "VAULT_ADDR"}},
 		{Agent{Vault: Vault{GoMaxProcs: "1"}}, []string{"VAULT_CONFIG", "GOMAXPROCS"}},
+		{Agent{Vault: Vault{CACert: ""}, VaultCACertInjectorSupplied: "DummyPEMCertificate"}, []string{"VAULT_CONFIG", "CACERT"}},
+		{Agent{Vault: Vault{CACert: "/home/vault/cacert.pem"}, VaultCACertInjectorSupplied: "DummyPEMCertificate"}, []string{"VAULT_CONFIG"}},
+		{Agent{Vault: Vault{CACert: "/home/vault/cacert.pem"}, VaultCACertInjectorSupplied: ""}, []string{"VAULT_CONFIG"}},
+		{Agent{Vault: Vault{CACert: "/home/vault/cacert.pem"}, ConfigMapName: "foobar", VaultCACertInjectorSupplied: ""}, []string{"VAULT_CACERT", "VAULT_SKIP_VERIFY"}},
 	}
 
 	for _, tt := range tests {
@@ -144,5 +148,26 @@ func testPodWithEnv(envVars []corev1.EnvVar) *corev1.Pod {
 				},
 			},
 		},
+	}
+}
+
+func TestIsBase64(t *testing.T) {
+
+	//Test that the function returns false for a non-base64 encoded string
+	notABase64String := `Invalid string`
+	got := IsBase64(notABase64String)
+	want := false
+
+	if got != want {
+		t.Errorf("got %t, wanted %t", got, want)
+	}
+
+	//Test that the function returns true for a base64 encoded string
+	aBase64String := `VmFsaWQgc3RyaW5nCg==`
+	got = IsBase64(aBase64String)
+	want = true
+
+	if got != want {
+		t.Errorf("got %t, wanted %t", got, want)
 	}
 }

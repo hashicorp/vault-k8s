@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -81,6 +81,12 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	resources, err := a.parseResources()
 	if err != nil {
 		return corev1.Container{}, err
+	}
+
+	if a.Vault.TLSSecret == "" && CaCertEnvVarPresent(envs) {
+		argPrefix := fmt.Sprintf("echo ${CACERT?} | base64 -d > %s/.cacert.pem && ", tokenVolumePath)
+		argSuffix := fmt.Sprintf(" -ca-cert=%s/.cacert.pem", tokenVolumePath)
+		arg = argPrefix + arg + argSuffix
 	}
 
 	newContainer := corev1.Container{

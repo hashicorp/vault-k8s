@@ -97,6 +97,12 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 
 	lifecycle := a.createLifecycle()
 
+	if a.Vault.TLSSecret == "" && CaCertEnvVarPresent(envs) {
+		argPrefix := fmt.Sprintf("echo ${CACERT?} | base64 -d > %s/.cacert.pem && ", tokenVolumePath)
+		argSuffix := fmt.Sprintf(" -ca-cert=%s/.cacert.pem", tokenVolumePath)
+		arg = argPrefix + arg + argSuffix
+	}
+
 	newContainer := corev1.Container{
 		Name:         "vault-agent",
 		Image:        a.ImageName,
@@ -243,4 +249,15 @@ func (a *Agent) securityContext() *corev1.SecurityContext {
 		},
 		AllowPrivilegeEscalation: pointerutil.BoolPtr(DefaultAgentAllowPrivilegeEscalation),
 	}
+}
+
+func CaCertEnvVarPresent(e []corev1.EnvVar) bool {
+	var caCertEnvVarBool = false
+	for _, s := range e {
+		if s.Name == "CACERT" {
+			caCertEnvVarBool = true
+			break
+		}
+	}
+	return caCertEnvVarBool
 }

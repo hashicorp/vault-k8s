@@ -79,6 +79,7 @@ type Command struct {
 	flagAuthMaxBackoff             string // Auth min backoff on failure
 	flagDisableIdleConnections     string // Idle connections control
 	flagDisableKeepAlives          string // Keep-alives control
+	flagVaultCACertValue           string // CA certificate value(not file location) to validate vault TLS
 
 	flagSet *flag.FlagSet
 
@@ -220,6 +221,7 @@ func (c *Command) Run(args []string) int {
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
 		DisableIdleConnections:     c.flagDisableIdleConnections,
 		DisableKeepAlives:          c.flagDisableKeepAlives,
+		VaultCACertValue:           c.flagVaultCACertValue,
 	}
 
 	mux := http.NewServeMux()

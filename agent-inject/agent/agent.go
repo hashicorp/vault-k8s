@@ -188,6 +188,9 @@ type Agent struct {
 
 	// AutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
 	AutoAuthExitOnError bool
+
+	// VaultCACertInjectorSupplied is used to supply the PEM-encoded CA cert to agent via the agent-injector
+	VaultCACertInjectorSupplied string
 }
 
 type ServiceAccountTokenVolume struct {

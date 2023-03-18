@@ -69,12 +69,12 @@ func TestContainerSidecarVolume(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod)
+	agent, _ := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
 
-	container, err := agent.ContainerSidecar()
+	container, _ := agent.ContainerSidecar()
 
 	// One token volume mount, one config volume mount, two secrets volume mounts, and one mount copied from main container
 	require.Equal(t, 6, len(container.VolumeMounts))
@@ -238,7 +238,7 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("got error, shouldn't have: %s", err)
 	}
 
-	agent, err := New(pod)
+	agent, _ := New(pod)
 	if err := agent.Validate(); err != nil {
 		t.Errorf("agent validation failed, it shouldn't have: %s", err)
 	}
@@ -377,7 +377,7 @@ func TestContainerSidecarRevokeHook(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod)
+			agent, _ := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -1149,7 +1149,7 @@ func TestContainerSidecarSecurityContext(t *testing.T) {
 				t.Errorf("got error, shouldn't have: %s", err)
 			}
 
-			agent, err := New(pod)
+			agent, _ := New(pod)
 			if err := agent.Validate(); err != nil {
 				t.Errorf("agent validation failed, it shouldn't have: %s", err)
 			}
@@ -1476,4 +1476,52 @@ func TestAgentJsonPatch(t *testing.T) {
 
 func optional[T any](x T) *T {
 	return &x
+}
+
+func TestCaCertEnvVarPresent(t *testing.T) {
+
+	//Test that the function returns true when CACERT env var is present
+	testDataEnvVarPresent := []corev1.EnvVar{
+		{
+			Name:  "Test",
+			Value: "Test",
+		},
+		{
+			Name:  "CACERT",
+			Value: "Dummy",
+		},
+		{
+			Name:  "Dummy",
+			Value: "DummyValue",
+		},
+	}
+	got := CaCertEnvVarPresent(testDataEnvVarPresent)
+	want := true
+
+	if got != want {
+		t.Errorf("got %t, wanted %t", got, want)
+	}
+
+	//Test that the function returns false when CACERT env var is not present
+	testDataEnvVarNotPresent := []corev1.EnvVar{
+		{
+			Name:  "Test",
+			Value: "Test",
+		},
+		{
+			Name:  "Dummy1",
+			Value: "Dummy",
+		},
+		{
+			Name:  "Dummy",
+			Value: "DummyValue",
+		},
+	}
+	got = CaCertEnvVarPresent(testDataEnvVarNotPresent)
+	want = false
+
+	if got != want {
+		t.Errorf("got %t, wanted %t", got, want)
+
+	}
 }
