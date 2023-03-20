@@ -1,12 +1,16 @@
 ## Unreleased
 
 Changes:
-* Building with Go 1.19.6
+* Building with Go 1.20.2
 * Dependency updates:
   * golang.org/x/net v0.4.0 => v0.7.0
   * golang.org/x/sys v0.3.0 => v0.5.0
   * golang.org/x/term v0.3.0 => v0.5.0
   * golang.org/x/text v0.5.0 => v0.7.0
+  * k8s.io/api 0.25.4 => 0.26.3
+  * k8s.io/apimachinery 0.25.4 => 0.26.3
+  * k8s.io/client-go 0.25.4 => 0.26.3
+  * k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed => v0.0.0-20221107191617-1a15be271d1d
 
 Bugs:
 * Don't override `shareProcessNamespace` if an annotation is not present [GH-445](https://github.com/hashicorp/vault-k8s/pull/445)
