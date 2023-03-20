@@ -341,7 +341,6 @@ func TestHandlerHandle(t *testing.T) {
 				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
 			},
 		},
-
 		{
 			"copy volume mounts pod injection",
 			basicHandler(),
@@ -388,6 +387,35 @@ func TestHandlerHandle(t *testing.T) {
 			},
 			"invalid default template type",
 			nil,
+		},
+		{
+			"shareProcessNamespaceAdded",
+			basicHandler(),
+			admissionv1.AdmissionRequest{
+				Namespace: "test",
+				Object: encodeRaw(t, &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Annotations: map[string]string{
+							agent.AnnotationAgentInject:                "true",
+							agent.AnnotationVaultRole:                  "demo",
+							agent.AnnotationAgentShareProcessNamespace: "true",
+						},
+					},
+					Spec: basicSpecWithMounts,
+				}),
+			},
+			"",
+			[]jsonpatch.Operation{
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/volumes/-", nil),
+				internal.AddOp("/spec/volumes", nil),
+				internal.AddOp("/spec/containers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/initContainers/-", nil),
+				internal.AddOp("/spec/initContainers/0/volumeMounts/-", nil),
+				internal.AddOp("/spec/shareProcessNamespace", nil),
+				internal.AddOp("/spec/containers/-", nil),
+				internal.AddOp("/metadata/annotations/"+internal.EscapeJSONPointer(agent.AnnotationAgentStatus), nil),
+			},
 		},
 	}
 
