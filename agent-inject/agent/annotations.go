@@ -349,7 +349,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	var runAsUserIsSet bool
 	var runAsSameUserIsSet bool
 	var runAsGroupIsSet bool
-	var shareProcessNamespaceIsSet bool
 
 	if pod == nil {
 		return errors.New("pod is empty")
@@ -467,10 +466,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, runAsSameUserIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser]; !runAsSameUserIsSet {
 		pod.ObjectMeta.Annotations[AnnotationAgentRunAsSameUser] = strconv.FormatBool(cfg.SameID)
-	}
-
-	if _, shareProcessNamespaceIsSet = pod.ObjectMeta.Annotations[AnnotationAgentShareProcessNamespace]; !shareProcessNamespaceIsSet {
-		pod.ObjectMeta.Annotations[AnnotationAgentShareProcessNamespace] = strconv.FormatBool(cfg.ShareProcessNamespace)
 	}
 
 	if _, runAsGroupIsSet = pod.ObjectMeta.Annotations[AnnotationAgentRunAsGroup]; !runAsGroupIsSet {
@@ -754,26 +749,27 @@ func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
 	return runAsSameID, nil
 }
 
-func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, error) {
+// returns value, ok, error
+func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, bool, error) {
 	annotation := AnnotationAgentShareProcessNamespace
 	raw, ok := a.Annotations[annotation]
 	if !ok {
-		return DefaultAgentShareProcessNamespace, nil
+		return false, false, nil
 	}
 	shareProcessNamespace, err := strconv.ParseBool(raw)
 	if err != nil {
-		return DefaultAgentShareProcessNamespace, fmt.Errorf(
+		return false, true, fmt.Errorf(
 			"invalid value %v for annotation %q, err=%w", raw, annotation, err)
 	}
 	if pod.Spec.ShareProcessNamespace != nil {
 		if !*pod.Spec.ShareProcessNamespace && shareProcessNamespace {
-			return DefaultAgentShareProcessNamespace,
+			return false, true,
 				errors.New("shareProcessNamespace explicitly disabled on the pod, " +
 					"refusing to enable it")
 		}
 	}
 
-	return shareProcessNamespace, nil
+	return shareProcessNamespace, true, nil
 }
 
 func (a *Agent) setSecurityContext() (bool, error) {
