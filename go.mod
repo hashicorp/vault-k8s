@@ -3,7 +3,7 @@ module github.com/hashicorp/vault-k8s
 go 1.20
 
 require (
-	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.2
