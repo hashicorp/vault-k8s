@@ -1,16 +1,24 @@
 ## Unreleased
 
+## 1.2.1 (April 6, 2023)
+
 Changes:
-* Building with Go 1.20.2
+* Default to Vault 1.13.1
+* Building with Go 1.20.3
 * Dependency updates:
-  * golang.org/x/net v0.4.0 => v0.7.0
-  * golang.org/x/sys v0.3.0 => v0.5.0
-  * golang.org/x/term v0.3.0 => v0.5.0
-  * golang.org/x/text v0.5.0 => v0.7.0
-  * k8s.io/api 0.25.4 => 0.26.3
-  * k8s.io/apimachinery 0.25.4 => 0.26.3
-  * k8s.io/client-go 0.25.4 => 0.26.3
-  * k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed => v0.0.0-20221107191617-1a15be271d1d
+  * `github.com/cenkalti/backoff/v4` v4.1.3 -> v4.2.0
+  * `github.com/hashicorp/go-hclog` v1.3.1 -> v1.5.0
+  * `github.com/hashicorp/vault/sdk` v0.6.1 -> v0.8.1
+  * `golang.org/x/net` v0.4.0 -> v0.7.0
+  * `golang.org/x/sys` v0.3.0 -> v0.5.0
+  * `golang.org/x/term` v0.3.0 -> v0.5.0
+  * `golang.org/x/text` v0.5.0 -> v0.7.0
+  * `k8s.io/api` v0.25.4 -> v0.26.3
+  * `k8s.io/apimachinery` v0.25.4 -> v0.26.3
+  * `k8s.io/client-go` v0.25.4 -> v0.26.3
+  * `k8s.io/utils` v0.0.0-20220728103510-ee6ede2d64ed -> v0.0.0-20230406110748-d93618cff8a2
+  * Docker UBI image `ubi8/ubi-minimal` 8.7 -> 8.7-1107
+  * Used fixed Docker alpine version: 3.17.3
 
 Bugs:
 * Don't override `shareProcessNamespace` if an annotation is not present [GH-445](https://github.com/hashicorp/vault-k8s/pull/445)
