@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.3.0 (April 6, 2023)
+## 1.2.1 (April 6, 2023)
 
 Changes:
 * Default to Vault 1.13.1

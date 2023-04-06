@@ -24,7 +24,7 @@ spec:
       serviceAccountName: "vault-injector"
       containers:
         - name: sidecar-injector
-          image: "hashicorp/vault-k8s:1.3.0"
+          image: "hashicorp/vault-k8s:1.2.1"
           imagePullPolicy: IfNotPresent
           env:
             - name: NAMESPACE
