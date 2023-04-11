@@ -862,11 +862,8 @@ func (a *Agent) telemetryConfig() map[string]interface{} {
 func (a *Agent) authConfig() map[string]interface{} {
 	authConfig := make(map[string]interface{})
 
-	// set authConfig parameters from the Agent prior to assignment from annotations
-	// so that annotations take precedence and can override default values defined in agent.go
-	if a.Vault.Role != "" {
-		authConfig["role"] = a.Vault.Role
-	}
+	// set token_path parameter from the Agent prior to assignment from annotations
+	// so that annotations can override the value assigned in agent.go
 	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
 		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
@@ -879,6 +876,10 @@ func (a *Agent) authConfig() map[string]interface{} {
 			param = strings.ReplaceAll(param, "-", "_")
 			authConfig[param] = value
 		}
+	}
+
+	if a.Vault.Role != "" {
+		authConfig["role"] = a.Vault.Role
 	}
 
 	return authConfig
