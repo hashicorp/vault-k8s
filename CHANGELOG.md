@@ -1,5 +1,9 @@
 ## Unreleased
 
+Changes:
+* Dependency updates:
+  * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.0
+
 ## 1.2.1 (April 6, 2023)
 
 Changes:
