@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -935,6 +935,14 @@ func TestAuthConfigAnnotations(t *testing.T) {
 			map[string]interface{}{
 				"role":       "backwardscompat",
 				"token_path": "serviceaccount/somewhere/token",
+			},
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/auth-config-token-path": "serviceaccount/somewhere-else/token",
+			},
+			map[string]interface{}{
+				"token_path": "serviceaccount/somewhere-else/token",
 			},
 		},
 		{

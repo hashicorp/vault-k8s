@@ -862,6 +862,13 @@ func (a *Agent) telemetryConfig() map[string]interface{} {
 func (a *Agent) authConfig() map[string]interface{} {
 	authConfig := make(map[string]interface{})
 
+	// set token_path parameter from the Agent prior to assignment from annotations
+	// so that annotations can override the value assigned in agent.go https://github.com/hashicorp/vault-k8s/issues/456
+	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
+		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
+	}
+
+	// set authConfig parameters from annotations
 	prefix := fmt.Sprintf("%s-", AnnotationVaultAuthConfig)
 	for annotation, value := range a.Annotations {
 		if strings.HasPrefix(annotation, prefix) {
@@ -870,12 +877,9 @@ func (a *Agent) authConfig() map[string]interface{} {
 			authConfig[param] = value
 		}
 	}
+
 	if a.Vault.Role != "" {
 		authConfig["role"] = a.Vault.Role
-	}
-
-	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
-		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
 
 	return authConfig
