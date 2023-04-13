@@ -4,6 +4,9 @@ Changes:
 * Dependency updates:
   * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.0
 
+Bugs:
+* Prevent `auth-config-token-path` from being overridden when another serviceaccount volume is present [GH-457](https://github.com/hashicorp/vault-k8s/pull/457)
+
 ## 1.2.1 (April 6, 2023)
 
 Changes:
