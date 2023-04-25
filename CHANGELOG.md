@@ -2,6 +2,7 @@
 
 Changes:
 * Dependency updates:
+  * `github.com/cenkalti/backoff/v4` v4.2.0 -> v4.2.1
   * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.0
 
 Bugs:
