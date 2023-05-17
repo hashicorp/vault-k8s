@@ -5,6 +5,7 @@ Changes:
   * `github.com/cenkalti/backoff/v4` v4.2.0 -> v4.2.1
   * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.0
   * Docker alpine version 3.17.3 -> 3.18.0
+  * Docker UBI image `ubi8/ubi-minimal` 8.7-1107 -> 8.8-860
 
 Bugs:
 * Prevent `auth-config-token-path` from being overridden when another serviceaccount volume is present [GH-457](https://github.com/hashicorp/vault-k8s/pull/457)
