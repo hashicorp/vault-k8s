@@ -248,36 +248,36 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 4
+	expectedEnvs := 7
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
 
-	if container.Env[0].Name != "VAULT_LOG_LEVEL" {
+	if container.Env[3].Name != "VAULT_LOG_LEVEL" {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_LEVEL", container.Env[0].Name)
 	}
 
-	if container.Env[0].Value == "" {
+	if container.Env[3].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[1].Name != "VAULT_LOG_FORMAT" {
+	if container.Env[4].Name != "VAULT_LOG_FORMAT" {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_LOG_FORMAT", container.Env[1].Name)
 	}
 
-	if container.Env[2].Name != "HTTPS_PROXY" {
+	if container.Env[5].Name != "HTTPS_PROXY" {
 		t.Errorf("env name wrong, should have been %s, got %s", "HTTPS_PROXY", container.Env[2].Name)
 	}
 
-	if container.Env[1].Value == "" {
+	if container.Env[4].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
-	if container.Env[3].Name != "VAULT_CONFIG" {
+	if container.Env[6].Name != "VAULT_CONFIG" {
 		t.Errorf("env name wrong, should have been %s, got %s", "VAULT_CONFIG", container.Env[3].Name)
 	}
 
-	if container.Env[2].Value == "" {
+	if container.Env[5].Value == "" {
 		t.Error("env value empty, it shouldn't be")
 	}
 
@@ -454,7 +454,7 @@ func TestContainerSidecarConfigMap(t *testing.T) {
 		t.Errorf("creating container sidecar failed, it shouldn't have: %s", err)
 	}
 
-	expectedEnvs := 9
+	expectedEnvs := 12
 	if len(container.Env) != expectedEnvs {
 		t.Errorf("wrong number of env vars, got %d, should have been %d", len(container.Env), expectedEnvs)
 	}
@@ -1280,16 +1280,44 @@ func TestContainerCache(t *testing.T) {
 }
 
 func TestAgentJsonPatch(t *testing.T) {
+	baseContainerEnvVars := []corev1.EnvVar{
+		{
+			Name: "NAMESPACE",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.namespace",
+				},
+			},
+		},
+		{
+			Name: "HOST_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.hostIP",
+				},
+			},
+		},
+		{
+			Name: "POD_IP",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "status.podIP",
+				},
+			},
+		},
+		{Name: "VAULT_LOG_LEVEL", Value: "info"},
+		{Name: "VAULT_LOG_FORMAT", Value: "standard"},
+	}
+
 	baseContainer := corev1.Container{
 		Name:    "vault-agent",
 		Image:   "foobar-image",
 		Command: []string{"/bin/sh", "-ec"},
 		Args:    []string{`echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json`},
-		Env: []v1.EnvVar{
-			{Name: "VAULT_LOG_LEVEL", Value: "info"},
-			{Name: "VAULT_LOG_FORMAT", Value: "standard"},
-			{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6ZmFsc2UsInBpZF9maWxlIjoiL2hvbWUvdmF1bHQvLnBpZCIsInZhdWx0Ijp7ImFkZHJlc3MiOiJodHRwOi8vZm9vYmFyOjEyMzQifSwidGVtcGxhdGVfY29uZmlnIjp7ImV4aXRfb25fcmV0cnlfZmFpbHVyZSI6dHJ1ZX19"},
-		},
+		Env: append(
+			baseContainerEnvVars,
+			corev1.EnvVar{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6ZmFsc2UsInBpZF9maWxlIjoiL2hvbWUvdmF1bHQvLnBpZCIsInZhdWx0Ijp7ImFkZHJlc3MiOiJodHRwOi8vZm9vYmFyOjEyMzQifSwidGVtcGxhdGVfY29uZmlnIjp7ImV4aXRfb25fcmV0cnlfZmFpbHVyZSI6dHJ1ZX19"},
+		),
 		Resources: v1.ResourceRequirements{
 			Limits:   v1.ResourceList{"cpu": resource.MustParse("500m"), "memory": resource.MustParse("128Mi")},
 			Requests: v1.ResourceList{"cpu": resource.MustParse("250m"), "memory": resource.MustParse("64Mi")},
@@ -1320,11 +1348,10 @@ func TestAgentJsonPatch(t *testing.T) {
 
 	baseInitContainer := baseContainer
 	baseInitContainer.Name = "vault-agent-init"
-	baseInitContainer.Env = []v1.EnvVar{
-		{Name: "VAULT_LOG_LEVEL", Value: "info"},
-		{Name: "VAULT_LOG_FORMAT", Value: "standard"},
-		{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
-	}
+	baseInitContainer.Env = append(
+		baseContainerEnvVars,
+		corev1.EnvVar{Name: "VAULT_CONFIG", Value: "eyJhdXRvX2F1dGgiOnsibWV0aG9kIjp7InR5cGUiOiJrdWJlcm5ldGVzIiwibW91bnRfcGF0aCI6InRlc3QiLCJjb25maWciOnsicm9sZSI6InJvbGUiLCJ0b2tlbl9wYXRoIjoic2VydmljZWFjY291bnQvc29tZXdoZXJlL3Rva2VuIn19LCJzaW5rIjpbeyJ0eXBlIjoiZmlsZSIsImNvbmZpZyI6eyJwYXRoIjoiL2hvbWUvdmF1bHQvLnZhdWx0LXRva2VuIn19XX0sImV4aXRfYWZ0ZXJfYXV0aCI6dHJ1ZSwicGlkX2ZpbGUiOiIvaG9tZS92YXVsdC8ucGlkIiwidmF1bHQiOnsiYWRkcmVzcyI6Imh0dHA6Ly9mb29iYXI6MTIzNCJ9LCJ0ZW1wbGF0ZV9jb25maWciOnsiZXhpdF9vbl9yZXRyeV9mYWlsdXJlIjp0cnVlfX0="},
+	)
 	baseInitContainer.VolumeMounts = []v1.VolumeMount{
 		{Name: "home-init", MountPath: "/home/vault"},
 		{Name: "foobar", ReadOnly: true, MountPath: "serviceaccount/somewhere"},
