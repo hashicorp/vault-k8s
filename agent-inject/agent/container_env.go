@@ -10,10 +10,37 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+var baseContainerEnvVars []corev1.EnvVar = []corev1.EnvVar{
+	corev1.EnvVar{
+		Name: "NAMESPACE",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "metadata.namespace",
+			},
+		},
+	},
+	corev1.EnvVar{
+		Name: "HOST_IP",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "status.hostIP",
+			},
+		},
+	},
+	corev1.EnvVar{
+		Name: "POD_IP",
+		ValueFrom: &corev1.EnvVarSource{
+			FieldRef: &corev1.ObjectFieldSelector{
+				FieldPath: "status.podIP",
+			},
+		},
+	},
+}
+
 // ContainerEnvVars adds the applicable environment vars
 // for the Vault Agent sidecar.
 func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
-	var envs []corev1.EnvVar
+	envs := baseContainerEnvVars
 
 	if a.Vault.GoMaxProcs != "" {
 		envs = append(envs, corev1.EnvVar{

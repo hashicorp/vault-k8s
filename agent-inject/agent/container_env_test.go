@@ -11,19 +11,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var baseEnvVars = []string{"NAMESPACE", "HOST_IP", "POD_IP"}
+
 func TestContainerEnvs(t *testing.T) {
 
 	tests := []struct {
 		agent        Agent
 		expectedEnvs []string
 	}{
-		{Agent{}, []string{"VAULT_CONFIG"}},
-		{Agent{Vault: Vault{Address: "http://localhost:8200"}, ConfigMapName: "foobar"}, []string{"VAULT_SKIP_VERIFY", "VAULT_ADDR"}},
-		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES"}},
-		{Agent{Vault: Vault{ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_CLIENT_TIMEOUT"}},
-		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, []string{"VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT"}},
-		{Agent{ConfigMapName: "foobar", Vault: Vault{Address: "http://localhost:8200", ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, []string{"VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY", "VAULT_SKIP_VERIFY", "VAULT_ADDR"}},
-		{Agent{Vault: Vault{GoMaxProcs: "1"}}, []string{"VAULT_CONFIG", "GOMAXPROCS"}},
+		{Agent{}, append(baseEnvVars, "VAULT_CONFIG")},
+		{Agent{Vault: Vault{Address: "http://localhost:8200"}, ConfigMapName: "foobar"}, append(baseEnvVars, "VAULT_SKIP_VERIFY", "VAULT_ADDR")},
+		{Agent{Vault: Vault{ClientMaxRetries: "0"}}, append(baseEnvVars, "VAULT_CONFIG", "VAULT_MAX_RETRIES")},
+		{Agent{Vault: Vault{ClientTimeout: "5s"}}, append(baseEnvVars, "VAULT_CONFIG", "VAULT_CLIENT_TIMEOUT")},
+		{Agent{Vault: Vault{ClientMaxRetries: "0", ClientTimeout: "5s"}}, append(baseEnvVars, "VAULT_CONFIG", "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT")},
+		{Agent{ConfigMapName: "foobar", Vault: Vault{Address: "http://localhost:8200", ClientMaxRetries: "0", ClientTimeout: "5s", LogLevel: "info", ProxyAddress: "http://proxy:3128"}}, append(baseEnvVars, "VAULT_MAX_RETRIES", "VAULT_CLIENT_TIMEOUT", "VAULT_LOG_LEVEL", "HTTPS_PROXY", "VAULT_SKIP_VERIFY", "VAULT_ADDR")},
+		{Agent{Vault: Vault{GoMaxProcs: "1"}}, append(baseEnvVars, "VAULT_CONFIG", "GOMAXPROCS")},
 	}
 
 	for _, tt := range tests {
@@ -48,9 +50,9 @@ func TestContainerEnvsForIRSA(t *testing.T) {
 		agent        Agent
 		expectedEnvs []string
 	}{
-		{Agent{Pod: testPodWithoutIRSA()}, []string{"VAULT_CONFIG"}},
+		{Agent{Pod: testPodWithoutIRSA()}, append(baseEnvVars, "VAULT_CONFIG")},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"},
+			append(baseEnvVars, "VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"),
 		},
 	}
 	for _, tt := range envTests {
@@ -70,10 +72,10 @@ func TestAwsRegionEnvForAwsAuthMethod(t *testing.T) {
 		expectedEnvs []string
 	}{
 		{Agent{Pod: testPodWithRegionInAuthConfig(), Vault: Vault{AuthType: "aws", AuthConfig: getRegionMap()}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"},
+			append(baseEnvVars, "VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_REGION"),
 		},
 		{Agent{Pod: testPodWithIRSA(), Vault: Vault{AuthType: "aws"}},
-			[]string{"VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"},
+			append(baseEnvVars, "VAULT_CONFIG", "AWS_ROLE_ARN", "AWS_WEB_IDENTITY_TOKEN_FILE", "AWS_DEFAULT_REGION", "AWS_REGION"),
 		},
 	}
 	for _, item := range input {
