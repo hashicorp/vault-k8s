@@ -1,5 +1,8 @@
 ## Unreleased
 
+Improvements:
+* Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486) 
+
 Changes:
 * Dependency updates:
   * `github.com/cenkalti/backoff/v4` v4.2.0 -> v4.2.1
