@@ -12,7 +12,7 @@ Changes:
   * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.1
   * `github.com/stretchr/testify` v1.8.2 -> v1.8.3
   * `github.com/prometheus/client_golang` v1.14.0 -> v1.15.1
-  * Docker alpine version 3.17.3 -> 3.18.0
+  * Docker alpine version 3.17.3 -> 3.18.2
   * Docker UBI image `ubi8/ubi-minimal` 8.7-1107 -> 8.8-860
 
 Bugs:
