@@ -464,9 +464,11 @@ func watchWebhooks(ctx context.Context, clientset *kubernetes.Clientset) (v1.Mut
 	return webhooks.Lister(), notifyCh, nil
 }
 
+var _ cache.ResourceEventHandler = (*webhookWatcher)(nil)
+
 type webhookWatcher chan interface{}
 
-func (w webhookWatcher) OnAdd(_ interface{}) {
+func (w webhookWatcher) OnAdd(_ interface{}, _ bool) {
 	w <- nil
 }
 
