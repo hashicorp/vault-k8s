@@ -14,7 +14,9 @@ PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-.PHONY: all test build image clean version
+HELM_CHART_VERSION ?= 0.25.0
+
+.PHONY: all test build image clean version deploy
 all: build
 
 version:
@@ -22,13 +24,22 @@ version:
 
 build:
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
-		-a \
 		-ldflags $(LDFLAGS) \
 		-o $(BUILD_DIR)/$(BIN_NAME) \
 		.
 
 image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
+
+deploy:
+	kind load docker-image hashicorp/vault-k8s:$(VERSION)
+	helm upgrade --install vault vault --repo https://helm.releases.hashicorp.com --version=$(HELM_CHART_VERSION) \
+		--wait --timeout=5m \
+		--set 'server.dev.enabled=true' \
+		--set 'injector.image.tag=$(VERSION)' \
+		--set 'injector.image.pullPolicy=Never' \
+		--set 'injector.affinity=null' \
+		--set 'injector.annotations.deployed=unix-$(shell date +%s)'
 
 clean:
 	-rm -rf $(BUILD_DIR)
