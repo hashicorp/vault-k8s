@@ -16,7 +16,7 @@ TESTARGS ?= '-test.v'
 
 HELM_CHART_VERSION ?= 0.25.0
 
-.PHONY: all test build image clean version deploy
+.PHONY: all test build image clean version deploy exercise teardown
 all: build
 
 version:
@@ -31,6 +31,8 @@ build:
 image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
+# Deploys Vault dev server and a locally built Agent Injector.
+# Run multiple times to deploy new versions of the injector.
 deploy: image
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
 	helm upgrade --install vault vault --repo https://helm.releases.hashicorp.com --version=$(HELM_CHART_VERSION) \
@@ -42,6 +44,8 @@ deploy: image
 		--set 'injector.affinity=null' \
 		--set 'injector.annotations.deployed=unix-$(shell date +%s)'
 
+# Populates the Vault dev server with a secret, configures kubernetes auth, and
+# deploys an nginx pod with annotations to have the secret injected.
 exercise:
 	kubectl exec vault-0 -- vault kv put secret/test-app hello=world
 	kubectl exec vault-0 -- vault auth enable kubernetes || true
@@ -59,6 +63,14 @@ exercise:
 		--annotations="vault.hashicorp.com/role=test-app" \
 		--annotations="vault.hashicorp.com/agent-inject-secret-secret.txt=secret/data/test-app" \
 		--overrides='{ "apiVersion": "v1", "spec": { "serviceAccountName": "test-app-sa" } }'
+	kubectl wait --for=condition=Ready --timeout=5m pod nginx
+	kubectl exec nginx -c nginx -- cat /vault/secrets/secret.txt
+
+# Teardown any resources created in deploy and exercise targets.
+teardown:
+	helm uninstall vault || true
+	kubectl delete --ignore-not-found serviceaccount test-app-sa
+	kubectl delete --ignore-not-found pod nginx
 
 clean:
 	-rm -rf $(BUILD_DIR)
