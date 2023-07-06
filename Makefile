@@ -32,7 +32,7 @@ image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
 # Deploys Vault dev server and a locally built Agent Injector.
-# Run multiple times to deploy new versions of the injector.
+# Run multiple times to deploy new builds of the injector.
 deploy: image
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
 	helm upgrade --install vault vault --repo https://helm.releases.hashicorp.com --version=$(HELM_CHART_VERSION) \
