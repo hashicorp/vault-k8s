@@ -33,6 +33,7 @@ const (
 	DefaultAgentCacheExitOnErr              = false
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
+        DefaultAgentSidecarType                 = "agent"
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
@@ -400,6 +401,8 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	if err != nil {
 		return agent, err
 	}
+        
+        agent.SidecarType = agent.sidecarType()
 
 	agent.Vault.AgentTelemetryConfig = agent.telemetryConfig()
 
