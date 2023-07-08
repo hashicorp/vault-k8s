@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	// AnnotationAgentSidecarType is the key of the annotation that controls whether
+	// a Vault agent or Vault proxy is injected into the pod
+	// Should be set to one of "agent" / "proxy", defaults to "agent".
+	AnnotationAgentSidecarType = "vault.hashicorp.com/sidecar-type"
+
 	// AnnotationAgentStatus is the key of the annotation that is added to
 	// a pod after an injection is done.
 	// There's only one valid status we care about: "injected".
