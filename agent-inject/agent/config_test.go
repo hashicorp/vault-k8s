@@ -809,7 +809,7 @@ func TestConfigTelemetry(t *testing.T) {
 				"vault.hashicorp.com/agent-telemetry-stackdriver_location":                   "useast-1",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_namespace":                  "foo",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_debug_logs":                 "false",
-				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`, 
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`,
 			},
 			&Telemetry{
 				UsageGaugePeriod:                   "10m",

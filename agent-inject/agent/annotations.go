@@ -891,8 +891,8 @@ func (a *Agent) authConfig() map[string]interface{} {
 }
 
 func (a *Agent) sidecarType() string {
-        if a.SidecarType != "" && (a.SidecarType == "agent" || a.SidecarType == "proxy") {
-                return a.SidecarType
-        }
-        return DefaultAgentSidecarType
+	if a.SidecarType != "" && !(a.SidecarType == "agent" || a.SidecarType == "proxy") {
+		return a.SidecarType
+	}
+	return DefaultAgentSidecarType
 }

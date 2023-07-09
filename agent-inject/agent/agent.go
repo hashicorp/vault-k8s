@@ -33,7 +33,7 @@ const (
 	DefaultAgentCacheExitOnErr              = false
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
-        DefaultAgentSidecarType                 = "agent"
+	DefaultAgentSidecarType                 = "agent"
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
@@ -122,9 +122,8 @@ type Agent struct {
 	// container(s).
 	ConfigMapName string
 
-
-       // SidecarType is the type of the sidecar container that is injected into the pod
-       SidecarType string
+	// SidecarType is the type of the sidecar container that is injected into the pod
+	SidecarType string
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
@@ -401,8 +400,8 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	if err != nil {
 		return agent, err
 	}
-        
-        agent.SidecarType = agent.sidecarType()
+
+	agent.SidecarType = agent.sidecarType()
 
 	agent.Vault.AgentTelemetryConfig = agent.telemetryConfig()
 
@@ -731,9 +730,9 @@ func (a *Agent) Validate() error {
 			return errors.New("no Vault address found")
 		}
 	}
-        if a.SidecarType != "" && (a.SidecarType == "agent" || a.SidecarType == "proxy") {
-                return errors.New("Invalid sidecar type, expected one of agent / proxy")
-        } 
+	if a.SidecarType != "" && !(a.SidecarType == "agent" || a.SidecarType == "proxy") {
+		return errors.New(fmt.Sprintf("Invalid sidecar type, expected one of agent / proxy, got %s", a.SidecarType))
+	}
 	return nil
 }
 
