@@ -1,5 +1,3 @@
-TODO: verify that the version support the vault proxy before setting it (1.13 or higher)
-
 # Vault + Kubernetes (vault-k8s)
 
 > :warning: **Please note**: We take Vault's security and our users' trust very seriously. If 
