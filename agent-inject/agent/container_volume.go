@@ -139,12 +139,12 @@ func (a *Agent) ContainerTLSSecretVolume() corev1.Volume {
 
 // ContainerVolumeMounts mounts the shared memory volume where secrets
 // will be rendered.
-func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
+func (a *Agent) ContainerVolumeMounts(readonly bool) []corev1.VolumeMount {
 	volumeMounts := []corev1.VolumeMount{
 		corev1.VolumeMount{
 			Name:      secretVolumeName,
 			MountPath: a.Annotations[AnnotationVaultSecretVolumePath],
-			ReadOnly:  false,
+			ReadOnly:  readonly,
 		},
 	}
 	for index, mountPath := range a.getUniqueMountPaths() {
@@ -153,7 +153,7 @@ func (a *Agent) ContainerVolumeMounts() []corev1.VolumeMount {
 			corev1.VolumeMount{
 				Name:      fmt.Sprintf("%s-custom-%d", secretVolumeName, index),
 				MountPath: mountPath,
-				ReadOnly:  false,
+				ReadOnly:  readonly,
 			},
 		)
 	}

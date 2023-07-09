@@ -607,7 +607,7 @@ func (a *Agent) Patch() ([]byte, error) {
 		if strutil.StrListContains(a.Containers, container.Name) {
 			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
-				a.ContainerVolumeMounts(),
+				a.ContainerVolumeMounts(true),
 				fmt.Sprintf("/spec/containers/%d/volumeMounts", i))...)
 		}
 	}
@@ -653,7 +653,7 @@ func (a *Agent) Patch() ([]byte, error) {
 			}
 			patches = append(patches, addVolumeMounts(
 				container.VolumeMounts,
-				a.ContainerVolumeMounts(),
+				a.ContainerVolumeMounts(true),
 				fmt.Sprintf("/spec/initContainers/%d/volumeMounts", i))...)
 		}
 
