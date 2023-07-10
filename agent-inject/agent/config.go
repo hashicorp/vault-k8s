@@ -33,6 +33,7 @@ type Config struct {
 	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
 	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
 	Telemetry              *Telemetry      `json:"telemetry,omitempty"`
+	ApiProxy               *ApiProxy       `json:"api_proxy,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -106,6 +107,12 @@ type AgentAPI struct {
 type Cache struct {
 	UseAutoAuthToken string        `json:"use_auto_auth_token,omitempty"`
 	Persist          *CachePersist `json:"persist,omitempty"`
+}
+
+type ApiProxy struct {
+    UseAutoAuthToken   interface{} `json:"use_auto_auth_token,omitempty"`
+    EnforceConsistency string      `json:enforce_consistency,omitempty`
+    WhenInconsistent   string      `json:when_inconsistent,omitempty`
 }
 
 // CachePersist defines the configuration for persistent caching in Vault Agent
@@ -281,6 +288,13 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 		}
+	}
+
+    // adds the api_proxy stanza to the configuration
+	if a.SidecarType == "proxy" {
+	   config.ApiProxy = &ApiProxy{
+	       UseAutoAuthToken: a.ProxyUseAutoAuthToken,
+	   }
 	}
 
 	// If EnableQuit is true, set it on the listener. If a listener hasn't been

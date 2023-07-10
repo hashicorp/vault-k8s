@@ -22,6 +22,11 @@ const (
 	// Should be set to one of "agent" / "proxy", defaults to "agent".
 	AnnotationAgentSidecarType = "vault.hashicorp.com/sidecar-type"
 
+	// AnnotationAgentProxyUseAutoAuthToken is the key of the annotation that controls whether
+	// the auto auth token should be used in the vault proxy.
+	// configures the "use_auto_auth_token" key in the "api_proxy" stanza.
+	AnnotationAgentProxyUseAutoAuthToken = "vault.hashicorp.com/sidecar-proxy-use-auto-auth-token"
+
 	// AnnotationAgentStatus is the key of the annotation that is added to
 	// a pod after an injection is done.
 	// There's only one valid status we care about: "injected".
@@ -895,4 +900,18 @@ func (a *Agent) sidecarType() string {
 		return a.SidecarType
 	}
 	return DefaultAgentSidecarType
+}
+
+func (a *Agent) proxyUseAutoAuthToken() interface{} {
+    switch a.ProxyUseAutoAuthToken.(type) {
+        case bool:
+            return a.ProxyUseAutoAuthToken.(bool)
+        case string:
+            if a.ProxyUseAutoAuthToken == "force" {
+                return a.ProxyUseAutoAuthToken.(string)
+            }
+        default:
+            return DefaultProxyUseAutoAuthToken
+    }
+    return nil
 }
