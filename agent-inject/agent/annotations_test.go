@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
@@ -196,7 +197,7 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 		if tt.expectedKey != "" {
 			if len(agent.Secrets) == 0 {
-				t.Error("Secrets length was zero, it shouldn't have been")
+				t.Errorf("Secrets length was zero, it shouldn't have been: %s", tt.key)
 			}
 			if agent.Secrets[0].Name != tt.expectedKey {
 				t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
@@ -348,44 +349,30 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 func TestSecretTemplateAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations      map[string]string
+		expectedExists   bool
 		expectedKey      string
 		expectedTemplate string
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":   "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
-			}, "foobar", "foobarTemplate",
+			}, true, "foobar", "foobarTemplate",
 		},
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test2",
 				"vault.hashicorp.com/agent-inject-template-foobar": "",
-			}, "foobar2", "",
+			}, true, "foobar", "",
 		},
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
 				"vault.hashicorp.com/agent-inject-templat-foobar": "foobarTemplate",
-			}, "foobar", "",
-		},
-		{
-			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":    "test1",
-				"vault.hashicorp.com/agent-inject-template-foobar2": "foobarTemplate",
-			}, "foobar", "",
-		},
-		{
-			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
-				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
-			}, "foobar2", "",
+			}, false, "foobar", "",
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
 				"vault.hashicorp.com/agent-inject-TEMPLATE-foobar": "foobarTemplate",
-			}, "foobar2", "",
+			}, false, "foobar2", "",
 		},
 	}
 
@@ -404,7 +391,11 @@ func TestSecretTemplateAnnotations(t *testing.T) {
 		}
 
 		if len(agent.Secrets) == 0 {
-			t.Error("Secrets length was zero, it shouldn't have been")
+			if tt.expectedExists {
+				t.Error("Secrets length was zero, it shouldn't have been")
+			} else {
+				continue
+			}
 		}
 
 		if agent.Secrets[0].Name != tt.expectedKey {
@@ -424,24 +415,20 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
-				"vault.hashicorp.com/agent-inject-template-foobar":      "",
 				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
-				"vault.hashicorp.com/agent-inject-secret-test2":         "test2",
 				"vault.hashicorp.com/agent-inject-template-test2":       "foobarTemplate",
-				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
 			},
 			map[string]Secret{
 				"foobar": {
 					Name:         "foobar",
-					Path:         "test1",
+					Path:         "",
 					Template:     "",
 					TemplateFile: "/etc/config.tmpl",
 					MountPath:    secretVolumePath,
 				},
 				"test2": {
 					Name:         "test2",
-					Path:         "test2",
+					Path:         "",
 					Template:     "foobarTemplate",
 					TemplateFile: "",
 					MountPath:    secretVolumePath,
@@ -492,15 +479,11 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
-				"vault.hashicorp.com/agent-inject-template-foobar":      "foobarTemplate",
-				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
+				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
 			}, "foobar", "foobarTemplate", "",
 		},
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
-				"vault.hashicorp.com/agent-inject-template-foobar":      "",
 				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
 			}, "foobar", "", "/etc/config.tmpl",
 		},

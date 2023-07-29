@@ -29,7 +29,6 @@ func TestNewConfig(t *testing.T) {
 		AnnotationVaultClientKey:                        "client-key",
 		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
 		AnnotationProxyAddress:                          "http://proxy:3128",
-		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
 
@@ -38,7 +37,6 @@ func TestNewConfig(t *testing.T) {
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
 		// render this secret from a template on disk
-		"vault.hashicorp.com/agent-inject-secret-with-file-template":                  "with-file-template",
 		fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, "with-file-template"): "/etc/file-template",
 
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
@@ -809,7 +807,7 @@ func TestConfigTelemetry(t *testing.T) {
 				"vault.hashicorp.com/agent-telemetry-stackdriver_location":                   "useast-1",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_namespace":                  "foo",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_debug_logs":                 "false",
-				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`, 
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`,
 			},
 			&Telemetry{
 				UsageGaugePeriod:                   "10m",

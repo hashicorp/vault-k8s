@@ -589,58 +589,77 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 func (a *Agent) secrets() []*Secret {
 	var secrets []*Secret
 
-	for name, path := range a.Annotations {
-		secretName := fmt.Sprintf("%s-", AnnotationAgentInjectSecret)
-		if strings.Contains(name, secretName) {
-			raw := strings.ReplaceAll(name, secretName, "")
-			name := raw
-
-			if ok, _ := a.preserveSecretCase(raw); !ok {
-				name = strings.ToLower(raw)
-			}
-
-			if name == "" {
+	for annotationName, annotationValue := range a.Annotations {
+		var (
+			secret    *Secret
+			raw, name string
+			ok        bool
+		)
+		switch {
+		// parsing vault.hashicorp.com/agent-inject-secret-<name>: <path>
+		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectSecret)):
+			raw, name, ok = a.secretName(annotationName, AnnotationAgentInjectSecret)
+			if !ok {
 				continue
 			}
-
-			s := &Secret{Name: name, Path: path}
-
-			templateName := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplate, raw)
-			if val, ok := a.Annotations[templateName]; ok {
-				s.Template = val
+			secret = &Secret{Name: name, Path: annotationValue}
+		// parsing vault.hashicorp.com/agent-inject-secret-template-file-<name>: <template-file>
+		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectTemplateFile)):
+			raw, name, ok = a.secretName(annotationName, AnnotationAgentInjectTemplateFile)
+			if !ok {
+				continue
 			}
-			if s.Template == "" {
-				templateFileAnnotation := fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, raw)
-				if val, ok := a.Annotations[templateFileAnnotation]; ok {
-					s.TemplateFile = val
-				}
+			secret = &Secret{Name: name, TemplateFile: annotationValue}
+		// parsing vault.hashicorp.com/agent-inject-secret-template-<name>: <template>
+		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectTemplate)):
+			raw, name, ok = a.secretName(annotationName, AnnotationAgentInjectTemplate)
+			if !ok {
+				continue
 			}
-
-			s.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
-			mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
-			if val, ok := a.Annotations[mountPathAnnotationName]; ok {
-				s.MountPath = val
-			}
-
-			commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
-			if val, ok := a.Annotations[commandName]; ok {
-				s.Command = val
-			}
-
-			file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
-			if val, ok := a.Annotations[file]; ok {
-				s.FilePathAndName = val
-			}
-
-			filePerm := fmt.Sprintf("%s-%s", AnnotationAgentInjectFilePermission, raw)
-			if val, ok := a.Annotations[filePerm]; ok {
-				s.FilePermission = val
-			}
-
-			secrets = append(secrets, s)
+			secret = &Secret{Name: name, Template: annotationValue}
+		default:
+			continue
 		}
+
+		secret.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
+		mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, raw)
+		if val, ok := a.Annotations[mountPathAnnotationName]; ok {
+			secret.MountPath = val
+		}
+
+		commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, raw)
+		if val, ok := a.Annotations[commandName]; ok {
+			secret.Command = val
+		}
+
+		file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, raw)
+		if val, ok := a.Annotations[file]; ok {
+			secret.FilePathAndName = val
+		}
+
+		filePerm := fmt.Sprintf("%s-%s", AnnotationAgentInjectFilePermission, raw)
+		if val, ok := a.Annotations[filePerm]; ok {
+			secret.FilePermission = val
+		}
+
+		secrets = append(secrets, secret)
 	}
 	return secrets
+}
+
+func (a *Agent) secretName(annotationName, annotation string) (raw string, name string, notEmpty bool) {
+	raw = strings.ReplaceAll(annotationName, fmt.Sprintf("%s-", annotation), "")
+	name = raw
+
+	if ok, _ := a.preserveSecretCase(raw); !ok {
+		name = strings.ToLower(raw)
+	}
+
+	if name == "" {
+		return "", "", false
+	}
+
+	return raw, name, true
 }
 
 func (a *Agent) inject() (bool, error) {
