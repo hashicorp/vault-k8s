@@ -16,7 +16,7 @@ TESTARGS ?= '-test.v'
 
 HELM_CHART_VERSION ?= 0.25.0
 
-.PHONY: all test build image clean version deploy exercise teardown
+.PHONY: all test build image clean version deploy exercise teardown install-cert-manager
 all: build
 
 version:
@@ -37,12 +37,10 @@ deploy: image
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
 	helm upgrade --install vault vault --repo https://helm.releases.hashicorp.com --version=$(HELM_CHART_VERSION) \
 		--wait --timeout=5m \
-		--set 'server.dev.enabled=true' \
-		--set 'server.logLevel=debug' \
+		--values=test/vault/dev.values.yaml \
+		--values=test/vault/vault-tls-dev.values.yaml \
 		--set 'injector.image.tag=$(VERSION)' \
-		--set 'injector.image.pullPolicy=Never' \
-		--set 'injector.affinity=null' \
-		--set 'injector.annotations.deployed=unix-$(shell date +%s)'
+		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$(shell kubectl get secret vault-cert -o=jsonpath="{.data.ca\.crt}")"
 
 # Populates the Vault dev server with a secret, configures kubernetes auth, and
 # deploys an nginx pod with annotations to have the secret injected.
@@ -65,6 +63,12 @@ exercise:
 		--overrides='{ "apiVersion": "v1", "spec": { "serviceAccountName": "test-app-sa" } }'
 	kubectl wait --for=condition=Ready --timeout=5m pod nginx
 	kubectl exec nginx -c nginx -- cat /vault/secrets/secret.txt
+
+install-cert-manager:
+	helm upgrade --install cert-manager cert-manager --repo https://charts.jetstack.io \
+		--set installCRDs=true \
+		--wait=true --timeout=5m
+	kubectl apply -f 'test/cert-manager/*'
 
 # Teardown any resources created in deploy and exercise targets.
 teardown:

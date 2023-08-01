@@ -139,6 +139,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		}
 	}
 
+	if a.Vault.CACertBytes != "" {
+		envs = append(envs, corev1.EnvVar{
+			Name:  "VAULT_CACERT_BYTES",
+			Value: decodeIfBase64(a.Vault.CACertBytes),
+		})
+	}
+
 	// Add IRSA AWS Env variables for vault containers
 	if a.Vault.AuthType == "aws" {
 		envMap := a.getAwsEnvsFromContainer(a.Pod)
@@ -159,4 +166,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 	}
 
 	return envs, nil
+}
+
+func decodeIfBase64(s string) string {
+	decoded, err := base64.StdEncoding.DecodeString(s)
+	if err == nil {
+		return string(decoded)
+	}
+
+	return s
 }

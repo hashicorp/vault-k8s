@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vault-certificate
+spec:
+  secretName: vault-cert
+  duration: 24h
+  renewBefore: 144m  # roughly 10% of 24h
+  dnsNames:
+  - vault
+  - vault.default
+  - vault.default.svc
+  - vault-internal
+  - vault-internal.default
+  - vault-internal.default.svc
+  ipAddresses:
+  - "127.0.0.1"
+  issuerRef:
+    name: vault-ca-issuer
+  commonName: Vault Server
