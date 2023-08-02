@@ -5,6 +5,7 @@ package agent
 
 import (
 	"encoding/base64"
+	"path"
 	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
@@ -144,6 +145,13 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 			Name:  "VAULT_CACERT_BYTES",
 			Value: decodeIfBase64(a.Vault.CACertBytes),
 		})
+		// TODO(tomhjp): Remove when consul-template supports VAULT_CACERT_BYTES
+		if a.Vault.CACert == "" {
+			envs = append(envs, corev1.EnvVar{
+				Name:  "VAULT_CACERT",
+				Value: path.Join(tokenVolumePath, caFileName),
+			})
+		}
 	}
 
 	// Add IRSA AWS Env variables for vault containers

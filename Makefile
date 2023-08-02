@@ -14,9 +14,19 @@ PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-HELM_CHART_VERSION ?= 0.25.0
+VAULT_TLS?=false
+VAULT_HELM_CHART_VERSION ?= 0.25.0
+VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
+	--wait --timeout=5m \
+	--values=test/vault/dev.values.yaml \
+	--set 'injector.image.tag=$(VERSION)'
 
-.PHONY: all test build image clean version deploy exercise teardown install-cert-manager
+ifeq ($(VAULT_TLS), true)
+	VAULT_HELM_FLAGS += --values=test/vault/vault-tls-dev.values.yaml \
+		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$(shell kubectl get secret vault-cert -o=jsonpath="{.data.ca\.crt}")"
+endif
+
+.PHONY: all test build image clean version deploy deploy-tls exercise teardown install-cert-manager
 all: build
 
 version:
@@ -35,12 +45,12 @@ image: build
 # Run multiple times to deploy new builds of the injector.
 deploy: image
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
-	helm upgrade --install vault vault --repo https://helm.releases.hashicorp.com --version=$(HELM_CHART_VERSION) \
-		--wait --timeout=5m \
-		--values=test/vault/dev.values.yaml \
-		--values=test/vault/vault-tls-dev.values.yaml \
-		--set 'injector.image.tag=$(VERSION)' \
-		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$(shell kubectl get secret vault-cert -o=jsonpath="{.data.ca\.crt}")"
+	helm upgrade --install vault vault $(VAULT_HELM_FLAGS)
+	kubectl delete pod -l "app.kubernetes.io/instance=vault"
+	kubectl wait --for=condition=Ready --timeout=5m pod -l "app.kubernetes.io/instance=vault"
+
+deploy-tls: install-cert-manager
+	VAULT_TLS=true make deploy
 
 # Populates the Vault dev server with a secret, configures kubernetes auth, and
 # deploys an nginx pod with annotations to have the secret injected.
@@ -69,10 +79,12 @@ install-cert-manager:
 		--set installCRDs=true \
 		--wait=true --timeout=5m
 	kubectl apply -f 'test/cert-manager/*'
+	kubectl wait --for=condition=Ready --timeout=5m certificate vault-certificate
 
 # Teardown any resources created in deploy and exercise targets.
 teardown:
 	helm uninstall vault || true
+	helm uninstall cert-manager || true
 	kubectl delete --ignore-not-found serviceaccount test-app-sa
 	kubectl delete --ignore-not-found pod nginx
 

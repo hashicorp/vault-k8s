@@ -14,6 +14,7 @@ const (
 	tokenVolumeNameInit    = "home-init"
 	tokenVolumeNameSidecar = "home-sidecar"
 	tokenVolumePath        = "/home/vault"
+	caFileName             = "ca.crt"
 	configVolumeName       = "vault-config"
 	configVolumePath       = "/vault/configs"
 	secretVolumeName       = "vault-secrets"

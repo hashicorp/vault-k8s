@@ -2,8 +2,6 @@ injector:
   image:
     pullPolicy: Never
   affinity: null
-  annotations:
-    deployed: unix-{{ now | unix-epoch }}
 server:
   dev:
     enabled: true
