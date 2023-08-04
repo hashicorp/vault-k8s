@@ -588,97 +588,70 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 // Name: foobar, Path: db/creds/foobar
 func (a *Agent) secrets() []*Secret {
 	var (
-		simpleSecrets       = make(map[string]*Secret)
-		templateSecrets     = make(map[string]*Secret)
-		templateFileSecrets = make(map[string]*Secret)
-		secrets             []*Secret
+		secrets     []*Secret
+		secretNames = make(map[string]struct{})
 	)
-
+	secretAnnotations := []string{AnnotationAgentInjectSecret, AnnotationAgentInjectTemplateFile, AnnotationAgentInjectTemplate}
 	for annotationName, annotationValue := range a.Annotations {
 		if strings.TrimSpace(annotationValue) == "" {
 			continue
 		}
 
-		switch {
-		// parsing vault.hashicorp.com/agent-inject-secret-<name>: <path>
-		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectSecret)):
-			raw, name, ok := a.secretName(annotationName, AnnotationAgentInjectSecret)
+		for _, annotation := range secretAnnotations {
+			rawName, ok := strings.CutPrefix(annotationName, annotation+"-")
 			if !ok {
 				continue
 			}
-			simpleSecrets[name] = &Secret{Name: name, RawName: raw, Path: annotationValue}
-		// parsing vault.hashicorp.com/agent-inject-secret-template-file-<name>: <template-file>
-		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectTemplateFile)):
-			raw, name, ok := a.secretName(annotationName, AnnotationAgentInjectTemplateFile)
+
+			secretName, ok := a.secretName(rawName)
 			if !ok {
 				continue
 			}
-			templateFileSecrets[name] = &Secret{Name: name, RawName: raw, TemplateFile: annotationValue}
-		// parsing vault.hashicorp.com/agent-inject-secret-template-<name>: <template>
-		case strings.Contains(annotationName, fmt.Sprintf("%s-", AnnotationAgentInjectTemplate)):
-			raw, name, ok := a.secretName(annotationName, AnnotationAgentInjectTemplate)
-			if !ok {
-				continue
+
+			if _, ok := secretNames[rawName]; ok {
+				break
 			}
-			templateSecrets[name] = &Secret{Name: name, RawName: raw, Template: annotationValue}
-		}
-	}
 
-	for _, secret := range templateSecrets {
-		secrets = append(secrets, secret)
-	}
+			secretNames[rawName] = struct{}{}
+			secrets = append(secrets, &Secret{Name: secretName, RawName: rawName})
 
-	for _, secret := range simpleSecrets {
-		if templateSecrets[secret.Name] == nil && templateFileSecrets[secret.Name] == nil {
-			secrets = append(secrets, secret)
+			break
 		}
-	}
 
-	for _, secret := range templateFileSecrets {
-		if templateSecrets[secret.Name] == nil {
-			secrets = append(secrets, secret)
-		}
 	}
 
 	for _, secret := range secrets {
-		secret.MountPath = a.Annotations[AnnotationVaultSecretVolumePath]
-		mountPathAnnotationName := fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, secret.RawName)
-		if val, ok := a.Annotations[mountPathAnnotationName]; ok {
-			secret.MountPath = val
-		}
-
-		commandName := fmt.Sprintf("%s-%s", AnnotationAgentInjectCommand, secret.RawName)
-		if val, ok := a.Annotations[commandName]; ok {
-			secret.Command = val
-		}
-
-		file := fmt.Sprintf("%s-%s", AnnotationAgentInjectFile, secret.RawName)
-		if val, ok := a.Annotations[file]; ok {
-			secret.FilePathAndName = val
-		}
-
-		filePerm := fmt.Sprintf("%s-%s", AnnotationAgentInjectFilePermission, secret.RawName)
-		if val, ok := a.Annotations[filePerm]; ok {
-			secret.FilePermission = val
-		}
+		secret.Path = a.annotationsSecretValue(AnnotationAgentInjectSecret, secret.RawName, secret.Path)
+		secret.Template = a.annotationsSecretValue(AnnotationAgentInjectTemplate, secret.RawName, secret.Template)
+		secret.TemplateFile = a.annotationsSecretValue(AnnotationAgentInjectTemplateFile, secret.RawName, secret.TemplateFile)
+		secret.MountPath = a.annotationsSecretValue(AnnotationVaultSecretVolumePath, secret.RawName, a.Annotations[AnnotationVaultSecretVolumePath])
+		secret.Command = a.annotationsSecretValue(AnnotationAgentInjectCommand, secret.RawName, secret.Command)
+		secret.FilePathAndName = a.annotationsSecretValue(AnnotationAgentInjectFile, secret.RawName, secret.FilePathAndName)
+		secret.FilePermission = a.annotationsSecretValue(AnnotationAgentInjectFilePermission, secret.RawName, secret.FilePermission)
 	}
 
 	return secrets
 }
 
-func (a *Agent) secretName(annotationName, annotation string) (raw string, name string, notEmpty bool) {
-	raw = strings.ReplaceAll(annotationName, fmt.Sprintf("%s-", annotation), "")
-	name = raw
+func (a *Agent) annotationsSecretValue(annotation, rawSecretName, defaultValue string) string {
+	if val, ok := a.Annotations[fmt.Sprintf("%s-%s", annotation, rawSecretName)]; ok {
+		return val
+	}
 
+	return defaultValue
+}
+
+func (a *Agent) secretName(raw string) (name string, notEmpty bool) {
+	name = raw
 	if ok, _ := a.preserveSecretCase(raw); !ok {
 		name = strings.ToLower(raw)
 	}
 
 	if name == "" {
-		return "", "", false
+		return "", false
 	}
 
-	return raw, name, true
+	return name, true
 }
 
 func (a *Agent) inject() (bool, error) {

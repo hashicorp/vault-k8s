@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -171,6 +172,7 @@ func TestNewConfig(t *testing.T) {
 				t.Errorf("expected template destination to be %s, got %s", "/vault/secrets/just-template-file", template.Destination)
 			}
 		} else {
+			spew.Dump(template)
 			t.Error("shouldn't have got here")
 		}
 	}
