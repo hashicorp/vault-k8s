@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
           repository: "hashicorp/vault-helm"
-          ref: "v0.24.1"
+          ref: "v0.25.0"
           path: "vault-helm"
 
       - name: Create K8s Kind Cluster

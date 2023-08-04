@@ -4,7 +4,7 @@ Improvements:
 * Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486) 
 
 Changes:
-* Default to Vault 1.13.3
+* Default to Vault 1.14.1
 * Building with Go 1.20.7
 * Testing with K8s versions 1.23-1.27
 * Dependency updates:
