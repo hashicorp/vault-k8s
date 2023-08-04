@@ -349,62 +349,78 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 func TestSecretTemplateAnnotations(t *testing.T) {
 	tests := []struct {
 		annotations      map[string]string
-		expectedExists   bool
 		expectedKey      string
 		expectedTemplate string
 	}{
 		{
 			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":   "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
-			}, true, "foobar", "foobarTemplate",
+			}, "foobar", "foobarTemplate",
 		},
 		{
 			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test2",
 				"vault.hashicorp.com/agent-inject-template-foobar": "",
-			}, true, "foobar", "",
+			}, "foobar2", "",
 		},
 		{
 			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
 				"vault.hashicorp.com/agent-inject-templat-foobar": "foobarTemplate",
-			}, false, "foobar", "",
+			}, "foobar", "",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":    "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar2": "foobarTemplate",
+			}, "foobar", "",
+		},
+		{
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
+			}, "foobar2", "",
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
 				"vault.hashicorp.com/agent-inject-TEMPLATE-foobar": "foobarTemplate",
-			}, false, "foobar2", "",
+			}, "foobar2", "",
 		},
 	}
 
-	for _, tt := range tests {
-		pod := testPod(tt.annotations)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("TestSecretTemplateAnnotations#%d", i), func(t *testing.T) {
+			pod := testPod(tt.annotations)
 
-		agentConfig := basicAgentConfig()
-		err := Init(pod, agentConfig)
-		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
-		}
-
-		agent, err := New(pod)
-		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
-		}
-
-		if len(agent.Secrets) == 0 {
-			if tt.expectedExists {
-				t.Error("Secrets length was zero, it shouldn't have been")
-			} else {
-				continue
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
 			}
-		}
 
-		if agent.Secrets[0].Name != tt.expectedKey {
-			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
-		}
+			agent, err := New(pod)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
 
-		if agent.Secrets[0].Template != tt.expectedTemplate {
-			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
-		}
+			var found bool
+			for _, secret := range agent.Secrets {
+				if secret.Name != tt.expectedKey {
+					continue
+				}
+				found = true
+
+				if secret.Template != tt.expectedTemplate {
+					t.Errorf("expected template %s, got %s", tt.expectedTemplate, secret.Template)
+				}
+			}
+
+			if !found {
+				t.Errorf("expected key %s, got none", tt.expectedKey)
+			}
+		})
 	}
 }
 
@@ -415,12 +431,19 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
-				"vault.hashicorp.com/agent-inject-template-test2":       "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-secret-foobar":                    "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":                  "",
+				"vault.hashicorp.com/agent-inject-template-file-foobar":             "/etc/config.tmpl",
+				"vault.hashicorp.com/agent-inject-secret-test2":                     "test2",
+				"vault.hashicorp.com/agent-inject-template-test2":                   "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-test2":              "",
+				"vault.hashicorp.com/agent-inject-template-only-template":           "onlyTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-only-template-file": "onlyTemplateFile",
 			},
 			map[string]Secret{
 				"foobar": {
 					Name:         "foobar",
+					RawName:      "foobar",
 					Path:         "",
 					Template:     "",
 					TemplateFile: "/etc/config.tmpl",
@@ -428,9 +451,26 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 				},
 				"test2": {
 					Name:         "test2",
+					RawName:      "test2",
 					Path:         "",
 					Template:     "foobarTemplate",
 					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+				"only-template": {
+					Name:         "only-template",
+					RawName:      "only-template",
+					Path:         "",
+					Template:     "onlyTemplate",
+					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+				"only-template-file": {
+					Name:         "only-template-file",
+					RawName:      "only-template-file",
+					Path:         "",
+					Template:     "",
+					TemplateFile: "onlyTemplateFile",
 					MountPath:    secretVolumePath,
 				},
 			},

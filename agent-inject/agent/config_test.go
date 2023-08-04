@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +30,7 @@ func TestNewConfig(t *testing.T) {
 		AnnotationVaultClientKey:                        "client-key",
 		AnnotationVaultSecretVolumePath:                 "/vault/secrets",
 		AnnotationProxyAddress:                          "http://proxy:3128",
+		"vault.hashicorp.com/agent-inject-secret-foo":   "db/creds/foo",
 		"vault.hashicorp.com/agent-inject-template-foo": "template foo",
 		"vault.hashicorp.com/agent-inject-secret-bar":   "db/creds/bar",
 
@@ -37,7 +39,16 @@ func TestNewConfig(t *testing.T) {
 		fmt.Sprintf("%s-%s", AnnotationVaultSecretVolumePath, "different-path"): "/etc/container_environment",
 
 		// render this secret from a template on disk
+		"vault.hashicorp.com/agent-inject-secret-with-file-template":                  "with-file-template",
 		fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, "with-file-template"): "/etc/file-template",
+
+		"vault.hashicorp.com/agent-inject-template-just-template": "just-template1",
+		"vault.hashicorp.com/secret-volume-path-just-template":    "/custom/path",
+		"vault.hashicorp.com/agent-inject-command-just-template":  "/tmp/smth.sh",
+		"vault.hashicorp.com/agent-inject-file-just-template":     ".env",
+		"vault.hashicorp.com/agent-inject-perms-just-template":    "0600",
+
+		"vault.hashicorp.com/agent-inject-template-file-just-template-file": "just-template-file",
 
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
@@ -111,7 +122,7 @@ func TestNewConfig(t *testing.T) {
 		t.Error("agent Cache should be disabled for init containers")
 	}
 
-	if len(config.Templates) != 4 {
+	if len(config.Templates) != 6 {
 		t.Errorf("expected 4 template, got %d", len(config.Templates))
 	}
 
@@ -146,7 +157,22 @@ func TestNewConfig(t *testing.T) {
 			if template.Contents != "" {
 				t.Errorf("expected template contents to be empty, got %s", template.Contents)
 			}
+		} else if template.Contents == "just-template1" {
+			if template.Destination != "/custom/path/.env" {
+				t.Errorf("expected template destination to be %s, got %s", "/custom/path/.env", template.Destination)
+			}
+			if template.Perms != "0600" {
+				t.Errorf("expected template perms to be %s, got %s", "0600", template.Perms)
+			}
+			if template.Command != "/tmp/smth.sh" {
+				t.Errorf("expected template command to be %s, got %s", "/tmp/smth.sh", template.Command)
+			}
+		} else if template.Source == "just-template-file" {
+			if template.Destination != "/vault/secrets/just-template-file" {
+				t.Errorf("expected template destination to be %s, got %s", "/vault/secrets/just-template-file", template.Destination)
+			}
 		} else {
+			spew.Dump(template)
 			t.Error("shouldn't have got here")
 		}
 	}
