@@ -519,11 +519,15 @@ func TestSecretTemplateFileAnnotations(t *testing.T) {
 	}{
 		{
 			map[string]string{
-				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
 			}, "foobar", "foobarTemplate", "",
 		},
 		{
 			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
+				"vault.hashicorp.com/agent-inject-template-foobar":      "",
 				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
 			}, "foobar", "", "/etc/config.tmpl",
 		},
