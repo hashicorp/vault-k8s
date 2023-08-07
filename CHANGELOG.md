@@ -4,14 +4,21 @@ Improvements:
 * Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486) 
 
 Changes:
-* Default to Vault 1.13.3
-* Building with Go 1.20.5
+* Default to Vault 1.14.1
+* Building with Go 1.20.7
 * Testing with K8s versions 1.23-1.27
 * Dependency updates:
   * `github.com/cenkalti/backoff/v4` v4.2.0 -> v4.2.1
-  * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.1
+  * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.2
   * `github.com/stretchr/testify` v1.8.2 -> v1.8.3
   * `github.com/prometheus/client_golang` v1.14.0 -> v1.15.1
+  * `k8s.io/apimachinery` v0.26.3 -> v0.27.4
+  * `k8s.io/api` v0.26.3 -> v0.27.4
+  * `k8s.io/client-go` v0.26.3 -> v0.27.4
+  * `golang.org/x/net` v0.7.0 -> v0.13.0
+  * `golang.org/x/sys` v0.5.0 -> v0.10.0
+  * `golang.org/x/term` v0.5.0 -> v0.10.0
+  * `golang.org/x/text` v0.7.0 -> v0.11.0
   * Docker alpine version 3.17.3 -> 3.18.2
   * Docker UBI image `ubi8/ubi-minimal` 8.7-1107 -> 8.8-860
 
