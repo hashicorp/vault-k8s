@@ -19,7 +19,7 @@ Changes:
   * `golang.org/x/sys` v0.5.0 -> v0.10.0
   * `golang.org/x/term` v0.5.0 -> v0.10.0
   * `golang.org/x/text` v0.7.0 -> v0.11.0
-  * Docker alpine version 3.17.3 -> 3.18.2
+  * Docker alpine version 3.17.3 -> 3.18.3
   * Docker UBI image `ubi8/ubi-minimal` 8.7-1107 -> 8.8-860
 
 Bugs:
