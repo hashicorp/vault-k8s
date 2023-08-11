@@ -48,23 +48,36 @@ deploy: image
 # deploys an nginx pod with annotations to have the secret injected.
 exercise:
 	kubectl exec vault-0 -- vault kv put secret/test-app hello=world
-	kubectl exec vault-0 -- vault auth enable kubernetes || true
-	kubectl exec vault-0 -- sh -c 'vault write auth/kubernetes/config kubernetes_host="https://$$KUBERNETES_PORT_443_TCP_ADDR:443"'
+	kubectl exec vault-0 -- vault auth enable jwt || true
+	kubectl exec vault-0 -- sh -c 'vault write auth/jwt/config oidc_discovery_url=https://kubernetes.default.svc.cluster.local oidc_discovery_ca_pem=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt'
 	echo 'path "secret/data/*" { capabilities = ["read"] }' | kubectl exec -i vault-0 -- vault policy write test-app -
-	kubectl exec vault-0 -- vault write auth/kubernetes/role/test-app \
-		bound_service_account_names=test-app-sa \
-		bound_service_account_namespaces=default \
-		policies=test-app
+	kubectl exec vault-0 -- vault write auth/jwt/role/test-app \
+		role_type="jwt" \
+		bound_audiences="https://kubernetes.default.svc.cluster.local" \
+		user_claim="sub" \
+		bound_subject="system:serviceaccount:default:test-app-sa" \
+		policies="test-app" \
+		ttl="1h"
 	kubectl create serviceaccount test-app-sa || true
 	kubectl delete pod nginx --ignore-not-found
 	kubectl run nginx \
 		--image=nginx \
 		--annotations="vault.hashicorp.com/agent-inject=true" \
 		--annotations="vault.hashicorp.com/role=test-app" \
+		--annotations="vault.hashicorp.com/auth-type=jwt" \
+		--annotations="vault.hashicorp.com/auth-path=auth/jwt" \
+		--annotations="vault.hashicorp.com/auth-config-path=/var/run/secrets/kubernetes.io/serviceaccount/token" \
+		--annotations="vault.hashicorp.com/auth-config-remove-jwt-after-reading=false" \
 		--annotations="vault.hashicorp.com/agent-inject-secret-secret.txt=secret/data/test-app" \
 		--overrides='{ "apiVersion": "v1", "spec": { "serviceAccountName": "test-app-sa" } }'
 	kubectl wait --for=condition=Ready --timeout=5m pod nginx
 	kubectl exec nginx -c nginx -- cat /vault/secrets/secret.txt
+	kubectl logs nginx -c vault-agent-init
+	kubectl get pod nginx \
+		-o jsonpath='{$$.spec.initContainers[?(@.name == "vault-agent-init")].env[?(@.name == "VAULT_CONFIG")].value}' \
+		| base64 -d \
+		| jq '.auto_auth.method.config.remove_jwt_after_reading'
+
 
 # Teardown any resources created in deploy and exercise targets.
 teardown:
