@@ -21,12 +21,7 @@ VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_H
 	--values=test/vault/dev.values.yaml \
 	--set 'injector.image.tag=$(VERSION)'
 
-ifeq ($(VAULT_TLS), true)
-	VAULT_HELM_FLAGS += --values=test/vault/vault-tls-dev.values.yaml \
-		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$(shell kubectl get secret vault-cert -o=jsonpath="{.data.ca\.crt}")"
-endif
-
-.PHONY: all test build image clean version deploy deploy-tls exercise teardown install-cert-manager
+.PHONY: all test build image clean version deploy exercise teardown
 all: build
 
 version:
@@ -41,16 +36,26 @@ build:
 image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
+.PHONY: secret
+secret:
+	kubectl exec vault-0 -- cat /tmp/vault-ca.pem
+	kubectl get secret vault-ca -o=jsonpath="{.data.ca\.crt}" | base64 -d
+	kubectl get pod -l "app.kubernetes.io/name=vault-agent-injector" -o=jsonpath='{.items[0].spec.containers[0].env[?(@.name == "AGENT_INJECT_VAULT_CACERT_BYTES")].value}' | base64 -d
+
 # Deploys Vault dev server and a locally built Agent Injector.
 # Run multiple times to deploy new builds of the injector.
-deploy: image
+deploy:
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
-	helm upgrade --install vault vault $(VAULT_HELM_FLAGS)
+	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
+		--set "injector.enabled=false"
 	kubectl delete pod -l "app.kubernetes.io/instance=vault"
 	kubectl wait --for=condition=Ready --timeout=5m pod -l "app.kubernetes.io/instance=vault"
-
-deploy-tls: install-cert-manager
-	VAULT_TLS=true make deploy
+	kubectl delete secret --ignore-not-found vault-ca
+	kubectl exec vault-0 -- cat /tmp/vault-ca.pem > test/vault/ca.crt
+	kubectl create secret generic vault-ca --from-file=test/vault/ca.crt
+	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
+		--set "injector.enabled=true" \
+		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl get secret vault-ca -o=jsonpath="{.data.ca\.crt}")"
 
 # Populates the Vault dev server with a secret, configures kubernetes auth, and
 # deploys an nginx pod with annotations to have the secret injected.
@@ -74,19 +79,12 @@ exercise:
 	kubectl wait --for=condition=Ready --timeout=5m pod nginx
 	kubectl exec nginx -c nginx -- cat /vault/secrets/secret.txt
 
-install-cert-manager:
-	helm upgrade --install cert-manager cert-manager --repo https://charts.jetstack.io \
-		--set installCRDs=true \
-		--wait=true --timeout=5m
-	kubectl apply -f 'test/cert-manager/*'
-	kubectl wait --for=condition=Ready --timeout=5m certificate vault-certificate
-
 # Teardown any resources created in deploy and exercise targets.
 teardown:
 	helm uninstall vault || true
-	helm uninstall cert-manager || true
 	kubectl delete --ignore-not-found serviceaccount test-app-sa
 	kubectl delete --ignore-not-found pod nginx
+	kubectl delete --ignore-not-found secret vault-ca
 
 clean:
 	-rm -rf $(BUILD_DIR)
