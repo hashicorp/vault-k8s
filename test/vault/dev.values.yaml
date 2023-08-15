@@ -1,3 +1,5 @@
+global:
+  tlsDisable: false
 injector:
   image:
     pullPolicy: Never
@@ -6,3 +8,6 @@ server:
   dev:
     enabled: true
   logLevel: debug
+  extraArgs: "-dev-tls -dev-tls-cert-dir=/tmp"
+  extraEnvironmentVars:
+    VAULT_CACERT: /tmp/vault-ca.pem
