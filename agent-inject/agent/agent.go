@@ -252,6 +252,7 @@ type Vault struct {
 
 	// CACertBytes is the contents of the CA certificate to trust
 	// for TLS with Vault as a PEM-encoded certificate or bundle.
+	// Can also be base64 encoded PEM contents.
 	CACertBytes string
 
 	// CAKey is the name of the Certificate Authority key
