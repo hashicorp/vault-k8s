@@ -621,13 +621,15 @@ func (a *Agent) secrets() []*Secret {
 	}
 
 	for _, secret := range secrets {
-		secret.Path = a.annotationsSecretValue(AnnotationAgentInjectSecret, secret.RawName, secret.Path)
-		secret.Template = a.annotationsSecretValue(AnnotationAgentInjectTemplate, secret.RawName, secret.Template)
-		secret.TemplateFile = a.annotationsSecretValue(AnnotationAgentInjectTemplateFile, secret.RawName, secret.TemplateFile)
+		secret.Path = a.annotationsSecretValue(AnnotationAgentInjectSecret, secret.RawName, "")
+		secret.Template = a.annotationsSecretValue(AnnotationAgentInjectTemplate, secret.RawName, "")
+		if secret.Template == "" {
+			secret.TemplateFile = a.annotationsSecretValue(AnnotationAgentInjectTemplateFile, secret.RawName, "")
+		}
 		secret.MountPath = a.annotationsSecretValue(AnnotationVaultSecretVolumePath, secret.RawName, a.Annotations[AnnotationVaultSecretVolumePath])
-		secret.Command = a.annotationsSecretValue(AnnotationAgentInjectCommand, secret.RawName, secret.Command)
-		secret.FilePathAndName = a.annotationsSecretValue(AnnotationAgentInjectFile, secret.RawName, secret.FilePathAndName)
-		secret.FilePermission = a.annotationsSecretValue(AnnotationAgentInjectFilePermission, secret.RawName, secret.FilePermission)
+		secret.Command = a.annotationsSecretValue(AnnotationAgentInjectCommand, secret.RawName, "")
+		secret.FilePathAndName = a.annotationsSecretValue(AnnotationAgentInjectFile, secret.RawName, "")
+		secret.FilePermission = a.annotationsSecretValue(AnnotationAgentInjectFilePermission, secret.RawName, "")
 	}
 
 	return secrets
