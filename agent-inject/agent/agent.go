@@ -540,6 +540,11 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
+	// If injection didn't happen on pod creation, then it's too late now.
+	if pod.Status.Phase != "" && pod.Status.Phase != corev1.PodPending {
+		return false, nil
+	}
+
 	// This shouldn't happen so bail.
 	raw, ok = pod.Annotations[AnnotationAgentStatus]
 	if !ok {

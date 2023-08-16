@@ -91,17 +91,23 @@ func testPodIRSA(annotations map[string]string) *corev1.Pod {
 func TestShouldInject(t *testing.T) {
 	tests := []struct {
 		annotations map[string]string
+		phase       corev1.PodPhase
 		inject      bool
 	}{
-		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: ""}, true},
-		{map[string]string{AnnotationAgentInject: "false", AnnotationAgentStatus: ""}, false},
-		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: "injected"}, false},
-		{map[string]string{AnnotationAgentInject: "false", AnnotationAgentStatus: "injected"}, false},
-		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: "update"}, true},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: ""}, corev1.PodPending, true},
+		{map[string]string{AnnotationAgentInject: "false", AnnotationAgentStatus: ""}, corev1.PodPending, false},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: "injected"}, corev1.PodPending, false},
+		{map[string]string{AnnotationAgentInject: "false", AnnotationAgentStatus: "injected"}, corev1.PodPending, false},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: "update"}, corev1.PodPending, true},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: ""}, corev1.PodRunning, false},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: ""}, corev1.PodSucceeded, false},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: ""}, corev1.PodFailed, false},
+		{map[string]string{AnnotationAgentInject: "true", AnnotationAgentStatus: "update"}, corev1.PodRunning, false},
 	}
 
 	for _, tt := range tests {
 		pod := testPod(tt.annotations)
+		pod.Status.Phase = tt.phase
 		inject, err := ShouldInject(pod)
 		if err != nil {
 			t.Errorf("got error, shouldn't have: %s", err)
