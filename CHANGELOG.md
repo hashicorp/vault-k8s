@@ -1,17 +1,21 @@
 ## Unreleased
 
+## 1.3.0 (August 16, 2023)
+
 Improvements:
-* Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486) 
+* Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486)
 
 Changes:
+* Templated secrets no longer require the -secret annotation [GH-505](https://github.com/hashicorp/vault-k8s/pull/505)
+* Only inject Pods that are Pending [GH-501](https://github.com/hashicorp/vault-k8s/pull/501)
 * Default to Vault 1.14.1
 * Building with Go 1.20.7
 * Testing with K8s versions 1.23-1.27
 * Dependency updates:
   * `github.com/cenkalti/backoff/v4` v4.2.0 -> v4.2.1
   * `github.com/hashicorp/vault/sdk` v0.8.1 -> v0.9.2
-  * `github.com/stretchr/testify` v1.8.2 -> v1.8.3
-  * `github.com/prometheus/client_golang` v1.14.0 -> v1.15.1
+  * `github.com/stretchr/testify` v1.8.2 -> v1.8.4
+  * `github.com/prometheus/client_golang` v1.14.0 -> v1.16.0
   * `k8s.io/apimachinery` v0.26.3 -> v0.27.4
   * `k8s.io/api` v0.26.3 -> v0.27.4
   * `k8s.io/client-go` v0.26.3 -> v0.27.4
