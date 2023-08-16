@@ -207,6 +207,9 @@ type Secret struct {
 	// specified).
 	Name string
 
+	// RawName is original annotation suffix value
+	RawName string
+
 	// Path in Vault where the secret desired can be found.
 	Path string
 

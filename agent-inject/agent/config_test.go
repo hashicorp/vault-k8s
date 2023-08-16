@@ -41,6 +41,14 @@ func TestNewConfig(t *testing.T) {
 		"vault.hashicorp.com/agent-inject-secret-with-file-template":                  "with-file-template",
 		fmt.Sprintf("%s-%s", AnnotationAgentInjectTemplateFile, "with-file-template"): "/etc/file-template",
 
+		"vault.hashicorp.com/agent-inject-template-just-template": "just-template1",
+		"vault.hashicorp.com/secret-volume-path-just-template":    "/custom/path",
+		"vault.hashicorp.com/agent-inject-command-just-template":  "/tmp/smth.sh",
+		"vault.hashicorp.com/agent-inject-file-just-template":     ".env",
+		"vault.hashicorp.com/agent-inject-perms-just-template":    "0600",
+
+		"vault.hashicorp.com/agent-inject-template-file-just-template-file": "just-template-file",
+
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
 		AnnotationAgentCacheEnable: "true",
@@ -113,7 +121,7 @@ func TestNewConfig(t *testing.T) {
 		t.Error("agent Cache should be disabled for init containers")
 	}
 
-	if len(config.Templates) != 4 {
+	if len(config.Templates) != 6 {
 		t.Errorf("expected 4 template, got %d", len(config.Templates))
 	}
 
@@ -147,6 +155,20 @@ func TestNewConfig(t *testing.T) {
 			}
 			if template.Contents != "" {
 				t.Errorf("expected template contents to be empty, got %s", template.Contents)
+			}
+		} else if template.Contents == "just-template1" {
+			if template.Destination != "/custom/path/.env" {
+				t.Errorf("expected template destination to be %s, got %s", "/custom/path/.env", template.Destination)
+			}
+			if template.Perms != "0600" {
+				t.Errorf("expected template perms to be %s, got %s", "0600", template.Perms)
+			}
+			if template.Command != "/tmp/smth.sh" {
+				t.Errorf("expected template command to be %s, got %s", "/tmp/smth.sh", template.Command)
+			}
+		} else if template.Source == "just-template-file" {
+			if template.Destination != "/vault/secrets/just-template-file" {
+				t.Errorf("expected template destination to be %s, got %s", "/vault/secrets/just-template-file", template.Destination)
 			}
 		} else {
 			t.Error("shouldn't have got here")
@@ -809,7 +831,7 @@ func TestConfigTelemetry(t *testing.T) {
 				"vault.hashicorp.com/agent-telemetry-stackdriver_location":                   "useast-1",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_namespace":                  "foo",
 				"vault.hashicorp.com/agent-telemetry-stackdriver_debug_logs":                 "false",
-				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`, 
+				"vault.hashicorp.com/agent-telemetry-prefix_filter":                          `["+vault.token", "-vault.expire", "+vault.expire.num_leases"]`,
 			},
 			&Telemetry{
 				UsageGaugePeriod:                   "10m",
