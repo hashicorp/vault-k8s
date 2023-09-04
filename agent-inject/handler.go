@@ -6,7 +6,7 @@ package agent_inject
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -93,7 +93,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	var body []byte
 	if r.Body != nil {
 		var err error
-		if body, err = ioutil.ReadAll(r.Body); err != nil {
+		if body, err = io.ReadAll(r.Body); err != nil {
 			msg := fmt.Sprintf("error reading request body: %s", err)
 			http.Error(w, msg, http.StatusBadRequest)
 			h.Log.Error("error on request", "Error", msg, "Code", http.StatusBadRequest)
