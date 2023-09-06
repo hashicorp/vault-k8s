@@ -3,6 +3,9 @@
 ## 1.3.0 (August 16, 2023)
 
 Improvements:
+* Added support to configure template delimiters through Pod Annotations [GH-517](https://github.com/hashicorp/vault-k8s/pull/517)
+
+Improvements:
 * Add `NAMESPACE`, `HOST_IP`, and `POD_IP` environment variables to Agent container using downward API [GH-486](https://github.com/hashicorp/vault-k8s/pull/486)
 
 Changes:

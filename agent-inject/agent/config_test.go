@@ -610,6 +610,70 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 	}
 }
 
+func TestConfigVaultAgentTemplateDelimiters(t *testing.T) {
+	tests := []struct {
+		name             string
+		annotations      map[string]string
+		expectedTemplate *Template
+	}{
+		{
+			"no_override_annotations_expect_default",
+			map[string]string{
+				AnnotationTemplateConfigExitOnRetryFailure:      "true",
+				"vault.hashicorp.com/agent-inject-template-foo": "template foo",
+			},
+			&Template{LeftDelim: "{{", RightDelim: "}}"},
+		},
+		{
+			"left_delimiter_annotation_defined_expected_left_delimiter_override",
+			map[string]string{
+				AnnotationTemplateConfigLeftDelimiters:          "[[",
+				"vault.hashicorp.com/agent-inject-template-foo": "template foo",
+			},
+			&Template{LeftDelim: "[[", RightDelim: "}}"},
+		},
+		{
+			"right_delimiter_annotation_defined_expected_right_delimiter_override",
+			map[string]string{
+				AnnotationTemplateConfigRightDelimiters:         "]]",
+				"vault.hashicorp.com/agent-inject-template-foo": "template foo",
+			},
+			&Template{LeftDelim: "{{", RightDelim: "]]"},
+		},
+		{
+			"left_right_delimiter_annotations_defined_expected_left_right_delimiters_override",
+			map[string]string{
+				AnnotationTemplateConfigLeftDelimiters:          "[[",
+				AnnotationTemplateConfigRightDelimiters:         "]]",
+				"vault.hashicorp.com/agent-inject-template-foo": "template foo",
+			},
+			&Template{LeftDelim: "[[", RightDelim: "]]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			require.NoError(t, err)
+			cfg, err := agent.newConfig(true)
+			require.NoError(t, err)
+
+			config := &Config{}
+			err = json.Unmarshal(cfg, config)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.expectedTemplate.LeftDelim, config.Templates[0].LeftDelim)
+			assert.Equal(t, tt.expectedTemplate.RightDelim, config.Templates[0].RightDelim)
+		})
+	}
+}
+
 func TestInjectTokenSink(t *testing.T) {
 	tokenHelperSink := &Sink{
 		Type: "file",

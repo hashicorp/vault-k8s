@@ -268,6 +268,14 @@ const (
 	// attempts. Defaults to true.
 	AnnotationTemplateConfigExitOnRetryFailure = "vault.hashicorp.com/template-config-exit-on-retry-failure"
 
+	// AnnotationTemplateConfigLeftDelimiters template delimiters
+	// Defaults to "{{".
+	AnnotationTemplateConfigLeftDelimiters = "vault.hashicorp.com/template-left-delimiter"
+
+	// AnnotationTemplateConfigLeftDelimiters template delimiters
+	// Defaults to "{{".
+	AnnotationTemplateConfigRightDelimiters = "vault.hashicorp.com/template-right-delimiter"
+
 	// AnnotationTemplateConfigStaticSecretRenderInterval
 	// If specified, configures how often Vault Agent Template should render non-leased secrets such as KV v2.
 	// Defaults to 5 minutes.

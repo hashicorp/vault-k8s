@@ -198,12 +198,13 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
 		}
 
+		leftDelim, rightDelim := a.getTemplateConfigDelimiters()
 		tmpl := &Template{
 			Source:      templateFile,
 			Contents:    template,
 			Destination: filePathAndName,
-			LeftDelim:   "{{",
-			RightDelim:  "}}",
+			LeftDelim:   leftDelim,
+			RightDelim:  rightDelim,
 			Command:     secret.Command,
 		}
 		if secret.FilePermission != "" {
@@ -212,6 +213,21 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		templates = append(templates, tmpl)
 	}
 	return templates
+}
+
+func (a *Agent) getTemplateConfigDelimiters() (string, string) {
+	leftDelim := "{{"
+	rightDelim := "}}"
+
+	if left, defined := a.Annotations[AnnotationTemplateConfigLeftDelimiters]; defined {
+		leftDelim = left
+	}
+
+	if right, defined := a.Annotations[AnnotationTemplateConfigRightDelimiters]; defined {
+		rightDelim = right
+	}
+
+	return leftDelim, rightDelim
 }
 
 func (a *Agent) newConfig(init bool) ([]byte, error) {
