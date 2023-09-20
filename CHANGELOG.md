@@ -1,5 +1,9 @@
 ## Unreleased
 
+Changes:
+* Dependency updates:
+  * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072
+
 ## 1.3.0 (August 16, 2023)
 
 Improvements:
