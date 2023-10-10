@@ -2,7 +2,7 @@
 
 Changes:
 * Dependency updates:
-  * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072
+  * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072.1696517598
   * Docker alpine version 3.18.3 -> 3.18.4
 
 ## 1.3.0 (August 16, 2023)
