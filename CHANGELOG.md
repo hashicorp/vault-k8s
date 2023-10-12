@@ -1,9 +1,20 @@
 ## Unreleased
 
 Changes:
+* Building with Go 1.21.3
+* Testing with K8s versions 1.24-1.28
 * Dependency updates:
   * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072.1696517598
   * Docker alpine version 3.18.3 -> 3.18.4
+  * `golang.org/x/crypto` v0.11.0 => v0.14.0
+  * `golang.org/x/net` v0.13.0 => v0.17.0
+  * `golang.org/x/sys` v0.10.0 => v0.13.0
+  * `golang.org/x/term` v0.10.0 => v0.13.0
+  * `golang.org/x/text` v0.11.0 => v0.13.0
+  * `k8s.io/api` v0.27.4 => v0.28.2
+  * `k8s.io/apimachinery` v0.27.4 => v0.28.2
+  * `k8s.io/client-go` v0.27.4 => v0.28.2
+  * `github.com/hashicorp/vault/sdk` v0.9.2 => v0.10.2
 
 ## 1.3.0 (August 16, 2023)
 
