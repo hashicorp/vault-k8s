@@ -4,7 +4,7 @@ Changes:
 * Building with Go 1.21.3
 * Testing with K8s versions 1.24-1.28
 * Dependency updates:
-  * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072.1696517598
+  * Docker UBI image `ubi8/ubi-minimal` 8.8-1037 -> 8.8-1072.1697626218
   * Docker alpine version 3.18.3 -> 3.18.4
   * `golang.org/x/crypto` v0.11.0 => v0.14.0
   * `golang.org/x/net` v0.13.0 => v0.17.0
