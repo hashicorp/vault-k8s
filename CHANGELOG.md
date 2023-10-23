@@ -12,7 +12,7 @@ Changes:
   * `golang.org/x/term` v0.10.0 => v0.13.0
   * `golang.org/x/text` v0.11.0 => v0.13.0
   * `k8s.io/api` v0.27.4 => v0.28.2
-  * `k8s.io/apimachinery` v0.27.4 => v0.28.2
+  * `k8s.io/apimachinery` v0.27.4 => v0.28.3
   * `k8s.io/client-go` v0.27.4 => v0.28.2
   * `github.com/hashicorp/vault/sdk` v0.9.2 => v0.10.2
 
