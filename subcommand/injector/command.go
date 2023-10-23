@@ -88,7 +88,6 @@ type Command struct {
 	cert atomic.Value
 }
 
-// TODO Add flag for Vault TLS
 func (c *Command) Run(args []string) int {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()

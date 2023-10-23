@@ -79,12 +79,6 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: tlsSecretVolumePath,
 			ReadOnly:  true,
 		})
-	} else if a.Vault.CACert == "" && a.Vault.CACertBytes != "" {
-		// TODO(tomhjp): Remove when consul-template supports VAULT_CACERT_BYTES.
-		// consul-template does not yet support VAULT_CACERT_BYTES, so we write
-		// it out to a file and set VAULT_CACERT as well to ensure templating
-		// picks up the CA.
-		arg = prependWriteCAToFile(arg)
 	}
 
 	if a.VaultAgentCache.Persist {
@@ -140,10 +134,6 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		return newContainer, err
 	}
 	return newContainer, nil
-}
-
-func prependWriteCAToFile(arg string) string {
-	return fmt.Sprintf(`printf "%%s" "${VAULT_CACERT_BYTES}" > %s/%s && %s`, tokenVolumePath, caFileName, arg)
 }
 
 // Valid resource notations: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/#meaning-of-cpu
