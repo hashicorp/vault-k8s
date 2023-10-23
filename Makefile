@@ -14,7 +14,6 @@ PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-VAULT_TLS?=false
 VAULT_HELM_CHART_VERSION ?= 0.25.0
 VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
 	--wait --timeout=5m \
@@ -36,15 +35,9 @@ build:
 image: build
 	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
-.PHONY: secret
-secret:
-	kubectl exec vault-0 -- cat /tmp/vault-ca.pem
-	kubectl get secret vault-ca -o=jsonpath="{.data.ca\.crt}" | base64 -d
-	kubectl get pod -l "app.kubernetes.io/name=vault-agent-injector" -o=jsonpath='{.items[0].spec.containers[0].env[?(@.name == "AGENT_INJECT_VAULT_CACERT_BYTES")].value}' | base64 -d
-
 # Deploys Vault dev server and a locally built Agent Injector.
 # Run multiple times to deploy new builds of the injector.
-deploy:
+deploy: image
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
 	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
 		--set "injector.enabled=false"

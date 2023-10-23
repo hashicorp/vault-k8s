@@ -20,4 +20,4 @@
 /dist/
 
 # make deploy output
-ca.crt
+test/vault/ca.crt
