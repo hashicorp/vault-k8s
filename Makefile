@@ -37,7 +37,7 @@ image: build
 
 # Deploys Vault dev server and a locally built Agent Injector.
 # Run multiple times to deploy new builds of the injector.
-deploy: image
+deploy:
 	kind load docker-image hashicorp/vault-k8s:$(VERSION)
 	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
 		--set "injector.enabled=false"
