@@ -29,67 +29,13 @@ event "build" {
   }
 }
 
-event "upload-dev" {
+event "prepare" {
   depends = ["build"]
-  action "upload-dev" {
+  action "prepare" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "upload-dev"
-    depends = ["build"]
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
-event "security-scan-binaries" {
-  depends = ["upload-dev"]
-  action "security-scan-binaries" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "security-scan-binaries"
-    config = "security-scan.hcl"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
-event "security-scan-containers" {
-  depends = ["security-scan-binaries"]
-  action "security-scan-containers" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "security-scan-containers"
-    config = "security-scan.hcl"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
-event "sign" {
-  depends = ["security-scan-containers"]
-  action "sign" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "sign"
-  }
-
-  notification {
-    on = "fail"
-  }
-}
-
-event "verify" {
-  depends = ["sign"]
-  action "verify" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "verify"
+    repository   = "crt-workflows-common"
+    workflow     = "prepare"
+    depends      = ["build"]
   }
 
   notification {
