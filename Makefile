@@ -43,12 +43,8 @@ deploy: image
 		--set "injector.enabled=false"
 	kubectl delete pod -l "app.kubernetes.io/instance=vault"
 	kubectl wait --for=condition=Ready --timeout=5m pod -l "app.kubernetes.io/instance=vault"
-	kubectl delete secret --ignore-not-found vault-ca
-	kubectl exec vault-0 -- cat /tmp/vault-ca.pem > test/vault/ca.crt
-	kubectl create secret generic vault-ca --from-file=test/vault/ca.crt
 	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
-		--set "injector.enabled=true" \
-		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl get secret vault-ca -o=jsonpath="{.data.ca\.crt}")"
+		--set "injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl exec vault-0 -- cat /tmp/vault-ca.pem | base64)"
 
 # Populates the Vault dev server with a secret, configures kubernetes auth, and
 # deploys an nginx pod with annotations to have the secret injected.
@@ -77,7 +73,6 @@ teardown:
 	helm uninstall vault || true
 	kubectl delete --ignore-not-found serviceaccount test-app-sa
 	kubectl delete --ignore-not-found pod nginx
-	kubectl delete --ignore-not-found secret vault-ca
 
 clean:
 	-rm -rf $(BUILD_DIR)
