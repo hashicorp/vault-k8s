@@ -11,8 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/hashicorp/vault-k8s/agent-inject/internal"
 
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/hashicorp/vault/sdk/helper/pointerutil"
@@ -196,7 +197,9 @@ func TestSecretAnnotationsWithPreserveCaseSensitivityFlagOff(t *testing.T) {
 
 		if tt.expectedKey != "" {
 			if len(agent.Secrets) == 0 {
-				t.Error("Secrets length was zero, it shouldn't have been")
+				t.Errorf("Secrets length was zero, it shouldn't have been: %s", tt.key)
+
+				continue
 			}
 			if agent.Secrets[0].Name != tt.expectedKey {
 				t.Errorf("expected %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
@@ -347,73 +350,97 @@ func TestSecretLocationFileAnnotations(t *testing.T) {
 
 func TestSecretTemplateAnnotations(t *testing.T) {
 	tests := []struct {
-		annotations      map[string]string
-		expectedKey      string
-		expectedTemplate string
+		annotations             map[string]string
+		expectedSecretTemplates map[string]string
 	}{
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar":   "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
-			}, "foobar", "foobarTemplate",
+			},
+			map[string]string{
+				"foobar": "foobarTemplate",
+			},
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test2",
 				"vault.hashicorp.com/agent-inject-template-foobar": "",
-			}, "foobar2", "",
+			},
+			map[string]string{
+				"foobar2": "",
+			},
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
 				"vault.hashicorp.com/agent-inject-templat-foobar": "foobarTemplate",
-			}, "foobar", "",
+			},
+			map[string]string{
+				"foobar": "",
+			},
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar":    "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar2": "foobarTemplate",
-			}, "foobar", "",
+			},
+			map[string]string{
+				"foobar":  "",
+				"foobar2": "foobarTemplate",
+			},
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar": "foobarTemplate",
-			}, "foobar2", "",
+			},
+			map[string]string{
+				"foobar2": "",
+				"foobar":  "foobarTemplate",
+			},
 		},
 		{
 			map[string]string{
 				"vault.hashicorp.com/agent-inject-secret-foobar2":  "test1",
 				"vault.hashicorp.com/agent-inject-TEMPLATE-foobar": "foobarTemplate",
-			}, "foobar2", "",
+			},
+			map[string]string{
+				"foobar2": "",
+			},
 		},
 	}
 
-	for _, tt := range tests {
-		pod := testPod(tt.annotations)
+	for i, tt := range tests {
+		t.Run(fmt.Sprintf("TestSecretTemplateAnnotations#%d", i), func(t *testing.T) {
+			pod := testPod(tt.annotations)
 
-		agentConfig := basicAgentConfig()
-		err := Init(pod, agentConfig)
-		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
-		}
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
 
-		agent, err := New(pod)
-		if err != nil {
-			t.Errorf("got error, shouldn't have: %s", err)
-		}
+			agent, err := New(pod)
+			if err != nil {
+				t.Errorf("got error, shouldn't have: %s", err)
+			}
 
-		if len(agent.Secrets) == 0 {
-			t.Error("Secrets length was zero, it shouldn't have been")
-		}
+			if len(agent.Secrets) != len(tt.expectedSecretTemplates) {
+				t.Errorf("agent Secrets length was %d, expected %d", len(agent.Secrets), len(tt.expectedSecretTemplates))
+			}
 
-		if agent.Secrets[0].Name != tt.expectedKey {
-			t.Errorf("expected name %s, got %s", tt.expectedKey, agent.Secrets[0].Name)
-		}
+			for _, secret := range agent.Secrets {
+				expectedTemplate, ok := tt.expectedSecretTemplates[secret.Name]
+				if !ok {
+					t.Errorf("secret %s with template %s was not expected", secret.Name, secret.Template)
+				}
 
-		if agent.Secrets[0].Template != tt.expectedTemplate {
-			t.Errorf("expected template %s, got %s", tt.expectedTemplate, agent.Secrets[0].Template)
-		}
+				if secret.Template != expectedTemplate {
+					t.Errorf("expected template %s, got %s", expectedTemplate, secret.Template)
+				}
+			}
+		})
 	}
 }
 
@@ -427,13 +454,18 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 				"vault.hashicorp.com/agent-inject-secret-foobar":        "test1",
 				"vault.hashicorp.com/agent-inject-template-foobar":      "",
 				"vault.hashicorp.com/agent-inject-template-file-foobar": "/etc/config.tmpl",
-				"vault.hashicorp.com/agent-inject-secret-test2":         "test2",
-				"vault.hashicorp.com/agent-inject-template-test2":       "foobarTemplate",
-				"vault.hashicorp.com/agent-inject-template-file-test2":  "",
+
+				"vault.hashicorp.com/agent-inject-secret-test2":        "test2",
+				"vault.hashicorp.com/agent-inject-template-test2":      "foobarTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-test2": "",
+
+				"vault.hashicorp.com/agent-inject-template-only-template":           "onlyTemplate",
+				"vault.hashicorp.com/agent-inject-template-file-only-template-file": "onlyTemplateFile",
 			},
 			map[string]Secret{
 				"foobar": {
 					Name:         "foobar",
+					RawName:      "foobar",
 					Path:         "test1",
 					Template:     "",
 					TemplateFile: "/etc/config.tmpl",
@@ -441,9 +473,26 @@ func TestSecretMixedTemplatesAnnotations(t *testing.T) {
 				},
 				"test2": {
 					Name:         "test2",
+					RawName:      "test2",
 					Path:         "test2",
 					Template:     "foobarTemplate",
 					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+				"only-template": {
+					Name:         "only-template",
+					RawName:      "only-template",
+					Path:         "",
+					Template:     "onlyTemplate",
+					TemplateFile: "",
+					MountPath:    secretVolumePath,
+				},
+				"only-template-file": {
+					Name:         "only-template-file",
+					RawName:      "only-template-file",
+					Path:         "",
+					Template:     "",
+					TemplateFile: "onlyTemplateFile",
 					MountPath:    secretVolumePath,
 				},
 			},

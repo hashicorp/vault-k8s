@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.13.3"
+	DefaultVaultImage                       = "hashicorp/vault:1.14.1"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
@@ -206,6 +206,9 @@ type Secret struct {
 	// as the filename for the rendered secret file (unless FilePathAndName is
 	// specified).
 	Name string
+
+	// RawName is original annotation suffix value
+	RawName string
 
 	// Path in Vault where the secret desired can be found.
 	Path string
@@ -540,6 +543,11 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 	}
 
 	if !inject {
+		return false, nil
+	}
+
+	// If injection didn't happen on pod creation, then it's too late now.
+	if pod.Status.Phase != "" && pod.Status.Phase != corev1.PodPending {
 		return false, nil
 	}
 
