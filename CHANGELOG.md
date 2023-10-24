@@ -1,6 +1,9 @@
 ## Unreleased
 
+## 1.3.1 (October 25, 2023)
+
 Changes:
+* Default Vault version updated to 1.15.1
 * Building with Go 1.21.3
 * Testing with K8s versions 1.24-1.28
 * Dependency updates:
@@ -16,9 +19,11 @@ Changes:
   * `k8s.io/client-go` v0.27.4 => v0.28.3
   * `github.com/hashicorp/vault/sdk` v0.9.2 => v0.10.2
   * `github.com/prometheus/client_golang` v1.16.0 => v1.17.0
+  * `github.com/evanphx/json-patch` v5.6.0 => v5.7.0
 
 Improvements:
 * Injector can set CA certificate for injected pods via `AGENT_INJECT_VAULT_CACERT_BYTES` env var or `-vault-cacert-bytes` flag [GH-507](https://github.com/hashicorp/vault-k8s/pull/507)
+* Remove refs to deprecated io/ioutil [GH-516](https://github.com/hashicorp/vault-k8s/pull/516)
 
 ## 1.3.0 (August 16, 2023)
 
