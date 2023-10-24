@@ -1,0 +1,24 @@
+global:
+  tlsDisable: false
+injector:
+  image:
+    pullPolicy: Never
+  affinity: null
+  agentImage:
+    tag: 1.15.0
+server:
+  image:
+    tag: 1.15.0
+  dev:
+    enabled: true
+  logLevel: debug
+  # >- to convert to a single line with no line breaks.
+  extraArgs: >-
+    -dev-tls
+    -dev-tls-cert-dir=/tmp
+    -dev-tls-san=vault.default.svc.cluster.local
+    -dev-tls-san=vault.default.svc
+    -dev-tls-san=vault.default
+    -dev-tls-san=vault
+  extraEnvironmentVars:
+    VAULT_CACERT: /tmp/vault-ca.pem

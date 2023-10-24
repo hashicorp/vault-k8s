@@ -60,6 +60,12 @@ type Specification struct {
 	// VaultAddr is the AGENT_INJECT_VAULT_ADDR environment variable.
 	VaultAddr string `split_words:"true"`
 
+	// VaultCACertBytes is the AGENT_INJECT_VAULT_CACERT_BYTES environment variable.
+	// Specifies the CA cert to trust for TLS with Vault as a PEM-encoded
+	// certificate or bundle. The multi-line PEM contents may optionally be base64
+	// encoded to avoid line breaks.
+	VaultCACertBytes string `envconfig:"AGENT_INJECT_VAULT_CACERT_BYTES"`
+
 	// ProxyAddr is the AGENT_INJECT_PROXY_ADDR environment variable.
 	ProxyAddr string `split_words:"true"`
 
@@ -159,6 +165,9 @@ func (c *Command) init() {
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
+	c.flagSet.StringVar(&c.flagVaultCACertBytes, "vault-cacert-bytes", "",
+		"CA certificate to trust for TLS with Vault, specified as a PEM-encoded certificate or bundle. "+
+			"The multi-line PEM contents may optionally be base64 encoded to avoid line breaks.")
 	c.flagSet.StringVar(&c.flagProxyAddress, "proxy-address", "",
 		"HTTP proxy address used to talk to the Vault service.")
 	c.flagSet.StringVar(&c.flagVaultAuthType, "vault-auth-type", agent.DefaultVaultAuthType,
@@ -294,6 +303,9 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultAddr != "" {
 		c.flagVaultService = envs.VaultAddr
+	}
+	if envs.VaultCACertBytes != "" {
+		c.flagVaultCACertBytes = envs.VaultCACertBytes
 	}
 
 	if envs.ProxyAddr != "" {

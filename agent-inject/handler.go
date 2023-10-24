@@ -49,6 +49,7 @@ type Handler struct {
 	// If this is false, injection is default.
 	RequireAnnotation          bool
 	VaultAddress               string
+	VaultCACertBytes           string
 	VaultAuthType              string
 	VaultAuthPath              string
 	VaultNamespace             string
@@ -226,6 +227,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		err := fmt.Errorf("error creating new agent sidecar: %s", err)
 		return admissionError(req.UID, err)
 	}
+	agentSidecar.Vault.CACertBytes = h.VaultCACertBytes
 
 	h.Log.Debug("validating agent configuration..")
 	err = agentSidecar.Validate()

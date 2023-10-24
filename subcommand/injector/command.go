@@ -54,6 +54,7 @@ type Command struct {
 	flagAutoName                   string // MutatingWebhookConfiguration for updating
 	flagAutoHosts                  string // SANs for the auto-generated TLS cert.
 	flagVaultService               string // Name of the Vault service
+	flagVaultCACertBytes           string // CA Cert to trust for TLS with Vault.
 	flagProxyAddress               string // HTTP proxy address used to talk to the Vault service
 	flagVaultImage                 string // Name of the Vault Image to use
 	flagVaultAuthType              string // Type of Vault Auth Method to use
@@ -87,7 +88,6 @@ type Command struct {
 	cert atomic.Value
 }
 
-// TODO Add flag for Vault TLS
 func (c *Command) Run(args []string) int {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
@@ -194,6 +194,7 @@ func (c *Command) Run(args []string) int {
 	// Build the HTTP handler and server
 	injector := agentInject.Handler{
 		VaultAddress:               c.flagVaultService,
+		VaultCACertBytes:           c.flagVaultCACertBytes,
 		VaultAuthType:              c.flagVaultAuthType,
 		VaultAuthPath:              c.flagVaultAuthPath,
 		VaultNamespace:             c.flagVaultNamespace,

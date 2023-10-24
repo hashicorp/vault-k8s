@@ -249,8 +249,14 @@ type Vault struct {
 	AuthConfig map[string]interface{}
 
 	// CACert is the name of the Certificate Authority certificate
-	// to use when validating Vault's server certificates.
+	// to use when validating Vault's server certificates. It takes
+	// precedence over CACertBytes.
 	CACert string
+
+	// CACertBytes is the contents of the CA certificate to trust
+	// for TLS with Vault as a PEM-encoded certificate or bundle.
+	// Can also be base64 encoded PEM contents.
+	CACertBytes string
 
 	// CAKey is the name of the Certificate Authority key
 	// to use when validating Vault's server certificates.
