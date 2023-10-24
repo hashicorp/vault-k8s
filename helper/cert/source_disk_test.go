@@ -5,7 +5,6 @@ package cert
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,7 +18,7 @@ func TestGenDisk_noExist(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
 
-	td, err := ioutil.TempDir("", "consul")
+	td, err := os.MkdirTemp("", "consul")
 	require.NoError(err)
 	defer os.RemoveAll(td)
 

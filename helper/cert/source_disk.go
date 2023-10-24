@@ -7,7 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"github.com/radovskyb/watcher"
@@ -92,19 +92,19 @@ func (s *DiskSource) Certificate(ctx context.Context, last *Bundle) (Bundle, err
 }
 
 func (s *DiskSource) loadCerts() (Bundle, error) {
-	certPEMBlock, err := ioutil.ReadFile(s.CertPath)
+	certPEMBlock, err := os.ReadFile(s.CertPath)
 	if err != nil {
 		return Bundle{}, err
 	}
 
-	keyPEMBlock, err := ioutil.ReadFile(s.KeyPath)
+	keyPEMBlock, err := os.ReadFile(s.KeyPath)
 	if err != nil {
 		return Bundle{}, err
 	}
 
 	var caPEMBlock []byte
 	if s.CAPath != "" {
-		caPEMBlock, err = ioutil.ReadFile(s.CAPath)
+		caPEMBlock, err = os.ReadFile(s.CAPath)
 		if err != nil {
 			return Bundle{}, err
 		}
