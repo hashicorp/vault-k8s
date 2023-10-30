@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Setup test tools from https://github.com/hashicorp/vault-helm/blob/main/.github/workflows/setup-test-tools/action.yaml
-      - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+      - uses: actions/setup-node@8f152de45cc393bb48ce5d89d36b731f54556e65 # v4.0.0
       - run: npm install -g bats@${BATS_VERSION}
         shell: bash
         env:
