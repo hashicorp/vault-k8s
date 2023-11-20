@@ -96,7 +96,7 @@ jobs:
     steps:
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
       - name: Docker Build (Action)
-        uses: hashicorp/actions-docker-build@bc2a4ff3c8e19786865292473d32334ec1c2f532 # v1.5.2
+        uses: hashicorp/actions-docker-build@fabf7421042dd20540771b0f26f6866a86f7d165 # v1.6.0
         with:
           version: ${{env.version}}
           target: default
@@ -117,7 +117,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-      - uses: hashicorp/actions-docker-build@bc2a4ff3c8e19786865292473d32334ec1c2f532 # v1.5.2
+      - uses: hashicorp/actions-docker-build@fabf7421042dd20540771b0f26f6866a86f7d165 # v1.6.0
         with:
           version: ${{env.version}}
           target: ubi
