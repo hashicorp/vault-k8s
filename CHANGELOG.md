@@ -5,6 +5,7 @@ Changes:
   * Docker UBI image `ubi8/ubi-minimal` 8.8-1072.1697626218 => 8.9-1029
   * `k8s.io/api` v0.28.3 => v0.28.4
   * `k8s.io/apimachinery` v0.28.3 => v0.28.4
+  * `k8s.io/client-go` v0.28.3 => v0.28.4
 
 ## 1.3.1 (October 25, 2023)
 
