@@ -7,6 +7,7 @@ Changes:
   * `k8s.io/api` v0.28.3 => v0.28.4
   * `k8s.io/apimachinery` v0.28.3 => v0.28.4
   * `k8s.io/client-go` v0.28.3 => v0.28.4
+  * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.1
 
 ## 1.3.1 (October 25, 2023)
 
