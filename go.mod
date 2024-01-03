@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/evanphx/json-patch v5.7.0+incompatible
-	github.com/hashicorp/go-hclog v1.6.1
+	github.com/hashicorp/go-hclog v1.6.2
 	github.com/hashicorp/go-secure-stdlib/tlsutil v0.1.3
 	github.com/hashicorp/vault/sdk v0.10.2
 	github.com/kelseyhightower/envconfig v1.4.0
