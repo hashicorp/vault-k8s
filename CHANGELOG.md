@@ -4,9 +4,10 @@ Changes:
 * Dependency updates:
   * Docker UBI image `ubi8/ubi-minimal` 8.8-1072.1697626218 => 8.9-1029
   * Docker alpine version 3.18.4 => 3.19.0
-  * `k8s.io/api` v0.28.3 => v0.28.4
-  * `k8s.io/apimachinery` v0.28.3 => v0.28.4
-  * `k8s.io/client-go` v0.28.3 => v0.28.4
+  * `k8s.io/api` v0.28.3 => v0.29.0
+  * `k8s.io/apimachinery` v0.28.3 => v0.29.0
+  * `k8s.io/client-go` v0.28.3 => v0.29.0
+  * `k8s.io/utils` v0.0.0-20230406110748-d93618cff8a2 => v0.0.0-20230726121419-3b25d923346b`
   * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.1
 
 ## 1.3.1 (October 25, 2023)
