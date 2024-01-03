@@ -9,6 +9,7 @@ Changes:
   * `k8s.io/client-go` v0.28.3 => v0.29.0
   * `k8s.io/utils` v0.0.0-20230406110748-d93618cff8a2 => v0.0.0-20230726121419-3b25d923346b`
   * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.1
+  * `github.com/hashicorp/go-secure-stdlib/tlsutil` v0.1.2 => v0.1.3
 
 ## 1.3.1 (October 25, 2023)
 
