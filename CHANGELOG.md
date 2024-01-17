@@ -11,6 +11,7 @@ Changes:
   * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.2
   * `github.com/hashicorp/go-secure-stdlib/tlsutil` v0.1.2 => v0.1.3
   * `github.com/prometheus/client_golang` v1.17.0 => v1.18.0
+  * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
 
 ## 1.3.1 (October 25, 2023)
 
