@@ -317,6 +317,7 @@ type AgentConfig struct {
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
+	AuthConfigExtraArgs        map[string]string
 	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
@@ -383,6 +384,14 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	// Set auth config extra args to annotations
+	for key, val := range cfg.AuthConfigExtraArgs {
+		annotationKey := fmt.Sprintf("%s-%s", AnnotationVaultAuthConfig, key)
+		if _, ok := pod.ObjectMeta.Annotations[annotationKey]; !ok {
+			pod.ObjectMeta.Annotations[annotationKey] = val
+		}
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultNamespace]; !ok {

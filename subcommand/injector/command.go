@@ -59,6 +59,7 @@ type Command struct {
 	flagVaultImage                 string // Name of the Vault Image to use
 	flagVaultAuthType              string // Type of Vault Auth Method to use
 	flagVaultAuthPath              string // Mount path of the Vault Auth Method
+	flagVaultAuthConfigExtraArgs   string // Extra arguments for the Vault Auth Method Config block
 	flagVaultNamespace             string // Vault enterprise namespace
 	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
 	flagRunAsUser                  string // User (uid) to run Vault agent as
@@ -192,11 +193,17 @@ func (c *Command) Run(args []string) int {
 	go c.certWatcher(ctx, certCh, clientset, leaderElector, logger.Named("certwatcher"))
 
 	// Build the HTTP handler and server
+	authConfigExtraArgs, err := c.makeVaultAuthConfigExtraArgs()
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error reading VaultAuthConfigExtraArgs: %s", err))
+		return 1
+	}
 	injector := agentInject.Handler{
 		VaultAddress:               c.flagVaultService,
 		VaultCACertBytes:           c.flagVaultCACertBytes,
 		VaultAuthType:              c.flagVaultAuthType,
 		VaultAuthPath:              c.flagVaultAuthPath,
+		VaultAuthConfigExtraArgs:   authConfigExtraArgs,
 		VaultNamespace:             c.flagVaultNamespace,
 		ProxyAddress:               c.flagProxyAddress,
 		ImageVault:                 c.flagVaultImage,
@@ -308,6 +315,22 @@ func (c *Command) handleReady(rw http.ResponseWriter, req *http.Request) {
 	// there is a TLS certificate. If we reached this point it means we
 	// served a TLS certificate.
 	rw.WriteHeader(204)
+}
+
+func (c *Command) makeVaultAuthConfigExtraArgs() (map[string]string, error) {
+	extraArgs := make(map[string]string)
+	if c.flagVaultAuthConfigExtraArgs == "" {
+		return extraArgs, nil
+	}
+	for _, extraArg := range strings.Split(c.flagVaultAuthConfigExtraArgs, ",") {
+		extraArgKey, extraArgVal, found := strings.Cut(extraArg, ":")
+		if !found {
+			return nil, fmt.Errorf("invalid auth config extra args: %s",
+				c.flagVaultAuthConfigExtraArgs)
+		}
+		extraArgs[strings.TrimSpace(extraArgKey)] = strings.TrimSpace(extraArgVal)
+	}
+	return extraArgs, nil
 }
 
 func (c *Command) makeTLSConfig() (*tls.Config, error) {

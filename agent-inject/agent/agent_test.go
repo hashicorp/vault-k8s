@@ -25,7 +25,7 @@ func testPod(annotations map[string]string) *corev1.Pod {
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "foobar",
-							MountPath: "serviceaccount/somewhere",
+							MountPath: "kubernetes.io/serviceaccount/somewhere",
 						},
 						{
 							Name:      "tobecopied",
@@ -70,7 +70,7 @@ func testPodIRSA(annotations map[string]string) *corev1.Pod {
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "foobar",
-							MountPath: "serviceaccount/somewhere",
+							MountPath: "kubernetes.io/serviceaccount/somewhere",
 						},
 					},
 				},
@@ -554,6 +554,63 @@ func Test_serviceaccount(t *testing.T) {
 										{
 											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
 												Path: "vault-token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"multiple service account tokens from different sources": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "kube-api-access-4bfzq",
+				MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+				TokenPath: "token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "aws-iam-token",
+									MountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount",
+								},
+								{
+									Name:      "kube-api-access-4bfzq",
+									MountPath: "/var/run/secrets/kubernetes.io/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "aws-iam-token",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path:     "token",
+												Audience: "sts.amazonaws.com",
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Name: "kube-api-access-4bfzq",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "token",
 											},
 										},
 									},

@@ -38,7 +38,7 @@ func TestHandlerHandle(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      "foobar",
-						MountPath: "serviceaccount/somewhere",
+						MountPath: "kubernetes.io/serviceaccount/somewhere",
 					},
 				},
 			},
@@ -49,7 +49,7 @@ func TestHandlerHandle(t *testing.T) {
 				VolumeMounts: []corev1.VolumeMount{
 					{
 						Name:      "foobar",
-						MountPath: "serviceaccount/somewhere",
+						MountPath: "kubernetes.io/serviceaccount/somewhere",
 					},
 				},
 			},

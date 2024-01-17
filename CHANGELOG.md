@@ -12,6 +12,12 @@ Changes:
   * `github.com/hashicorp/go-secure-stdlib/tlsutil` v0.1.2 => v0.1.3
   * `github.com/prometheus/client_golang` v1.17.0 => v1.18.0
 
+Improvements:
+* Auth config block can support common arguments from env and flags [GH-577](https://github.com/hashicorp/vault-k8s/pull/577)
+
+Bugs:
+* Prevent incorrect k8s serviceaccount volume mount to be picked when multiple serviceaccount volumes are present [GH-577](https://github.com/hashicorp/vault-k8s/pull/577)
+
 ## 1.3.1 (October 25, 2023)
 
 Changes:
