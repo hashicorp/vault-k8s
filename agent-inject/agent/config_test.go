@@ -565,26 +565,49 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			map[string]string{
 				AnnotationTemplateConfigExitOnRetryFailure: "true",
 			},
-			&TemplateConfig{ExitOnRetryFailure: true},
+			&TemplateConfig{
+				ExitOnRetryFailure: true,
+				MaxConnectionsPerHost: 10,
+			},
 		},
 		{
 			"exit_on_retry_failure false",
 			map[string]string{
 				AnnotationTemplateConfigExitOnRetryFailure: "false",
 			},
-			&TemplateConfig{ExitOnRetryFailure: false},
+			&TemplateConfig{
+				ExitOnRetryFailure: false,
+				MaxConnectionsPerHost: 10,
+			},
 		},
 		{
 			"static_secret_render_interval 10s",
 			map[string]string{
 				AnnotationTemplateConfigStaticSecretRenderInterval: "10s",
 			},
-			&TemplateConfig{ExitOnRetryFailure: true, StaticSecretRenderInterval: "10s"},
+			&TemplateConfig{
+				ExitOnRetryFailure: true,
+				StaticSecretRenderInterval: "10s",
+				MaxConnectionsPerHost: 10,
+			},
+		},
+		{
+			"max_connections_per_host 100",
+			map[string]string{
+				AnnotationTemplateConfigMaxConnectionsPerHost: "100",
+			},
+			&TemplateConfig{
+				ExitOnRetryFailure: true,
+				MaxConnectionsPerHost: 100,
+			},
 		},
 		{
 			"template_config_empty",
 			map[string]string{},
-			&TemplateConfig{ExitOnRetryFailure: true},
+			&TemplateConfig{
+				ExitOnRetryFailure: true,
+				MaxConnectionsPerHost: 10,
+			},
 		},
 	}
 
