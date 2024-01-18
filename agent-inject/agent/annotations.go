@@ -526,7 +526,7 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = cfg.MaxConnectionsPerHost
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = strconv.FormatInt(cfg.MaxConnectionsPerHost, 10)
 	}
 
 	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
