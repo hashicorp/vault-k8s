@@ -287,7 +287,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.TemplateConfigMaxConnectionsPerHost != "" {
-		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost, 10, 64)
+		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost)
 		if err != nil {
 			return err
 		}
