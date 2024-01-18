@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -445,12 +445,12 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, err
 	}
 
-	agent.RunAsUser, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsUser], 10, 64)
+	agent.RunAsUser, err = parseutil.ParseInt(pod.Annotations[AnnotationAgentRunAsUser])
 	if err != nil {
 		return agent, err
 	}
 
-	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
+	agent.RunAsGroup, err = parseutil.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup])
 	if err != nil {
 		return agent, err
 	}
@@ -549,7 +549,7 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
-	inject, err := strconv.ParseBool(raw)
+	inject, err := parseutil.ParseBool(raw)
 	if err != nil {
 		return false, err
 	}

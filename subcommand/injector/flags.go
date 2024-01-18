@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/flags"
@@ -275,7 +276,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.TemplateConfigExitOnRetryFailure != "" {
-		c.flagExitOnRetryFailure, err = strconv.ParseBool(envs.TemplateConfigExitOnRetryFailure)
+		c.flagExitOnRetryFailure, err = parseutil.ParseBool(envs.TemplateConfigExitOnRetryFailure)
 		if err != nil {
 			return err
 		}
@@ -286,7 +287,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.TemplateConfigMaxConnectionsPerHost != "" {
-		c.flagMaxConnectionsPerHost, err = strconv.ParseInt(envs.TemplateConfigMaxConnectionsPerHost, 10, 64)
+		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -336,7 +337,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.RevokeOnShutdown != "" {
-		c.flagRevokeOnShutdown, err = strconv.ParseBool(envs.RevokeOnShutdown)
+		c.flagRevokeOnShutdown, err = parseutil.ParseBool(envs.RevokeOnShutdown)
 		if err != nil {
 			return err
 		}
@@ -351,14 +352,14 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.RunAsSameUser != "" {
-		c.flagRunAsSameUser, err = strconv.ParseBool(envs.RunAsSameUser)
+		c.flagRunAsSameUser, err = parseutil.ParseBool(envs.RunAsSameUser)
 		if err != nil {
 			return err
 		}
 	}
 
 	if envs.SetSecurityContext != "" {
-		c.flagSetSecurityContext, err = strconv.ParseBool(envs.SetSecurityContext)
+		c.flagSetSecurityContext, err = parseutil.ParseBool(envs.SetSecurityContext)
 		if err != nil {
 			return err
 		}
@@ -369,7 +370,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.UseLeaderElector != "" {
-		c.flagUseLeaderElector, err = strconv.ParseBool(envs.UseLeaderElector)
+		c.flagUseLeaderElector, err = parseutil.ParseBool(envs.UseLeaderElector)
 		if err != nil {
 			return err
 		}
