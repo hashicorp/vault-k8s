@@ -17,26 +17,27 @@ import (
 )
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.15.1"
-	DefaultVaultAuthType                    = "kubernetes"
-	DefaultVaultAuthPath                    = "auth/kubernetes"
-	DefaultAgentRunAsUser                   = 100
-	DefaultAgentRunAsGroup                  = 1000
-	DefaultAgentRunAsSameUser               = false
-	DefaultAgentAllowPrivilegeEscalation    = false
-	DefaultAgentDropCapabilities            = "ALL"
-	DefaultAgentSetSecurityContext          = true
-	DefaultAgentReadOnlyRoot                = true
-	DefaultAgentCacheEnable                 = "false"
-	DefaultAgentCacheUseAutoAuthToken       = "true"
-	DefaultAgentCacheListenerPort           = "8200"
-	DefaultAgentCacheExitOnErr              = false
-	DefaultAgentUseLeaderElector            = false
-	DefaultAgentInjectToken                 = false
-	DefaultTemplateConfigExitOnRetryFailure = true
-	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
-	DefaultEnableQuit                       = false
-	DefaultAutoAuthEnableOnExit             = false
+	DefaultVaultImage                          = "hashicorp/vault:1.15.1"
+	DefaultVaultAuthType                       = "kubernetes"
+	DefaultVaultAuthPath                       = "auth/kubernetes"
+	DefaultAgentRunAsUser                      = 100
+	DefaultAgentRunAsGroup                     = 1000
+	DefaultAgentRunAsSameUser                  = false
+	DefaultAgentAllowPrivilegeEscalation       = false
+	DefaultAgentDropCapabilities               = "ALL"
+	DefaultAgentSetSecurityContext             = true
+	DefaultAgentReadOnlyRoot                   = true
+	DefaultAgentCacheEnable                    = "false"
+	DefaultAgentCacheUseAutoAuthToken          = "true"
+	DefaultAgentCacheListenerPort              = "8200"
+	DefaultAgentCacheExitOnErr                 = false
+	DefaultAgentUseLeaderElector               = false
+	DefaultAgentInjectToken                    = false
+	DefaultTemplateConfigExitOnRetryFailure    = true
+	DefaultTemplateConfigMaxConnectionsPerHost = 10
+	DefaultServiceAccountMount                 = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
+	DefaultEnableQuit                          = false
+	DefaultAutoAuthEnableOnExit                = false
 )
 
 // Agent is the top level structure holding all the
@@ -340,6 +341,11 @@ type VaultAgentTemplateConfig struct {
 	// StaticSecretRenderInterval If specified, configures how often
 	// Vault Agent Template should render non-leased secrets such as KV v2
 	StaticSecretRenderInterval string
+
+	// MaxConnectionsPerHost limits the total number of connections
+	//  that the Vault Agent templating engine can use for a particular Vault host. This limit
+	//  includes connections in the dialing, active, and idle states.
+	MaxConnectionsPerHost int64
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -503,9 +509,15 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return nil, err
 	}
 
+	maxConnectionsPerHost, err := agent.templateConfigMaxConnectionsPerHost()
+	if err != nil {
+		return nil, err
+	}
+
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
 		ExitOnRetryFailure:         exitOnRetryFailure,
 		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
+		MaxConnectionsPerHost:      maxConnectionsPerHost,
 	}
 
 	agent.EnableQuit, err = agent.getEnableQuit()

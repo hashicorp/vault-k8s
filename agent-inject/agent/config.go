@@ -121,6 +121,7 @@ type CachePersist struct {
 type TemplateConfig struct {
 	ExitOnRetryFailure         bool   `json:"exit_on_retry_failure"`
 	StaticSecretRenderInterval string `json:"static_secret_render_interval,omitempty"`
+	MaxConnectionsPerHost      int64  `json:"max_connections_per_host,omitempty"`
 }
 
 // Telemetry defines the configuration for agent telemetry in Vault Agent.
@@ -251,6 +252,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		TemplateConfig: &TemplateConfig{
 			ExitOnRetryFailure:         a.VaultAgentTemplateConfig.ExitOnRetryFailure,
 			StaticSecretRenderInterval: a.VaultAgentTemplateConfig.StaticSecretRenderInterval,
+			MaxConnectionsPerHost:      a.VaultAgentTemplateConfig.MaxConnectionsPerHost,
 		},
 		DisableIdleConnections: a.DisableIdleConnections,
 		DisableKeepAlives:      a.DisableKeepAlives,

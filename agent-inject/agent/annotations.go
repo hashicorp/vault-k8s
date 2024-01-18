@@ -273,6 +273,11 @@ const (
 	// Defaults to 5 minutes.
 	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-static-secret-render-interval"
 
+	// AnnotationTemplateConfigMaxConnectionsPerHost limits the total number of connections
+	//  that the Vault Agent templating engine can use for a particular Vault host. This limit
+	//  includes connections in the dialing, active, and idle states.
+	AnnotationTemplateConfigMaxConnectionsPerHost = "vault.hashicorp.com/template-max-connections-per-host"
+
 	// AnnotationAgentEnableQuit configures whether the quit endpoint is
 	// enabled in the injected agent config
 	AnnotationAgentEnableQuit = "vault.hashicorp.com/agent-enable-quit"
@@ -335,6 +340,7 @@ type AgentConfig struct {
 	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	MaxConnectionsPerHost      int64
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
@@ -518,6 +524,14 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
 	}
+
+	//if maxConnsPerHostRaw, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
+	//	if maxConnsPerHostRaw != "" {
+	//		maxConnsPerHost, err := strconv.ParseInt(maxConnsPerHostRaw, 10, 64)
+	//
+	//	}
+	//	pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = cfg.StaticSecretRenderInterval
+	//}
 
 	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
 		if minBackoffString != "" {
@@ -810,6 +824,15 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 	}
 
 	return strconv.ParseBool(raw)
+}
+
+func (a *Agent) templateConfigMaxConnectionsPerHost() (int64, error) {
+	raw, ok := a.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]
+	if !ok {
+		return DefaultTemplateConfigMaxConnectionsPerHost, nil
+	}
+
+	return strconv.ParseInt(raw, 10, 64)
 }
 
 func (a *Agent) getAutoAuthExitOnError() (bool, error) {

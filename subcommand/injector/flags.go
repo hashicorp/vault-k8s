@@ -45,6 +45,10 @@ type Specification struct {
 	// AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL environment variable.
 	TemplateConfigStaticSecretRenderInterval string `envconfig:"AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL"`
 
+	// TemplateConfigMaxConnectionsPerHost is the
+	// AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST environment variable.
+	TemplateConfigMaxConnectionsPerHost string `envconfig:"AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST"`
+
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
 
@@ -279,6 +283,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TemplateConfigStaticSecretRenderInterval != "" {
 		c.flagStaticSecretRenderInterval = envs.TemplateConfigStaticSecretRenderInterval
+	}
+
+	if envs.TemplateConfigMaxConnectionsPerHost != "" {
+		c.flagMaxConnectionsPerHost, err = strconv.ParseInt(envs.TemplateConfigMaxConnectionsPerHost, 10, 64)
+		if err != nil {
+			return err
+		}
 	}
 
 	if envs.TLSAuto != "" {
