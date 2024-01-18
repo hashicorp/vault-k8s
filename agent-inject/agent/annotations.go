@@ -525,13 +525,9 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
 	}
 
-	//if maxConnsPerHostRaw, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
-	//	if maxConnsPerHostRaw != "" {
-	//		maxConnsPerHost, err := strconv.ParseInt(maxConnsPerHostRaw, 10, 64)
-	//
-	//	}
-	//	pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = cfg.StaticSecretRenderInterval
-	//}
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = cfg.MaxConnectionsPerHost
+	}
 
 	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
 		if minBackoffString != "" {
