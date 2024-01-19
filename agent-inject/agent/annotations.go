@@ -886,7 +886,8 @@ func (a *Agent) authConfig() map[string]interface{} {
 
 	// set token_path parameter from the Agent prior to assignment from annotations
 	// so that annotations can override the value assigned in agent.go https://github.com/hashicorp/vault-k8s/issues/456
-	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
+	// Also the token_path parameter must be set iff AuthType is "kubernetes". Other auth types doesn't require this attribute
+	if a.Vault.AuthType == DefaultVaultAuthType && a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
 		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
 
