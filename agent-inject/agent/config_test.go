@@ -567,7 +567,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			},
 			&TemplateConfig{
 				ExitOnRetryFailure: true,
-				MaxConnectionsPerHost: 10,
+				MaxConnectionsPerHost: 0,
 			},
 		},
 		{
@@ -577,7 +577,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			},
 			&TemplateConfig{
 				ExitOnRetryFailure: false,
-				MaxConnectionsPerHost: 10,
+				MaxConnectionsPerHost: 0,
 			},
 		},
 		{
@@ -588,7 +588,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure: true,
 				StaticSecretRenderInterval: "10s",
-				MaxConnectionsPerHost: 10,
+				MaxConnectionsPerHost: 0,
 			},
 		},
 		{
@@ -606,7 +606,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			map[string]string{},
 			&TemplateConfig{
 				ExitOnRetryFailure: true,
-				MaxConnectionsPerHost: 10,
+				MaxConnectionsPerHost: 0,
 			},
 		},
 	}

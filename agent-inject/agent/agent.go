@@ -34,7 +34,6 @@ const (
 	DefaultAgentUseLeaderElector               = false
 	DefaultAgentInjectToken                    = false
 	DefaultTemplateConfigExitOnRetryFailure    = true
-	DefaultTemplateConfigMaxConnectionsPerHost = 10
 	DefaultServiceAccountMount                 = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                          = false
 	DefaultAutoAuthEnableOnExit                = false

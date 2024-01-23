@@ -527,10 +527,6 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
-		if cfg.MaxConnectionsPerHost == 0 {
-			cfg.MaxConnectionsPerHost = DefaultTemplateConfigMaxConnectionsPerHost
-		}
-
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = strconv.FormatInt(cfg.MaxConnectionsPerHost, 10)
 	}
 
@@ -830,7 +826,7 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 func (a *Agent) templateConfigMaxConnectionsPerHost() (int64, error) {
 	raw, ok := a.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]
 	if !ok {
-		return DefaultTemplateConfigMaxConnectionsPerHost, nil
+		return 0, nil
 	}
 
 	return parseutil.ParseInt(raw)
