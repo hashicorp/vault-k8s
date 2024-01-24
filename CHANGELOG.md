@@ -1,4 +1,6 @@
 ## Unreleased
+Features:
+* Add support for `max_connections_per_host` within Agent injector [GH-579](https://github.com/hashicorp/vault-k8s/pull/579)
 
 Changes:
 * Dependency updates:
