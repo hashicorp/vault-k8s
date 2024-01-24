@@ -51,6 +51,7 @@ type Command struct {
 	flagKeyFile                    string // TLS private key to serve
 	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
 	flagStaticSecretRenderInterval string // Set template_config.static_secret_render_interval on agent
+	flagMaxConnectionsPerHost      int64  // Set template_config.max_connections_per_host on agent
 	flagAutoName                   string // MutatingWebhookConfiguration for updating
 	flagAutoHosts                  string // SANs for the auto-generated TLS cert.
 	flagVaultService               string // Name of the Vault service
@@ -217,6 +218,7 @@ func (c *Command) Run(args []string) int {
 		ResourceLimitEphemeral:     c.flagResourceLimitEphemeral,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
+		MaxConnectionsPerHost:      c.flagMaxConnectionsPerHost,
 		AuthMinBackoff:             c.flagAuthMinBackoff,
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
 		DisableIdleConnections:     c.flagDisableIdleConnections,

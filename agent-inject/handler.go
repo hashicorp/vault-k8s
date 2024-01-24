@@ -72,6 +72,7 @@ type Handler struct {
 	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	MaxConnectionsPerHost      int64
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
@@ -210,6 +211,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		ResourceLimitEphemeral:     h.ResourceLimitEphemeral,
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
+		MaxConnectionsPerHost:      h.MaxConnectionsPerHost,
 		AuthMinBackoff:             h.AuthMinBackoff,
 		AuthMaxBackoff:             h.AuthMaxBackoff,
 		DisableIdleConnections:     h.DisableIdleConnections,

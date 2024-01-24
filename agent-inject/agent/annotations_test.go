@@ -698,7 +698,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentInject, "f", true},
 		{AnnotationAgentInject, "tRuE", false},
 		{AnnotationAgentInject, "fAlSe", false},
-		{AnnotationAgentInject, "", false},
+		{AnnotationAgentInject, "", true},
 
 		{AnnotationAgentPrePopulate, "true", true},
 		{AnnotationAgentPrePopulate, "false", true},
@@ -710,7 +710,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentPrePopulate, "f", true},
 		{AnnotationAgentPrePopulate, "tRuE", false},
 		{AnnotationAgentPrePopulate, "fAlSe", false},
-		{AnnotationAgentPrePopulate, "", false},
+		{AnnotationAgentPrePopulate, "", true},
 
 		{AnnotationAgentPrePopulateOnly, "true", true},
 		{AnnotationAgentPrePopulateOnly, "false", true},
@@ -722,7 +722,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentPrePopulateOnly, "f", true},
 		{AnnotationAgentPrePopulateOnly, "tRuE", false},
 		{AnnotationAgentPrePopulateOnly, "fAlSe", false},
-		{AnnotationAgentPrePopulateOnly, "", false},
+		{AnnotationAgentPrePopulateOnly, "", true},
 
 		{AnnotationVaultTLSSkipVerify, "true", true},
 		{AnnotationVaultTLSSkipVerify, "false", true},
@@ -734,7 +734,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationVaultTLSSkipVerify, "f", true},
 		{AnnotationVaultTLSSkipVerify, "tRuE", false},
 		{AnnotationVaultTLSSkipVerify, "fAlSe", false},
-		{AnnotationVaultTLSSkipVerify, "", false},
+		{AnnotationVaultTLSSkipVerify, "", true},
 
 		{AnnotationAgentRevokeOnShutdown, "true", true},
 		{AnnotationAgentRevokeOnShutdown, "false", true},
@@ -746,7 +746,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentRevokeOnShutdown, "f", true},
 		{AnnotationAgentRevokeOnShutdown, "tRuE", false},
 		{AnnotationAgentRevokeOnShutdown, "fAlSe", false},
-		{AnnotationAgentRevokeOnShutdown, "", false},
+		{AnnotationAgentRevokeOnShutdown, "", true},
 
 		{AnnotationAgentRevokeGrace, "5", true},
 		{AnnotationAgentRevokeGrace, "0", true},
@@ -768,12 +768,12 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentShareProcessNamespace, "FALSE", true},
 		{AnnotationAgentShareProcessNamespace, "tRuE", false},
 		{AnnotationAgentShareProcessNamespace, "fAlSe", false},
-		{AnnotationAgentShareProcessNamespace, "", false},
+		{AnnotationAgentShareProcessNamespace, "", true},
 
 		{AnnotationAgentSetSecurityContext, "true", true},
 		{AnnotationAgentSetSecurityContext, "false", true},
 		{AnnotationAgentSetSecurityContext, "secure", false},
-		{AnnotationAgentSetSecurityContext, "", false},
+		{AnnotationAgentSetSecurityContext, "", true},
 
 		{AnnotationAgentCacheEnable, "true", true},
 		{AnnotationAgentCacheEnable, "false", true},
@@ -785,7 +785,7 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentCacheEnable, "f", true},
 		{AnnotationAgentCacheEnable, "tRuE", false},
 		{AnnotationAgentCacheEnable, "fAlSe", false},
-		{AnnotationAgentCacheEnable, "", false},
+		{AnnotationAgentCacheEnable, "", true},
 
 		{AnnotationAgentAuthMinBackoff, "", true},
 		{AnnotationAgentAuthMinBackoff, "1s", true},

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -24,7 +25,7 @@ const (
 
 	// AnnotationAgentInject is the key of the annotation that controls whether
 	// injection is explicitly enabled or disabled for a pod. This should
-	// be set to a true or false value, as parseable by strconv.ParseBool
+	// be set to a true or false value, as parseable by parseutil.ParseBool
 	AnnotationAgentInject = "vault.hashicorp.com/agent-inject"
 
 	// AnnotationAgentInjectSecret is the key annotation that configures Vault
@@ -273,6 +274,11 @@ const (
 	// Defaults to 5 minutes.
 	AnnotationTemplateConfigStaticSecretRenderInterval = "vault.hashicorp.com/template-static-secret-render-interval"
 
+	// AnnotationTemplateConfigMaxConnectionsPerHost limits the total number of connections
+	//  that the Vault Agent templating engine can use for a particular Vault host. This limit
+	//  includes connections in the dialing, active, and idle states.
+	AnnotationTemplateConfigMaxConnectionsPerHost = "vault.hashicorp.com/template-max-connections-per-host"
+
 	// AnnotationAgentEnableQuit configures whether the quit endpoint is
 	// enabled in the injected agent config
 	AnnotationAgentEnableQuit = "vault.hashicorp.com/agent-enable-quit"
@@ -335,6 +341,7 @@ type AgentConfig struct {
 	ResourceLimitEphemeral     string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
+	MaxConnectionsPerHost      int64
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
@@ -519,6 +526,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval] = cfg.StaticSecretRenderInterval
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost] = strconv.FormatInt(cfg.MaxConnectionsPerHost, 10)
+	}
+
 	if minBackoffString, ok := pod.ObjectMeta.Annotations[AnnotationAgentAuthMinBackoff]; ok {
 		if minBackoffString != "" {
 			_, err := time.ParseDuration(minBackoffString)
@@ -662,7 +673,7 @@ func (a *Agent) inject() (bool, error) {
 		return true, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) initFirst() (bool, error) {
@@ -671,7 +682,7 @@ func (a *Agent) initFirst() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) prePopulate() (bool, error) {
@@ -680,7 +691,7 @@ func (a *Agent) prePopulate() (bool, error) {
 		return true, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) prePopulateOnly() (bool, error) {
@@ -689,7 +700,7 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) revokeOnShutdown() (bool, error) {
@@ -698,7 +709,7 @@ func (a *Agent) revokeOnShutdown() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) revokeGrace() (uint64, error) {
@@ -716,7 +727,7 @@ func (a *Agent) tlsSkipVerify() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
@@ -732,7 +743,7 @@ func (a *Agent) preserveSecretCase(secretName string) (bool, error) {
 			return false, nil
 		}
 	}
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
@@ -740,7 +751,7 @@ func (a *Agent) runAsSameID(pod *corev1.Pod) (bool, error) {
 	if !ok {
 		return DefaultAgentRunAsSameUser, nil
 	}
-	runAsSameID, err := strconv.ParseBool(raw)
+	runAsSameID, err := parseutil.ParseBool(raw)
 	if err != nil {
 		return DefaultAgentRunAsSameUser, err
 	}
@@ -769,7 +780,7 @@ func (a *Agent) setShareProcessNamespace(pod *corev1.Pod) (bool, bool, error) {
 	if !ok {
 		return false, false, nil
 	}
-	shareProcessNamespace, err := strconv.ParseBool(raw)
+	shareProcessNamespace, err := parseutil.ParseBool(raw)
 	if err != nil {
 		return false, true, fmt.Errorf(
 			"invalid value %v for annotation %q, err=%w", raw, annotation, err)
@@ -791,7 +802,7 @@ func (a *Agent) setSecurityContext() (bool, error) {
 		return DefaultAgentSetSecurityContext, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) cacheEnable() (bool, error) {
@@ -800,7 +811,7 @@ func (a *Agent) cacheEnable() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
@@ -809,7 +820,16 @@ func (a *Agent) templateConfigExitOnRetryFailure() (bool, error) {
 		return DefaultTemplateConfigExitOnRetryFailure, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
+}
+
+func (a *Agent) templateConfigMaxConnectionsPerHost() (int64, error) {
+	raw, ok := a.Annotations[AnnotationTemplateConfigMaxConnectionsPerHost]
+	if !ok {
+		return 0, nil
+	}
+
+	return parseutil.ParseInt(raw)
 }
 
 func (a *Agent) getAutoAuthExitOnError() (bool, error) {
@@ -817,7 +837,8 @@ func (a *Agent) getAutoAuthExitOnError() (bool, error) {
 	if !ok {
 		return DefaultAutoAuthEnableOnExit, nil
 	}
-	return strconv.ParseBool(raw)
+
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) getEnableQuit() (bool, error) {
@@ -825,7 +846,7 @@ func (a *Agent) getEnableQuit() (bool, error) {
 	if !ok {
 		return DefaultEnableQuit, nil
 	}
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) cachePersist(cacheEnabled bool) bool {
@@ -841,7 +862,7 @@ func (a *Agent) cacheExitOnErr() (bool, error) {
 		return false, nil
 	}
 
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 func (a *Agent) injectToken() (bool, error) {
@@ -849,7 +870,7 @@ func (a *Agent) injectToken() (bool, error) {
 	if !ok {
 		return DefaultAgentInjectToken, nil
 	}
-	return strconv.ParseBool(raw)
+	return parseutil.ParseBool(raw)
 }
 
 // telemetryConfig accumulates the agent-telemetry annotations into a map which is

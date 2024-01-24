@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/flags"
@@ -44,6 +45,10 @@ type Specification struct {
 	// TemplateConfigStaticSecretRenderInterval is the
 	// AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL environment variable.
 	TemplateConfigStaticSecretRenderInterval string `envconfig:"AGENT_INJECT_TEMPLATE_STATIC_SECRET_RENDER_INTERVAL"`
+
+	// TemplateConfigMaxConnectionsPerHost is the
+	// AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST environment variable.
+	TemplateConfigMaxConnectionsPerHost string `envconfig:"AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
@@ -271,7 +276,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.TemplateConfigExitOnRetryFailure != "" {
-		c.flagExitOnRetryFailure, err = strconv.ParseBool(envs.TemplateConfigExitOnRetryFailure)
+		c.flagExitOnRetryFailure, err = parseutil.ParseBool(envs.TemplateConfigExitOnRetryFailure)
 		if err != nil {
 			return err
 		}
@@ -279,6 +284,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TemplateConfigStaticSecretRenderInterval != "" {
 		c.flagStaticSecretRenderInterval = envs.TemplateConfigStaticSecretRenderInterval
+	}
+
+	if envs.TemplateConfigMaxConnectionsPerHost != "" {
+		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost)
+		if err != nil {
+			return err
+		}
 	}
 
 	if envs.TLSAuto != "" {
@@ -325,7 +337,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.RevokeOnShutdown != "" {
-		c.flagRevokeOnShutdown, err = strconv.ParseBool(envs.RevokeOnShutdown)
+		c.flagRevokeOnShutdown, err = parseutil.ParseBool(envs.RevokeOnShutdown)
 		if err != nil {
 			return err
 		}
@@ -340,14 +352,14 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.RunAsSameUser != "" {
-		c.flagRunAsSameUser, err = strconv.ParseBool(envs.RunAsSameUser)
+		c.flagRunAsSameUser, err = parseutil.ParseBool(envs.RunAsSameUser)
 		if err != nil {
 			return err
 		}
 	}
 
 	if envs.SetSecurityContext != "" {
-		c.flagSetSecurityContext, err = strconv.ParseBool(envs.SetSecurityContext)
+		c.flagSetSecurityContext, err = parseutil.ParseBool(envs.SetSecurityContext)
 		if err != nil {
 			return err
 		}
@@ -358,7 +370,7 @@ func (c *Command) parseEnvs() error {
 	}
 
 	if envs.UseLeaderElector != "" {
-		c.flagUseLeaderElector, err = strconv.ParseBool(envs.UseLeaderElector)
+		c.flagUseLeaderElector, err = parseutil.ParseBool(envs.UseLeaderElector)
 		if err != nil {
 			return err
 		}

@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
@@ -340,6 +340,11 @@ type VaultAgentTemplateConfig struct {
 	// StaticSecretRenderInterval If specified, configures how often
 	// Vault Agent Template should render non-leased secrets such as KV v2
 	StaticSecretRenderInterval string
+
+	// MaxConnectionsPerHost limits the total number of connections
+	//  that the Vault Agent templating engine can use for a particular Vault host. This limit
+	//  includes connections in the dialing, active, and idle states.
+	MaxConnectionsPerHost int64
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -439,12 +444,12 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, err
 	}
 
-	agent.RunAsUser, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsUser], 10, 64)
+	agent.RunAsUser, err = parseutil.ParseInt(pod.Annotations[AnnotationAgentRunAsUser])
 	if err != nil {
 		return agent, err
 	}
 
-	agent.RunAsGroup, err = strconv.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup], 10, 64)
+	agent.RunAsGroup, err = parseutil.ParseInt(pod.Annotations[AnnotationAgentRunAsGroup])
 	if err != nil {
 		return agent, err
 	}
@@ -503,9 +508,15 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return nil, err
 	}
 
+	maxConnectionsPerHost, err := agent.templateConfigMaxConnectionsPerHost()
+	if err != nil {
+		return nil, err
+	}
+
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
 		ExitOnRetryFailure:         exitOnRetryFailure,
 		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
+		MaxConnectionsPerHost:      maxConnectionsPerHost,
 	}
 
 	agent.EnableQuit, err = agent.getEnableQuit()
@@ -537,7 +548,7 @@ func ShouldInject(pod *corev1.Pod) (bool, error) {
 		return false, nil
 	}
 
-	inject, err := strconv.ParseBool(raw)
+	inject, err := parseutil.ParseBool(raw)
 	if err != nil {
 		return false, err
 	}

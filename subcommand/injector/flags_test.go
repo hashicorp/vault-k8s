@@ -198,3 +198,31 @@ func TestCommandEnvBools(t *testing.T) {
 		})
 	}
 }
+
+func TestCommandEnvInts(t *testing.T) {
+	var cmd Command
+	tests := []struct {
+		env    string
+		value  int64
+		cmdPtr *int64
+	}{
+		{env: "AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST", value: 100, cmdPtr: &cmd.flagMaxConnectionsPerHost},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.env, func(t *testing.T) {
+			if err := os.Setenv(tt.env, strconv.FormatInt(tt.value, 10)); err != nil {
+				t.Errorf("got error setting env, shouldn't have: %s", err)
+			}
+			defer os.Unsetenv(tt.env)
+
+			if err := cmd.parseEnvs(); err != nil {
+				t.Errorf("got error parsing envs, shouldn't have: %s", err)
+			}
+
+			if *tt.cmdPtr != tt.value {
+				t.Errorf("env wasn't parsed, should have been: got %d, expected %d", *tt.cmdPtr, tt.value)
+			}
+		})
+	}
+}
