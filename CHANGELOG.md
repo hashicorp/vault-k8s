@@ -4,7 +4,7 @@ Features:
 
 Changes:
 * Dependency updates:
-  * Docker UBI image `ubi8/ubi-minimal` 8.8-1072.1697626218 => 8.9-1108.1706795067
+  * Docker UBI image `ubi8/ubi-minimal` 8.8-1072.1697626218 => 8.9-1137
   * Docker alpine version 3.18.4 => 3.19.0
   * `k8s.io/api` v0.28.3 => v0.29.0
   * `k8s.io/apimachinery` v0.28.3 => v0.29.0
