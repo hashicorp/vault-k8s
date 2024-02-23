@@ -83,6 +83,9 @@ type Specification struct {
 	// VaultAuthPath is the AGENT_INJECT_VAULT_AUTH_PATH environment variable.
 	VaultAuthPath string `split_words:"true"`
 
+	// VaultAuthConfigExtraArgs is the AGENT_INJECT_VAULT_AUTH_CONFIG_EXTRA_ARGS environment variable.
+	VaultAuthConfigExtraArgs string `split_words:"true"`
+
 	// VaultNamespace is the AGENT_INJECT_VAULT_NAMESPACE environment variable.
 	VaultNamespace string `split_words:"true"`
 
@@ -330,6 +333,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultAuthPath != "" {
 		c.flagVaultAuthPath = envs.VaultAuthPath
+	}
+
+	if envs.VaultAuthConfigExtraArgs != "" {
+		c.flagVaultAuthConfigExtraArgs = envs.VaultAuthConfigExtraArgs
 	}
 
 	if envs.VaultNamespace != "" {

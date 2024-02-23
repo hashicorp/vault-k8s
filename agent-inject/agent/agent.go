@@ -791,7 +791,8 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 	// Fallback to searching for normal service account token
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
-			if strings.Contains(volumes.MountPath, "serviceaccount") {
+			// Must find only kubernetes serviceaccount token
+			if strings.Contains(volumes.MountPath, "kubernetes.io/serviceaccount") {
 				return &ServiceAccountTokenVolume{
 					Name:      volumes.Name,
 					MountPath: volumes.MountPath,

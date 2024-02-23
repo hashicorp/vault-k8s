@@ -17,6 +17,12 @@ Changes:
   * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
   * `github.com/evanphx/json-patch` v5.7.0 => v5.9.0
 
+Improvements:
+* Auth config block can support common arguments from env and flags [GH-577](https://github.com/hashicorp/vault-k8s/pull/577)
+
+Bugs:
+* Prevent incorrect k8s serviceaccount volume mount to be picked when multiple serviceaccount volumes are present [GH-577](https://github.com/hashicorp/vault-k8s/pull/577)
+
 ## 1.3.1 (October 25, 2023)
 
 Changes:

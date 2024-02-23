@@ -323,6 +323,7 @@ type AgentConfig struct {
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
+	AuthConfigExtraArgs        map[string]string
 	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
@@ -390,6 +391,14 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultAuthPath]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultAuthPath] = cfg.AuthPath
+	}
+
+	// Set auth config extra args to annotations
+	for key, val := range cfg.AuthConfigExtraArgs {
+		annotationKey := fmt.Sprintf("%s-%s", AnnotationVaultAuthConfig, key)
+		if _, ok := pod.ObjectMeta.Annotations[annotationKey]; !ok {
+			pod.ObjectMeta.Annotations[annotationKey] = val
+		}
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultNamespace]; !ok {
@@ -898,7 +907,8 @@ func (a *Agent) authConfig() map[string]interface{} {
 
 	// set token_path parameter from the Agent prior to assignment from annotations
 	// so that annotations can override the value assigned in agent.go https://github.com/hashicorp/vault-k8s/issues/456
-	if a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
+	// Also the token_path parameter must be set iff AuthType is "kubernetes". Other auth types doesn't require this attribute
+	if a.Vault.AuthType == DefaultVaultAuthType && a.ServiceAccountTokenVolume.MountPath != "" && a.ServiceAccountTokenVolume.TokenPath != "" {
 		authConfig["token_path"] = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
 	}
 

@@ -52,6 +52,7 @@ type Handler struct {
 	VaultCACertBytes           string
 	VaultAuthType              string
 	VaultAuthPath              string
+	VaultAuthConfigExtraArgs   map[string]string
 	VaultNamespace             string
 	ProxyAddress               string
 	ImageVault                 string
@@ -193,6 +194,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		Address:                    h.VaultAddress,
 		AuthType:                   h.VaultAuthType,
 		AuthPath:                   h.VaultAuthPath,
+		AuthConfigExtraArgs:        h.VaultAuthConfigExtraArgs,
 		VaultNamespace:             h.VaultNamespace,
 		ProxyAddress:               h.ProxyAddress,
 		Namespace:                  req.Namespace,
