@@ -14,7 +14,7 @@ PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-VAULT_HELM_CHART_VERSION ?= 0.25.0
+VAULT_HELM_CHART_VERSION ?= 0.27.0
 VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
 	--wait --timeout=5m \
 	--values=test/vault/dev.values.yaml \

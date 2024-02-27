@@ -1,14 +1,20 @@
 ## Unreleased
+
+## 1.4.0 (February 29, 2024)
+
 Features:
 * Add support for `max_connections_per_host` within Agent injector [GH-579](https://github.com/hashicorp/vault-k8s/pull/579)
 
 Changes:
+* Default Vault version updated to 1.15.5
+* Building with Go 1.21.7
+* Testing with K8s versions 1.25-1.29
 * Dependency updates:
   * Docker UBI image `ubi8/ubi-minimal` 8.8-1072.1697626218 => 8.9-1137
-  * Docker alpine version 3.18.4 => 3.19.0
-  * `k8s.io/api` v0.28.3 => v0.29.1
-  * `k8s.io/apimachinery` v0.28.3 => v0.29.1
-  * `k8s.io/client-go` v0.28.3 => v0.29.1
+  * Docker alpine version 3.18.4 => 3.19.1
+  * `k8s.io/api` v0.28.3 => v0.29.2
+  * `k8s.io/apimachinery` v0.28.3 => v0.29.2
+  * `k8s.io/client-go` v0.28.3 => v0.29.2
   * `k8s.io/utils` v0.0.0-20230406110748-d93618cff8a2 => v0.0.0-20230726121419-3b25d923346b`
   * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.2
   * `github.com/hashicorp/go-secure-stdlib/tlsutil` v0.1.2 => v0.1.3
