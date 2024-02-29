@@ -6,7 +6,7 @@ Features:
 * Add support for `max_connections_per_host` within Agent injector [GH-579](https://github.com/hashicorp/vault-k8s/pull/579)
 
 Changes:
-* Default Vault version updated to 1.15.5
+* Default Vault version updated to 1.15.6
 * Building with Go 1.21.7
 * Testing with K8s versions 1.25-1.29
 * Dependency updates:
