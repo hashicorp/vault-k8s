@@ -688,7 +688,6 @@ func TestSecretErrorOnMissingKeyAnnotations(t *testing.T) {
 		annotations map[string]string
 		expectedKey string
 		expected    bool
-		errMsg      string
 		invalid     bool
 	}{
 		{
