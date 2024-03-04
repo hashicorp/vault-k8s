@@ -316,6 +316,13 @@ const (
 	// The name of the parameter is any unique string after "vault.hashicorp.com/agent-telemetry-",
 	// such as "vault.hashicorp.com/agent-telemetry-foobar".
 	AnnotationAgentTelemetryConfig = "vault.hashicorp.com/agent-telemetry"
+
+	// AnnotationErrorOnMissingKey is the key of annotation that configures whether
+	// template should error when a key is missing in the secret. The name of the
+	// secret is the string after "vault.hashicorp.com/error-on-missing-key-", and
+	// should map to the same unique value provided in
+	// "vault.hashicorp.com/agent-inject-secret-". Defaults to false
+	AnnotationErrorOnMissingKey = "vault.hashicorp.com/error-on-missing-key"
 )
 
 type AgentConfig struct {
@@ -597,7 +604,7 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 //
 // For example: "vault.hashicorp.com/agent-inject-secret-foobar: db/creds/foobar"
 // Name: foobar, Path: db/creds/foobar
-func (a *Agent) secrets() []*Secret {
+func (a *Agent) secrets() ([]*Secret, error) {
 	var (
 		secrets     []*Secret
 		secretNames = make(map[string]struct{})
@@ -641,9 +648,17 @@ func (a *Agent) secrets() []*Secret {
 		secret.Command = a.annotationsSecretValue(AnnotationAgentInjectCommand, secret.RawName, "")
 		secret.FilePathAndName = a.annotationsSecretValue(AnnotationAgentInjectFile, secret.RawName, "")
 		secret.FilePermission = a.annotationsSecretValue(AnnotationAgentInjectFilePermission, secret.RawName, "")
+
+		errMissingKey, err := parseutil.ParseBool(
+			a.annotationsSecretValue(AnnotationErrorOnMissingKey, secret.RawName, ""),
+		)
+		if err != nil {
+			return nil, err
+		}
+		secret.ErrMissingKey = errMissingKey
 	}
 
-	return secrets
+	return secrets, nil
 }
 
 func (a *Agent) annotationsSecretValue(annotation, rawSecretName, defaultValue string) string {

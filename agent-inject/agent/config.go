@@ -87,6 +87,7 @@ type Template struct {
 	Command        string `json:"command,omitempty"`
 	Source         string `json:"source,omitempty"`
 	Perms          string `json:"perms,omitempty"`
+	ErrMissingKey  bool   `json:"error_on_missing_key,omitempty"`
 }
 
 // Listener defines the configuration for Vault Agent Cache Listener
@@ -200,12 +201,13 @@ func (a *Agent) newTemplateConfigs() []*Template {
 		}
 
 		tmpl := &Template{
-			Source:      templateFile,
-			Contents:    template,
-			Destination: filePathAndName,
-			LeftDelim:   "{{",
-			RightDelim:  "}}",
-			Command:     secret.Command,
+			Source:        templateFile,
+			Contents:      template,
+			Destination:   filePathAndName,
+			LeftDelim:     "{{",
+			RightDelim:    "}}",
+			Command:       secret.Command,
+			ErrMissingKey: secret.ErrMissingKey,
 		}
 		if secret.FilePermission != "" {
 			tmpl.Perms = secret.FilePermission
