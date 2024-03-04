@@ -1,9 +1,10 @@
 ## Unreleased
 
-## 1.4.0 (February 29, 2024)
+## 1.4.0 (March 4, 2024)
 
 Features:
 * Add support for `max_connections_per_host` within Agent injector [GH-579](https://github.com/hashicorp/vault-k8s/pull/579)
+* Add support for `error_on_missing_key` within Agent injector [GH-441](https://github.com/hashicorp/vault-k8s/pull/441)
 
 Changes:
 * Default Vault version updated to 1.15.6
@@ -19,9 +20,10 @@ Changes:
   * `github.com/hashicorp/go-hclog` v1.5.0 => v1.6.2
   * `github.com/hashicorp/go-secure-stdlib/tlsutil` v0.1.2 => v0.1.3
   * `github.com/hashicorp/vault/sdk` v0.10.2 => v0.11.0
-  * `github.com/prometheus/client_golang` v1.17.0 => v1.18.0
+  * `github.com/prometheus/client_golang` v1.17.0 => v1.19.0
   * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
   * `github.com/evanphx/json-patch` v5.7.0 => v5.9.0
+  * `github.com/stretchr/testify` v1.8.4 => v1.9.0
 
 ## 1.3.1 (October 25, 2023)
 
