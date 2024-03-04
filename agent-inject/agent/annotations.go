@@ -317,7 +317,7 @@ const (
 	// such as "vault.hashicorp.com/agent-telemetry-foobar".
 	AnnotationAgentTelemetryConfig = "vault.hashicorp.com/agent-telemetry"
 
-	// AnnotationErrorOnMissing is the key of annotation that configures whether
+	// AnnotationErrorOnMissingKey is the key of annotation that configures whether
 	// template should error when a key is missing in the secret. The name of the
 	// secret is the string after "vault.hashicorp.com/error-on-missing-key-", and
 	// should map to the same unique value provided in
