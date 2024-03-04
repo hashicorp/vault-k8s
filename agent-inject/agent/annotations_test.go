@@ -682,6 +682,69 @@ func TestSecretCommandAnnotations(t *testing.T) {
 	}
 }
 
+func TestSecretErrorOnMissingKeyAnnotations(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		expectedKey string
+		expected    bool
+		invalid     bool
+	}{
+		{
+			name: "force error",
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test1",
+				"vault.hashicorp.com/error-on-missing-key-foobar": "True",
+			},
+			expectedKey: "foobar",
+			expected:    true,
+		},
+		{
+			name: "ignore error",
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test2",
+				"vault.hashicorp.com/error-on-missing-key-foobar": "false",
+			},
+			expectedKey: "foobar",
+			expected:    false,
+		},
+		{
+			name: "default value",
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar": "test3",
+			},
+			expectedKey: "foobar",
+			expected:    false,
+		},
+		{
+			name: "bad annotation",
+			annotations: map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foobar":  "test4",
+				"vault.hashicorp.com/error-on-missing-key-foobar": "unknown",
+			},
+			invalid: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+			err := Init(pod, basicAgentConfig())
+			require.NoError(t, err)
+
+			agent, err := New(pod)
+			if err != nil {
+				assert.True(t, tt.invalid)
+			} else {
+				require.Len(t, agent.Secrets, 1)
+
+				assert.Equal(t, tt.expectedKey, agent.Secrets[0].Name)
+				assert.Equal(t, tt.expected, agent.Secrets[0].ErrMissingKey)
+			}
+		})
+	}
+}
+
 func TestCouldErrorAnnotations(t *testing.T) {
 	tests := []struct {
 		key   string

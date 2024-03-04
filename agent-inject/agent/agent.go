@@ -230,6 +230,10 @@ type Secret struct {
 
 	// FilePermission is the optional file permission for the rendered secret file
 	FilePermission string
+
+	// ErrMissingKey is used to control how the template behaves when attempting
+	// to index a struct or a map key that does not exist
+	ErrMissingKey bool
 }
 
 type Vault struct {
@@ -403,7 +407,10 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		},
 	}
 
-	agent.Secrets = agent.secrets()
+	agent.Secrets, err = agent.secrets()
+	if err != nil {
+		return agent, err
+	}
 	agent.Vault.AuthConfig = agent.authConfig()
 	agent.Inject, err = agent.inject()
 	if err != nil {

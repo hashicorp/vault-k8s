@@ -351,6 +351,67 @@ func TestFilePermission(t *testing.T) {
 	}
 }
 
+func TestErrMissingKey(t *testing.T) {
+	tests := []struct {
+		name          string
+		annotations   map[string]string
+		errMissingKey bool
+	}{
+		{
+			"just secret",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo":  "db/creds/foo",
+				"vault.hashicorp.com/error-on-missing-key-foo": "true",
+			},
+			true,
+		},
+		{
+			"just secret without error on missing key",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo": "db/creds/foo",
+			},
+			false,
+		},
+		{
+			"with false error on missing key",
+			map[string]string{
+				"vault.hashicorp.com/agent-inject-secret-foo":  "db/creds/foo",
+				"vault.hashicorp.com/error-on-missing-key-foo": "false",
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pod := testPod(tt.annotations)
+
+			agentConfig := basicAgentConfig()
+			err := Init(pod, agentConfig)
+			if err != nil {
+				t.Errorf("got error initialising pod, shouldn't have: %s", err)
+			}
+
+			agent, err := New(pod)
+			if err != nil {
+				t.Errorf("got error creating agent, shouldn't have: %s", err)
+			}
+			cfg, err := agent.newConfig(true)
+			if err != nil {
+				t.Errorf("got error creating Vault config, shouldn't have: %s", err)
+			}
+
+			config := &Config{}
+			if err := json.Unmarshal(cfg, config); err != nil {
+				t.Errorf("got error unmarshalling Vault config, shouldn't have: %s", err)
+			}
+			if config.Templates[0].ErrMissingKey != tt.errMissingKey {
+				t.Errorf("wrong permission: %v != %v", config.Templates[0].ErrMissingKey, tt.errMissingKey)
+			}
+		})
+	}
+}
+
 func TestConfigVaultAgentCacheNotEnabledByDefault(t *testing.T) {
 	annotations := map[string]string{}
 
