@@ -10,8 +10,6 @@ injector:
   agentImage:
     tag: 1.15.0
 server:
-  image:
-    tag: 1.15.0
   dev:
     enabled: true
   logLevel: debug

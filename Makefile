@@ -1,6 +1,7 @@
 REGISTRY_NAME?=docker.io/hashicorp
 IMAGE_NAME=vault-k8s
 VERSION?=0.0.0-dev
+VAULT_VERSION?=1.15.6
 IMAGE_TAG?=$(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
 PUBLISH_LOCATION?=https://releases.hashicorp.com
 DOCKER_DIR=./build/docker
@@ -15,9 +16,11 @@ LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
 VAULT_HELM_CHART_VERSION ?= 0.27.0
+# TODO: add support for testing against enterprise
 VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
 	--wait --timeout=5m \
 	--values=test/vault/dev.values.yaml \
+	--set server.image.tag=$(VAULT_VERSION) \
 	--set 'injector.image.tag=$(VERSION)'
 
 .PHONY: all test build image clean version deploy exercise teardown
