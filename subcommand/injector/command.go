@@ -363,8 +363,8 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 	}
 
 	defaultLoopTime := 1 * time.Hour // update after this amount of time even if nothing has happened
-	timer := time.NewTimer(defaultLoopTime)
 	expBackoff := backoff.NewExponentialBackOff()
+	interval := defaultLoopTime
 
 	for {
 		select {
@@ -380,26 +380,17 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 			// Quit
 			return
 
-		case <-timer.C:
+		case <-time.After(interval):
 			// we are told to retry or periodically update
-		}
-
-		// clear the timer
-		if !timer.Stop() {
-			// non-blocking drain
-			select {
-			case <-timer.C:
-			default:
-			}
 		}
 
 		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
 			// retry after a delay
-			timer.Reset(expBackoff.NextBackOff())
+			interval = expBackoff.NextBackOff()
 		} else {
 			expBackoff.Reset()
-			timer.Reset(defaultLoopTime)
+			interval = defaultLoopTime
 		}
 	}
 }
