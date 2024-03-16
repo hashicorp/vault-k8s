@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	operator_leader "github.com/operator-framework/operator-lib/leader"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 type Elector interface {
@@ -39,6 +40,7 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 		expBo := backoff.NewExponentialBackOff()
 		expBo.MaxInterval = time.Second * 30
 		bo := backoff.WithMaxRetries(expBo, 10)
+		log.SetLogger(fromHCLogger(logger.Named("operator-lib")))
 
 		err := backoff.Retry(func() error {
 			if err := operator_leader.Become(ctx, "vault-k8s-leader"); err != nil {
@@ -47,7 +49,6 @@ func New(ctx context.Context, logger hclog.Logger, clientset kubernetes.Interfac
 			}
 			return nil
 		}, bo)
-
 		if err != nil {
 			// Signal the caller to shutdown the injector server, since Become()
 			// failed all the retries
