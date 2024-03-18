@@ -1,5 +1,8 @@
 ## Unreleased
 
+Bugs:
+* Enable logging from operator-lib's leader election (used during auto-tls certificate generation) [GH-608](https://github.com/hashicorp/vault-k8s/pull/608)
+
 ## 1.4.0 (March 4, 2024)
 
 Features:
