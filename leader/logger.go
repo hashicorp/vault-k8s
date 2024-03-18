@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Borrowed from https://github.com/hashicorp/consul-api-gateway/blob/main/internal/k8s/logger.go
+// Borrowed from https://github.com/hashicorp/consul-api-gateway/blob/4ca5788fa357e389336049bd652f28309ee29d4a/internal/k8s/logger.go
 
 package leader
 
