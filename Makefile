@@ -15,6 +15,12 @@ PKG=github.com/hashicorp/vault-k8s/version
 LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
+# kind cluster name
+KIND_CLUSTER_NAME?=vault-k8s
+
+# kind k8s version
+KIND_K8S_VERSION?=v1.29.2
+
 VAULT_HELM_CHART_VERSION ?= 0.27.0
 # TODO: add support for testing against enterprise
 VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
@@ -91,3 +97,16 @@ mod:
 
 fmt:
 	gofmt -w $(GOFMT_FILES)
+
+# create a kind cluster for running the acceptance tests locally
+setup-kind:
+	kind get clusters | grep -q "^${KIND_CLUSTER_NAME}$$" || \
+	kind create cluster \
+	--image kindest/node:${KIND_K8S_VERSION} \
+	--name ${KIND_CLUSTER_NAME}  \
+	--config $(CURDIR)/test/kind/config.yaml
+	kubectl config use-context kind-${KIND_CLUSTER_NAME}
+
+# delete the kind cluster
+delete-kind:
+	kind delete cluster --name ${KIND_CLUSTER_NAME} || :
