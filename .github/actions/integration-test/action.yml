@@ -1,0 +1,77 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Integration test
+description: Run the integration tests against a single version of k8s and Vault
+inputs:
+  k8s-version:
+    description: 'Kubernetes version to use for the kind cluster'
+    required: true
+  vault-version:
+    description: 'Vault version to use for the tests'
+    required: true
+  tarball-file:
+    description: 'Name of the tarball file artifact to download'
+    required: true
+  #vault-license:
+  #  description: 'Vault license to use for enterprise tests'
+  #  required: true
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+    - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    - run: npm install -g bats@${{ env.BATS_VERSION }}
+      shell: bash
+    - run: bats -v
+      shell: bash
+
+    - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+      with:
+        python-version: '3.10'
+    - run: pip install yq
+      shell: bash
+
+    # Checkout this repo.
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        path: "vault-k8s"
+
+    # Checkout vault-helm for acceptance test code.
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      with:
+        repository: "hashicorp/vault-helm"
+        ref: "v0.27.0"
+        path: "vault-helm"
+
+    - name: Create Kind Cluster
+      uses: helm/kind-action@dda0770415bac9fc20092cacbc54aa298604d140 # v1.8.0
+      with:
+        cluster_name: kind
+        config: vault-helm/test/kind/config.yaml
+        node_image: kindest/node:v${{ inputs.k8s-version }}
+        version: ${{ env.KIND_VERSION }}
+
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+      with:
+        name: vault-k8s-image
+
+    - name: Load vault-k8s dev image
+      shell: bash
+      run: |
+        docker image load --input vault-k8s-image.docker.tar
+        kind load docker-image hashicorp/vault-k8s:0.0.0-dev
+
+    - name: Makefile tests
+      shell: bash
+      working-directory: vault-k8s
+      run: make deploy exercise teardown VAULT_VERSION="${{ matrix.vault-version }}"
+
+    - name: bats tests
+      shell: bash
+      working-directory: vault-helm
+      run: |
+        yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
+        bats ./test/acceptance -t --filter injector
