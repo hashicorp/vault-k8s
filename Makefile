@@ -1,25 +1,25 @@
-REGISTRY_NAME?=docker.io/hashicorp
-IMAGE_NAME=vault-k8s
-VERSION?=0.0.0-dev
-VAULT_VERSION?=1.15.6
-IMAGE_TAG?=$(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
-PUBLISH_LOCATION?=https://releases.hashicorp.com
-DOCKER_DIR=./build/docker
-BUILD_DIR=dist
-GOOS?=linux
-GOARCH?=amd64
-BIN_NAME=$(IMAGE_NAME)
-GOFMT_FILES?=$$(find . -name '*.go' | grep -v vendor)
-XC_PUBLISH?=
-PKG=github.com/hashicorp/vault-k8s/version
-LDFLAGS?="-X '$(PKG).Version=v$(VERSION)'"
+REGISTRY_NAME ?= docker.io/hashicorp
+IMAGE_NAME = vault-k8s
+VERSION ?= 0.0.0-dev
+VAULT_VERSION ?= 1.15.6
+IMAGE_TAG ?= $(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
+PUBLISH_LOCATION ?= https://releases.hashicorp.com
+DOCKER_DIR = ./build/docker
+BUILD_DIR = dist
+GOOS ?= linux
+GOARCH ?= amd64
+BIN_NAME = $(IMAGE_NAME)
+GOFMT_FILES ?= $$(find . -name '*.go' | grep -v vendor)
+XC_PUBLISH ?=
+PKG = github.com/hashicorp/vault-k8s/version
+LDFLAGS ?= "-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
 # kind cluster name
-KIND_CLUSTER_NAME?=vault-k8s
+KIND_CLUSTER_NAME ?= vault-k8s
 
 # kind k8s version
-KIND_K8S_VERSION?=v1.29.2
+KIND_K8S_VERSION ?= v1.29.2
 
 VAULT_HELM_CHART_VERSION ?= 0.27.0
 # TODO: add support for testing against enterprise
@@ -34,10 +34,10 @@ endif
 
 HELM_VALUES_FILE ?= test/vault/dev.values.yaml
 ifdef TEST_WITHOUT_VAULT_TLS
-	HELM_VALUES_FILE=test/vault/dev-no-tls.values.yaml
+	HELM_VALUES_FILE = test/vault/dev-no-tls.values.yaml
 endif
 
-VAULT_HELM_FLAGS?=--repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
+VAULT_HELM_DEFAULT_ARGS ?= --repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
 	--wait --timeout=5m \
 	--values=$(HELM_VALUES_FILE) \
 	--set server.image.tag=$(VAULT_VERSION) \
@@ -62,15 +62,15 @@ image: build
 # Run multiple times to deploy new builds of the injector.
 VAULT_HELM_POST_INSTALL_ARGS ?=
 ifndef TEST_WITHOUT_VAULT_TLS
-	VAULT_HELM_POST_INSTALL_ARGS="--set=injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl exec vault-0 -- sh -c 'cat /tmp/vault-ca.pem | base64 -w0')"
+	VAULT_HELM_POST_INSTALL_ARGS = "--set=injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl exec vault-0 -- sh -c 'cat /tmp/vault-ca.pem | base64 -w0')"
 endif
 deploy: setup-kind
 	kind load docker-image --name $(KIND_CLUSTER_NAME) $(IMAGE_TAG)
-	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) \
+	helm upgrade --install vault vault $(VAULT_HELM_DEFAULT_ARGS) \
 		--set "injector.enabled=false"
 	kubectl delete pod -l "app.kubernetes.io/instance=vault"
 	kubectl wait --for=condition=Ready --timeout=5m pod -l "app.kubernetes.io/instance=vault"
-	helm upgrade --install vault vault $(VAULT_HELM_FLAGS) $(VAULT_HELM_POST_INSTALL_ARGS)
+	helm upgrade --install vault vault $(VAULT_HELM_DEFAULT_ARGS) $(VAULT_HELM_POST_INSTALL_ARGS)
 
 # Populates the Vault dev server with a secret, configures kubernetes auth, and
 # deploys an nginx pod with annotations to have the secret injected.
