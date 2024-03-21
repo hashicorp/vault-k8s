@@ -7,8 +7,6 @@ injector:
   image:
     pullPolicy: Never
   affinity: null
-  agentImage:
-    tag: 1.15.0
 server:
   dev:
     enabled: true

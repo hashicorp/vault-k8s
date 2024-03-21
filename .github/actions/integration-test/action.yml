@@ -58,12 +58,8 @@ runs:
       id: create_kind_export_log_root
       shell: bash
       run: |
-        vault_flavor=oss
-        #if [ ${{ matrix.enterprise }} == 'true' ]; then
-        #  vault_flavor=ent
-        #fi
-        #log_artifact_name="kind-${{ env.KIND_CLUSTER_NAME}}-$(git rev-parse --short ${{ github.sha }})-${{ matrix.kind-k8s-version }}-${{ matrix.vault-version }}-${vault_flavor}-${{ matrix.installation-method }}-logs"
-        log_artifact_name="kind-kind-$(git rev-parse --short ${{ github.sha }})-${{ matrix.kind-k8s-version }}-${{ matrix.vault-version }}-${vault_flavor}-${{ matrix.installation-method }}-logs"
+        vault_flavor=community
+        log_artifact_name="kind-kind-$(git rev-parse --short ${{ github.sha }})-${{ inputs.k8s-version }}-${{ inputs.vault-version }}-${vault_flavor}-helm-logs"
         log_root="/tmp/${log_artifact_name}"
         mkdir -p "${log_root}"
         echo "log_root=${log_root}" >> $GITHUB_OUTPUT
@@ -82,7 +78,7 @@ runs:
     - name: Makefile tests
       shell: bash
       working-directory: vault-k8s
-      run: make deploy exercise teardown VAULT_VERSION="${{ matrix.vault-version }}"
+      run: make deploy exercise teardown VAULT_VERSION="${{ inputs.vault-version }}"
 
     - name: bats tests
       shell: bash
