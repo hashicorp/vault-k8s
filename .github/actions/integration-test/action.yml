@@ -13,9 +13,6 @@ inputs:
   tarball-file:
     description: 'Name of the tarball file artifact to download'
     required: true
-  #vault-license:
-  #  description: 'Vault license to use for enterprise tests'
-  #  required: true
 runs:
   using: "composite"
   steps:
@@ -44,7 +41,7 @@ runs:
       with:
         repository: "hashicorp/vault-helm"
         ref: "v0.27.0"
-        path: "vault-helm"
+        path: "build/vault-helm"
 
     - name: Create Kind Cluster
       uses: helm/kind-action@dda0770415bac9fc20092cacbc54aa298604d140 # v1.8.0
@@ -82,9 +79,11 @@ runs:
 
     - name: bats tests
       shell: bash
-      working-directory: vault-helm
+      working-directory: build/vault-helm
       run: |
+        # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
+        yq --in-place --yaml-roundtrip '.server.image.tag |= "${{ inputs.vault-version }}"' ./values.yaml
         bats ./test/acceptance -t --filter injector
 
     - name: export kind cluster logs
