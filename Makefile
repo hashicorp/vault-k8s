@@ -96,7 +96,7 @@ exercise:
 
 # Teardown any resources created in deploy and exercise targets.
 teardown:
-	helm uninstall vault --wait 2> /dev/null || true
+	helm uninstall --namespace default vault --wait 2> /dev/null || true
 	kubectl delete --ignore-not-found serviceaccount test-app-sa
 	kubectl delete --ignore-not-found pod nginx
 
