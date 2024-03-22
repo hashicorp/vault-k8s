@@ -115,16 +115,3 @@ mod:
 
 fmt:
 	gofmt -w $(GOFMT_FILES)
-
-# create a kind cluster for running the acceptance tests locally
-setup-kind:
-	kind get clusters | grep -q "^${KIND_CLUSTER_NAME}$$" || \
-	kind create cluster \
-	--image kindest/node:${KIND_K8S_VERSION} \
-	--name ${KIND_CLUSTER_NAME}  \
-	--config $(CURDIR)/test/kind/config.yaml
-	kubectl config use-context kind-${KIND_CLUSTER_NAME}
-
-# delete the kind cluster
-delete-kind:
-	kind delete cluster --name ${KIND_CLUSTER_NAME} || :
