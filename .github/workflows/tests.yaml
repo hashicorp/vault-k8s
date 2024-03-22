@@ -61,7 +61,6 @@ jobs:
           k8s-version: ${{ matrix.k8s-version }}
           vault-version: ${{ matrix.vault-version }}
           tarball-file: ${{ needs.build-and-test.outputs.tarball_file }}
-          #vault-license: ${{ secrets.VAULT_LICENSE_CI }}
 
   latest-k8s:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
@@ -85,4 +84,3 @@ jobs:
           k8s-version: ${{ matrix.k8s-version }}
           vault-version: ${{ matrix.vault-version }}
           tarball-file: ${{ needs.test.outputs.tarball_file }}
-          #vault-license: ${{ secrets.VAULT_LICENSE_CI }}

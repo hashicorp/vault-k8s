@@ -59,7 +59,7 @@ runs:
       shell: bash
       run: |
         vault_flavor=community
-        log_artifact_name="kind-kind-$(git rev-parse --short ${{ github.sha }})-${{ inputs.k8s-version }}-${{ inputs.vault-version }}-${vault_flavor}-helm-logs"
+        log_artifact_name="${{ inputs.kind-cluster-name }}-$(git rev-parse --short ${{ github.sha }})-${{ inputs.k8s-version }}-${{ inputs.vault-version }}-${vault_flavor}-helm-logs"
         log_root="/tmp/${log_artifact_name}"
         mkdir -p "${log_root}"
         echo "log_root=${log_root}" >> $GITHUB_OUTPUT
@@ -73,7 +73,7 @@ runs:
       shell: bash
       run: |
         docker image load --input vault-k8s-image.docker.tar
-        kind load docker-image hashicorp/vault-k8s:0.0.0-dev
+        kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:0.0.0-dev
 
     - name: Makefile tests
       shell: bash
@@ -93,7 +93,7 @@ runs:
       if: always()
       shell: bash
       run: |
-       kind export logs -n kind ${{ steps.create_kind_export_log_root.outputs.log_root }}
+       kind export logs --name ${{ inputs.kind-cluster-name }} ${{ steps.create_kind_export_log_root.outputs.log_root }}
 
     - name: Store kind cluster logs
       if: success()

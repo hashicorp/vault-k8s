@@ -64,7 +64,7 @@ VAULT_HELM_POST_INSTALL_ARGS ?=
 ifndef TEST_WITHOUT_VAULT_TLS
 	VAULT_HELM_POST_INSTALL_ARGS = "--set=injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl exec vault-0 -- sh -c 'cat /tmp/vault-ca.pem | base64 -w0')"
 endif
-deploy: setup-kind
+deploy:
 	kind load docker-image --name $(KIND_CLUSTER_NAME) $(IMAGE_TAG)
 	helm upgrade --install vault vault $(VAULT_HELM_DEFAULT_ARGS) \
 		--set "injector.enabled=false"
