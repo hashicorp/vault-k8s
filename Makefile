@@ -41,6 +41,7 @@ VAULT_HELM_DEFAULT_ARGS ?= --repo https://helm.releases.hashicorp.com --version=
 	--wait --timeout=5m \
 	--values=$(HELM_VALUES_FILE) \
 	--set server.image.tag=$(VAULT_VERSION) \
+	--set injector.agentImage.tag=$(VAULT_VERSION) \
 	--set 'injector.image.tag=$(VERSION)'
 
 .PHONY: all test build image clean version deploy exercise teardown

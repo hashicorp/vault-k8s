@@ -87,6 +87,7 @@ runs:
         # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
         yq --in-place --yaml-roundtrip '.server.image.tag |= "${{ inputs.vault-version }}"' ./values.yaml
+        yq --in-place --yaml-roundtrip '.injector.agentImage.tag |= "${{ inputs.vault-version }}"' ./values.yaml
         bats ./test/acceptance -t --filter injector
 
     - name: export kind cluster logs
