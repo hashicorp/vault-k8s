@@ -48,10 +48,9 @@ runs:
 
     - name: Create Kind Cluster
       uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-      working-directory: vault-k8s
       with:
         cluster_name: ${{ inputs.kind-cluster-name }}
-        config: test/kind/config.yaml
+        config: vault-k8s/test/kind/config.yaml
         node_image: kindest/node:v${{ inputs.k8s-version }}
         version: "v0.22.0"
 
