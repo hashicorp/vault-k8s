@@ -13,14 +13,17 @@ inputs:
   tarball-file:
     description: 'Name of the tarball file artifact to download'
     required: true
+  kind-cluster-name:
+    description: 'Name of the kind cluster to create and test against'
+    default: 'vault-k8s'
 runs:
   using: "composite"
   steps:
     - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
     - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
       with:
-        node-version: ${{ env.NODE_VERSION }}
-    - run: npm install -g bats@${{ env.BATS_VERSION }}
+        node-version: "19.8.1"
+    - run: npm install -g bats@1.10.0
       shell: bash
     - run: bats -v
       shell: bash
@@ -41,15 +44,16 @@ runs:
       with:
         repository: "hashicorp/vault-helm"
         ref: "v0.27.0"
-        path: "build/vault-helm"
+        path: "vault-helm"
 
     - name: Create Kind Cluster
-      uses: helm/kind-action@dda0770415bac9fc20092cacbc54aa298604d140 # v1.8.0
+      uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
+      working-directory: vault-k8s
       with:
-        cluster_name: kind
-        config: vault-helm/test/kind/config.yaml
+        cluster_name: ${{ inputs.kind-cluster-name }}
+        config: test/kind/config.yaml
         node_image: kindest/node:v${{ inputs.k8s-version }}
-        version: ${{ env.KIND_VERSION }}
+        version: "v0.22.0"
 
     - name: Create kind export log root
       id: create_kind_export_log_root
@@ -79,7 +83,7 @@ runs:
 
     - name: bats tests
       shell: bash
-      working-directory: build/vault-helm
+      working-directory: vault-helm
       run: |
         # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
@@ -98,6 +102,7 @@ runs:
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
+
     - name: Store kind cluster logs failure
       if: failure()
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
