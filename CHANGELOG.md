@@ -1,5 +1,14 @@
 ## Unreleased
 
+## 1.4.1 (March 28, 2024)
+
+Change:
+* Building with Go 1.22.1
+* Default Vault version update to 1.16.0
+* Dependency updates:
+  * `github.com/go-logr/logr` v1.3.0 => v1.4.1
+  * `sigs.k8s.io/controller-runtime` v0.16.3 => v0.17.2
+
 Bugs:
 * Enable logging from operator-lib's leader election (used during auto-tls certificate generation) [GH-608](https://github.com/hashicorp/vault-k8s/pull/608)
 
@@ -27,8 +36,6 @@ Changes:
   * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
   * `github.com/evanphx/json-patch` v5.7.0 => v5.9.0
   * `github.com/stretchr/testify` v1.8.4 => v1.9.0
-  * `github.com/go-logr/logr` v1.3.0 => v1.4.1
-  * `sigs.k8s.io/controller-runtime` v0.16.3 => v0.17.2
 
 ## 1.3.1 (October 25, 2023)
 
