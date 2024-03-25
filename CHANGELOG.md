@@ -27,6 +27,7 @@ Changes:
   * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
   * `github.com/evanphx/json-patch` v5.7.0 => v5.9.0
   * `github.com/stretchr/testify` v1.8.4 => v1.9.0
+  * `github.com/go-logr/logr` v1.3.0 => v1.4.1
 
 ## 1.3.1 (October 25, 2023)
 
