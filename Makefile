@@ -70,7 +70,7 @@ deploy:
 # deploys an nginx pod with annotations to have the secret injected.
 exercise:
 	kubectl exec vault-0 -- vault kv put secret/test-app hello=world
-	kubectl exec vault-0 -- vault auth list -format json | jq -e  '."kubernetes/"' &> /dev/null || kubectl exec vault-0 -- vault auth enable kubernetes
+	kubectl exec vault-0 -- vault auth list -format json | jq -e  '."kubernetes/"' || kubectl exec vault-0 -- vault auth enable kubernetes
 	kubectl exec vault-0 -- sh -c 'vault write auth/kubernetes/config kubernetes_host="https://$$KUBERNETES_PORT_443_TCP_ADDR:443"'
 	echo 'path "secret/data/*" { capabilities = ["read"] }' | kubectl exec -i vault-0 -- vault policy write test-app -
 	kubectl exec vault-0 -- vault write auth/kubernetes/role/test-app \
