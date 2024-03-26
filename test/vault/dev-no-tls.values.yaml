@@ -1,0 +1,13 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+global:
+  tlsDisable: true
+injector:
+  image:
+    pullPolicy: Never
+  affinity: null
+server:
+  dev:
+    enabled: true
+  logLevel: debug
