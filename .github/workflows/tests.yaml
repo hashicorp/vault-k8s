@@ -60,7 +60,7 @@ jobs:
         with:
           k8s-version: ${{ matrix.k8s-version }}
           vault-version: ${{ matrix.vault-version }}
-          tarball-file: ${{ needs.build-and-test.outputs.tarball_file }}
+          tarball-file: ${{ needs.test.outputs.tarball_file }}
 
   latest-k8s:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
