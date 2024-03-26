@@ -19,5 +19,7 @@
 /pkg
 /dist/
 
-# directory for misc files etc.
+# directory for misc build files etc.
 scratch/
+build/
+vault-helm/
