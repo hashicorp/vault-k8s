@@ -72,7 +72,8 @@ runs:
     - name: Load vault-k8s dev image
       shell: bash
       run: |
-        docker image load --input ${{ inputs.tarball-file }}
+        test -n [ "${{ inputs.tarball-file }}" ] || (echo "inputs.tarball-file not set" >&2 ; exit 1)
+        docker image load --input "${{ inputs.tarball-file }}"
         kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:0.0.0-dev
 
     - name: Makefile tests
