@@ -15,12 +15,6 @@ PKG = github.com/hashicorp/vault-k8s/version
 LDFLAGS ?= "-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-# kind cluster name
-KIND_CLUSTER_NAME ?= vault-k8s
-
-# kind k8s version
-KIND_K8S_VERSION ?= v1.29.2
-
 VAULT_HELM_CHART_VERSION ?= 0.27.0
 # TODO: add support for testing against enterprise
 

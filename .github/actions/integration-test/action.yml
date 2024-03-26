@@ -67,12 +67,12 @@ runs:
 
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
       with:
-        name: vault-k8s-image
+        name: ${{ inputs.tarball-file }}
 
     - name: Load vault-k8s dev image
       shell: bash
       run: |
-        docker image load --input vault-k8s-image.docker.tar
+        docker image load --input ${{ inputs.tarball-file }}
         kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:0.0.0-dev
 
     - name: Makefile tests

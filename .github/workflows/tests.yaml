@@ -27,7 +27,7 @@ jobs:
 
       - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
-          name: vault-k8s-image
+          name: ${{ env.TARBALL_FILE }}
           path: ${{ env.TARBALL_FILE }}
 
   versions:
