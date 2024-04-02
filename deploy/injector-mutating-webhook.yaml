@@ -22,10 +22,14 @@ webhooks:
         namespace: "vault"
       caBundle: ""
     rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
       - operations: ["CREATE", "UPDATE"]
         apiGroups: [""]
         apiVersions: ["v1"]
-        resources: ["deployments", "jobs", "pods", "statefulsets"]
+        resources: ["deployments", "jobs", "statefulsets"]
     namespaceSelector: {}
     objectSelector:
       matchExpressions:
