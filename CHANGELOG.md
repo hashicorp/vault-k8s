@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.4.1 (April 4, 2024)
+## 1.4.1 (April 8, 2024)
 
 Changes:
 * Building with Go 1.22.2
