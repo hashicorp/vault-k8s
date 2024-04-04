@@ -42,7 +42,7 @@ jobs:
       - run: npm install -g bats@${BATS_VERSION}
         shell: bash
         env:
-          BATS_VERSION: '1.8.2'
+          BATS_VERSION: '1.11.0'
       - run: bats -v
         shell: bash
       - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
