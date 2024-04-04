@@ -1,12 +1,22 @@
 ## Unreleased
 
-## 1.4.1 (March 28, 2024)
+## 1.4.1 (April 4, 2024)
 
-Change:
-* Building with Go 1.22.1
-* Default Vault version update to 1.16.0
+Changes:
+* Building with Go 1.22.2
+* Default Vault version update to 1.16.1
 * Dependency updates:
+  * Docker UBI image `ubi8/ubi-minimal` 8.9-1137 => 8.9-1161
+  * `github.com/cenkalti/backoff/v4` v4.2.1 => v4.3.0
   * `github.com/go-logr/logr` v1.3.0 => v1.4.1
+  * `github.com/hashicorp/vault/sdk` v0.11.0 => v0.11.1
+  * `golang.org/x/crypto` v0.18.0 => v0.21.0
+  * `golang.org/x/net` v0.20.0 => v0.23.0
+  * `golang.org/x/sys` v0.16.0 => v0.18.0
+  * `golang.org/x/term` v0.16.0 => v0.18.0
+  * `k8s.io/api` v0.29.2 => v0.29.3
+  * `k8s.io/apimachinery` v0.29.2 => v0.29.3
+  * `k8s.io/client-go` v0.29.2 => v0.29.3
   * `sigs.k8s.io/controller-runtime` v0.16.3 => v0.17.2
 
 Bugs:
