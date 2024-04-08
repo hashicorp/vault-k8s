@@ -8,10 +8,10 @@ injector:
     pullPolicy: Never
   affinity: null
   agentImage:
-    tag: 1.15.0
+    tag: 1.16.1
 server:
   image:
-    tag: 1.15.0
+    tag: 1.16.1
   dev:
     enabled: true
   logLevel: debug
