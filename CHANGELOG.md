@@ -9,6 +9,7 @@ Changes:
   * Docker UBI image `ubi8/ubi-minimal` 8.9-1137 => 8.9-1161
   * `github.com/cenkalti/backoff/v4` v4.2.1 => v4.3.0
   * `github.com/go-logr/logr` v1.3.0 => v1.4.1
+  * `github.com/hashicorp/go-hclog` v1.6.2 => v1.6.3
   * `github.com/hashicorp/vault/sdk` v0.11.0 => v0.11.1
   * `golang.org/x/crypto` v0.18.0 => v0.22.0
   * `golang.org/x/net` v0.20.0 => v0.24.0
