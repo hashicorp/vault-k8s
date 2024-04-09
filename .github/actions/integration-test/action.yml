@@ -16,14 +16,15 @@ inputs:
   kind-cluster-name:
     description: 'Name of the kind cluster to create and test against'
     default: 'vault-k8s'
+  bats-version:
+    description: 'Version of bats to run tests with'
+    default: '1.11.0'
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
-    - uses: actions/setup-node@5e21ff4d9bc1a8cf6de233a3057d20ec6b3fb69d # v3.8.1
-      with:
-        node-version: "19.8.1"
-    - run: npm install -g bats@1.10.0
+    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+    - run: sudo npm install -g bats@${{ .inputs.bats-version }}
       shell: bash
     - run: bats -v
       shell: bash

@@ -36,9 +36,9 @@ jobs:
       - run: echo "setting versions"
     outputs:
       K8S_VERSIONS: '["1.29.2", "1.28.7", "1.27.11", "1.26.14", "1.25.16"]'
-      VAULT_N: "1.15.6"
-      VAULT_N_1: "1.14.10"
-      VAULT_N_2: "1.13.13"
+      VAULT_N: "1.16.1"
+      VAULT_N_1: "1.15.6"
+      VAULT_N_2: "1.14.10"
 
   latest-vault:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
@@ -54,7 +54,7 @@ jobs:
         k8s-version: ${{ fromJson(needs.versions.outputs.K8S_VERSIONS) }}
 
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: ./.github/actions/integration-test
         name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
         with:
@@ -77,7 +77,7 @@ jobs:
           - ${{ needs.versions.outputs.VAULT_N_2 }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: ./.github/actions/integration-test
         name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
         with:
