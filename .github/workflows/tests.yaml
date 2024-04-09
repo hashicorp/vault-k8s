@@ -6,8 +6,11 @@ on: [push, workflow_dispatch]
 jobs:
   test:
     env:
+      # vault-k8s version
+      VERSION: "0.0.0-dev"
       TARBALL_FILE: vault-k8s-image.docker.tar
     outputs:
+      version: ${{ env.VERSION }}
       tarball_file: ${{ env.TARBALL_FILE }}
     runs-on: ubuntu-latest
     steps:
@@ -20,7 +23,7 @@ jobs:
       - name: Build
         run: |
           REGISTRY=hashicorp make build image
-          docker save --output "${TARBALL_FILE}" hashicorp/vault-k8s:0.0.0-dev
+          docker save --output "${TARBALL_FILE}" hashicorp/vault-k8s:${{ env.VERSION }}
 
       - name: Test
         run: make test
@@ -35,6 +38,7 @@ jobs:
     steps:
       - run: echo "setting versions"
     outputs:
+      # vault-k8s version
       K8S_VERSIONS: '["1.29.2", "1.28.7", "1.27.11", "1.26.14", "1.25.16"]'
       VAULT_N: "1.16.1"
       VAULT_N_1: "1.15.6"
@@ -61,6 +65,7 @@ jobs:
           k8s-version: ${{ matrix.k8s-version }}
           vault-version: ${{ matrix.vault-version }}
           tarball-file: ${{ needs.test.outputs.tarball_file }}
+          version: ${{ needs.test.outputs.version }}
 
   latest-k8s:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
@@ -84,3 +89,4 @@ jobs:
           k8s-version: ${{ matrix.k8s-version }}
           vault-version: ${{ matrix.vault-version }}
           tarball-file: ${{ needs.test.outputs.tarball_file }}
+          version: ${{ needs.test.outputs.version }}

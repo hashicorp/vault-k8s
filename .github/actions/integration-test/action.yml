@@ -7,6 +7,9 @@ inputs:
   k8s-version:
     description: 'Kubernetes version to use for the kind cluster'
     required: true
+  version:
+    description: 'Vault K8s version to use for the tests'
+    required: true
   vault-version:
     description: 'Vault version to use for the tests'
     required: true
@@ -70,24 +73,24 @@ runs:
       with:
         name: ${{ inputs.tarball-file }}
 
-    - name: Load vault-k8s dev image
+    - name: Load vault-k8s ${{ inputs.version }} image
       shell: bash
       run: |
         [ -n "${{ inputs.tarball-file }}" ] || (echo "inputs.tarball-file not set" >&2 ; exit 1)
         docker image load --input "${{ inputs.tarball-file }}"
-        kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:0.0.0-dev
+        kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:"${{ inputs.version }}"
 
     - name: Makefile tests
       shell: bash
       working-directory: vault-k8s
-      run: make deploy exercise teardown VAULT_VERSION="${{ inputs.vault-version }}"
+      run: make deploy exercise teardown VERSION="${{ inputs.version }}" VAULT_VERSION="${{ inputs.vault-version }}"
 
     - name: bats tests
       shell: bash
       working-directory: vault-helm
       run: |
         # assumes Python based yq :(
-        yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
+        yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
         yq --in-place --yaml-roundtrip '.server.image.tag |= "${{ inputs.vault-version }}"' ./values.yaml
         yq --in-place --yaml-roundtrip '.injector.agentImage.tag |= "${{ inputs.vault-version }}"' ./values.yaml
         bats ./test/acceptance -t --filter injector
