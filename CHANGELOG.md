@@ -2,6 +2,7 @@
 
 Changes:
 * Dependency updates:
+  * `github.com/hashicorp/vault/sdk` v0.11.1 => v0.12.0
   * `sigs.k8s.io/controller-runtime` v0.17.2 => v0.17.3
 
 ## 1.4.1 (April 8, 2024)
