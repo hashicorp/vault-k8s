@@ -86,6 +86,8 @@ jobs:
 
       - name: bats tests
         working-directory: vault-helm
+        env:
+          VAULT_LICENSE_CI: ${{ secrets.VAULT_LICENSE_CI }}
         run: |
           yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
           bats ./test/acceptance -t --filter injector
