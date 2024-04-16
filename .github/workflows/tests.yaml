@@ -6,7 +6,12 @@ on: [push, workflow_dispatch]
 jobs:
   test:
     env:
+      # vault-k8s version
+      VERSION: "0.0.0-dev"
       TARBALL_FILE: vault-k8s-image.docker.tar
+    outputs:
+      version: ${{ env.VERSION }}
+      tarball_file: ${{ env.TARBALL_FILE }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -18,74 +23,70 @@ jobs:
       - name: Build
         run: |
           REGISTRY=hashicorp make build image
-          docker save --output "${TARBALL_FILE}" hashicorp/vault-k8s:0.0.0-dev
+          docker save --output "${TARBALL_FILE}" hashicorp/vault-k8s:${{ env.VERSION }}
 
       - name: Test
         run: make test
 
       - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
         with:
-          name: vault-k8s-image
+          name: ${{ env.TARBALL_FILE }}
           path: ${{ env.TARBALL_FILE }}
 
-  acceptance:
+  versions:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "setting versions"
+    outputs:
+      # vault-k8s version
+      K8S_VERSIONS: '["1.29.2", "1.28.7", "1.27.11", "1.26.14", "1.25.16"]'
+      VAULT_N: "1.16.1"
+      VAULT_N_1: "1.15.6"
+      VAULT_N_2: "1.14.10"
+
+  latest-vault:
+    name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
+    runs-on: ubuntu-latest
     needs:
+      - test
+      - versions
+    strategy:
+      fail-fast: false
+      matrix:
+        vault-version:
+          - ${{ needs.versions.outputs.VAULT_N }}
+        k8s-version: ${{ fromJson(needs.versions.outputs.K8S_VERSIONS) }}
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: ./.github/actions/integration-test
+        name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
+        with:
+          k8s-version: ${{ matrix.k8s-version }}
+          vault-version: ${{ matrix.vault-version }}
+          tarball-file: ${{ needs.test.outputs.tarball_file }}
+          version: ${{ needs.test.outputs.version }}
+
+  latest-k8s:
+    name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
+    needs:
+      - versions
       - test
     strategy:
       fail-fast: false
       matrix:
-        kind-k8s-version: [1.25.16, 1.26.14, 1.27.11, 1.28.7, 1.29.2]
+        k8s-version:
+          - ${{ fromJson(needs.versions.outputs.K8S_VERSIONS)[0] }}
+        vault-version:
+          - ${{ needs.versions.outputs.VAULT_N_1 }}
+          - ${{ needs.versions.outputs.VAULT_N_2 }}
     runs-on: ubuntu-latest
     steps:
-      # Setup test tools from https://github.com/hashicorp/vault-helm/blob/main/.github/workflows/setup-test-tools/action.yaml
-      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
-      - run: sudo npm install -g bats@${BATS_VERSION}
-        shell: bash
-        env:
-          BATS_VERSION: '1.11.0'
-      - run: bats -v
-        shell: bash
-      - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
-        with:
-          python-version: '3.10'
-      - run: pip install yq
-        shell: bash
-
-      # Checkout this repo.
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: ./.github/actions/integration-test
+        name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
         with:
-          path: "vault-k8s"
-
-      # Checkout vault-helm for acceptance test code.
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        with:
-          repository: "hashicorp/vault-helm"
-          ref: "v0.27.0"
-          path: "vault-helm"
-
-      - name: Create K8s Kind Cluster
-        uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
-        with:
-          cluster_name: kind
-          config: vault-helm/test/kind/config.yaml
-          node_image: kindest/node:v${{ matrix.kind-k8s-version }}
-          version: v0.22.0
-
-      - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: vault-k8s-image
-
-      - name: Load vault-k8s dev image
-        run: |
-          docker image load --input vault-k8s-image.docker.tar
-          kind load docker-image hashicorp/vault-k8s:0.0.0-dev
-
-      - name: Makefile tests
-        working-directory: vault-k8s
-        run: make deploy exercise teardown
-
-      - name: bats tests
-        working-directory: vault-helm
-        run: |
-          yq --in-place --yaml-roundtrip '.injector.image.tag |= "0.0.0-dev"' ./values.yaml
-          bats ./test/acceptance -t --filter injector
+          k8s-version: ${{ matrix.k8s-version }}
+          vault-version: ${{ matrix.vault-version }}
+          tarball-file: ${{ needs.test.outputs.tarball_file }}
+          version: ${{ needs.test.outputs.version }}
