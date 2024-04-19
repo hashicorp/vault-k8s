@@ -88,8 +88,6 @@ runs:
     - name: bats tests
       shell: bash
       working-directory: vault-helm
-      env:
-          VAULT_LICENSE_CI: ${{ secrets.VAULT_LICENSE_CI }}
       run: |
         # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
