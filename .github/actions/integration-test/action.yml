@@ -47,7 +47,7 @@ runs:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       with:
         repository: "hashicorp/vault-helm"
-        ref: "v0.27.0"
+        ref: "main"
         path: "vault-helm"
 
     - name: Create Kind Cluster
@@ -88,6 +88,8 @@ runs:
     - name: bats tests
       shell: bash
       working-directory: vault-helm
+      env:
+          VAULT_LICENSE_CI: ${{ secrets.VAULT_LICENSE_CI }}
       run: |
         # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
