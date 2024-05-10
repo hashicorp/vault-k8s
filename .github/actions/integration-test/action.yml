@@ -25,33 +25,33 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
     - run: sudo npm install -g bats@${{ inputs.bats-version }}
       shell: bash
     - run: bats -v
       shell: bash
 
-    - uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5.0.0
+    - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
       with:
         python-version: '3.10'
     - run: pip install yq
       shell: bash
 
     # Checkout this repo.
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       with:
         path: "vault-k8s"
 
     # Checkout vault-helm for acceptance test code.
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       with:
         repository: "hashicorp/vault-helm"
         ref: "v0.27.0"
         path: "vault-helm"
 
     - name: Create Kind Cluster
-      uses: helm/kind-action@99576bfa6ddf9a8e612d83b513da5a75875caced # v1.9.0
+      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
       with:
         cluster_name: ${{ inputs.kind-cluster-name }}
         config: vault-helm/test/kind/config.yaml
@@ -69,7 +69,7 @@ runs:
         echo "log_root=${log_root}" >> $GITHUB_OUTPUT
         echo "log_artifact_name=${log_artifact_name}" >> $GITHUB_OUTPUT
 
-    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
+    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
       with:
         name: ${{ inputs.tarball-file }}
 
@@ -103,14 +103,14 @@ runs:
 
     - name: Store kind cluster logs
       if: success()
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
 
     - name: Store kind cluster logs failure
       if: failure()
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}-failed
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
