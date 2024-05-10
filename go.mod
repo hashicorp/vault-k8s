@@ -1,6 +1,7 @@
 module github.com/hashicorp/vault-k8s
 
-go 1.22
+go 1.22.0
+
 toolchain go1.22.2
 
 require (
