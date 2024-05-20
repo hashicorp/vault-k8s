@@ -20,8 +20,8 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/radovskyb/watcher v1.0.7
 	github.com/stretchr/testify v1.9.0
-	k8s.io/api v0.30.0
-	k8s.io/apimachinery v0.30.0
+	k8s.io/api v0.30.1
+	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.0
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/controller-runtime v0.18.2
