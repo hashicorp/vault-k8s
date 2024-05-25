@@ -3,7 +3,13 @@
 Changes:
 * Dependency updates:
   * `github.com/hashicorp/vault/sdk` v0.11.1 => v0.12.0
-  * `sigs.k8s.io/controller-runtime` v0.17.2 => v0.17.3
+  * `github.com/operator-framework/operator-lib` v0.12.0 => v0.13.0
+  * `github.com/prometheus/client_golang` v1.19.0 => v1.19.1
+  * `k8s.io/api` v0.29.3 => v0.30.1
+  * `k8s.io/apimachinery` v0.29.3 => v0.30.1
+  * `k8s.io/client-go` v0.29.3 => v0.30.1
+  * `k8s.io/utils` v0.0.0-20230726121419-3b25d923346b => v0.0.0-20240102154912-e7106e64919e
+  * `sigs.k8s.io/controller-runtime` v0.17.2 => v0.18.2
 
 ## 1.4.1 (April 8, 2024)
 
