@@ -564,6 +564,41 @@ func Test_serviceaccount(t *testing.T) {
 				},
 			},
 		},
+		"projected service account with audience": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "token",
+				MountPath: "/var/run/secrets/vault.hashicorp.com/serviceaccount",
+				TokenPath: "token",
+				Audience:  "audience",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/vault-service-account-token-audience": "audience",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name: "token",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path:     "token",
+												Audience: "audience",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

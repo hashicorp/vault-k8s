@@ -19,7 +19,6 @@ import (
 const (
 	DefaultVaultImage                       = "hashicorp/vault:1.16.1"
 	DefaultVaultAuthType                    = "kubernetes"
-	VaultAuthTypeJWT                        = "jwt"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
 	DefaultAgentRunAsGroup                  = 1000
