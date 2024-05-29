@@ -19,6 +19,7 @@ import (
 const (
 	DefaultVaultImage                       = "hashicorp/vault:1.16.1"
 	DefaultVaultAuthType                    = "kubernetes"
+	VaultAuthTypeJWT                        = "jwt"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
 	DefaultAgentRunAsGroup                  = 1000
@@ -199,6 +200,9 @@ type ServiceAccountTokenVolume struct {
 
 	// TokenPath to the JWT token within the volume
 	TokenPath string
+
+	// The Audience used when generating the JWT
+	Audience string
 }
 
 type Secret struct {
@@ -759,6 +763,14 @@ func (a *Agent) Validate() error {
 }
 
 func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
+	if audience := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenAudience]; audience != "" {
+		return &ServiceAccountTokenVolume{
+			Name:      "token",
+			MountPath: DefaultServiceAccountMount,
+			TokenPath: "token",
+			Audience:  audience,
+		}, nil
+	}
 	if volumeName := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; volumeName != "" {
 		// Attempt to find existing mount point of named volume and copy mount path
 		for _, container := range pod.Spec.Containers {
@@ -897,4 +909,23 @@ func (a *Agent) copyVolumeMounts(targetContainerName string) []corev1.VolumeMoun
 		}
 	}
 	return copiedVolumeMounts
+}
+
+func (a *Agent) createProjectedVolumes() corev1.Volume {
+	if a.ServiceAccountTokenVolume.Audience != "" {
+		return corev1.Volume{
+			Name: a.ServiceAccountTokenVolume.Name,
+			VolumeSource: corev1.VolumeSource{Projected: &corev1.ProjectedVolumeSource{
+				Sources: []corev1.VolumeProjection{
+					{
+						ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+							Audience:          a.ServiceAccountTokenVolume.Audience,
+							ExpirationSeconds: pointer.Int64(3600),
+							Path:              a.ServiceAccountTokenVolume.TokenPath,
+						},
+					},
+				},
+			}}}
+	}
+	return corev1.Volume{}
 }

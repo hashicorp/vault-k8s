@@ -33,7 +33,7 @@ build:
 		.
 
 image: build
-	docker build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
+	podman build --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
 # Deploys Vault dev server and a locally built Agent Injector.
 # Run multiple times to deploy new builds of the injector.

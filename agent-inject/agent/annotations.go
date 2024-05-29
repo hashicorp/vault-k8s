@@ -172,6 +172,9 @@ const (
 	// service account token
 	AnnotationAgentServiceAccountTokenVolumeName = "vault.hashicorp.com/agent-service-account-token-volume-name"
 
+	// AnnotationVaultAuthJWT specifies the jwt audience to use when requesting a token
+	AnnotationAgentServiceAccountTokenAudience = "vault.hashicorp.com/vault-service-account-token-audience"
+
 	// AnnotationVaultService is the name of the Vault server.  This can be overridden by the
 	// user but will be set by a flag on the deployment.
 	AnnotationVaultService = "vault.hashicorp.com/service"
@@ -463,6 +466,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName] = ""
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenAudience]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName] = ""
 	}
 

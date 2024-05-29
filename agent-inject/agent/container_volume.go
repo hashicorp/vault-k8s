@@ -93,6 +93,11 @@ func (a *Agent) ContainerTokenVolume() []corev1.Volume {
 		vols = append(vols, sidecarVol)
 	}
 
+	if a.ServiceAccountTokenVolume.Audience != "" {
+		v := a.createProjectedVolumes()
+		vols = append(vols, v)
+	}
+
 	return vols
 }
 
