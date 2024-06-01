@@ -33,6 +33,8 @@ const (
 	DefaultAgentCacheExitOnErr              = false
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
+	DefaultAgentInjectTokenFile             = "token"
+	DefaultAgentInjectTokenPermissions      = 0640
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
@@ -168,6 +170,12 @@ type Agent struct {
 	// InjectToken controls whether the auto-auth token is injected into the
 	// secrets volume (e.g. /vault/secrets/token)
 	InjectToken bool
+
+	// InjectTokenFile is the file path where the auto-auth token is injected
+	InjectTokenFile string
+
+	// InjectTokenPermissions is the file permissions for the auto-auth token file
+	InjectTokenPermissions int64
 
 	// EnableQuit controls whether the quit endpoint is enabled on a localhost
 	// listener
@@ -497,7 +505,7 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return agent, fmt.Errorf("invalid default template type: %s", agent.DefaultTemplate)
 	}
 
-	agent.InjectToken, err = agent.injectToken()
+	err = agent.injectToken()
 	if err != nil {
 		return agent, err
 	}
