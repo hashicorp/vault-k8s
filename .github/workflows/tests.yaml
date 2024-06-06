@@ -38,9 +38,9 @@ jobs:
     steps:
       - run: echo "setting versions"
     outputs:
-      # vault-k8s version
-      K8S_VERSIONS: '["1.29.2", "1.28.7", "1.27.11", "1.26.14", "1.25.16"]'
-      VAULT_N: "1.16.1"
+      # JSON encoded array of k8s versions.
+      K8S_VERSIONS: '["1.30.0", "1.29.4", "1.28.9", "1.27.13", "1.26.15"]'
+      VAULT_N: "1.16.3"
       VAULT_N_1: "1.15.6"
       VAULT_N_2: "1.14.10"
 
