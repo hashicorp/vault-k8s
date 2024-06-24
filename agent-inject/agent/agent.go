@@ -86,6 +86,10 @@ type Agent struct {
 	// added to the request.
 	PrePopulateOnly bool
 
+	// NativeSidecar controls whether a native sidecar container (init container
+	// that stays running) is added to the pod.
+	NativeSidecar bool
+
 	// RevokeOnShutdown controls whether a sidecar container will attempt to revoke its Vault
 	// token on shutting down.
 	RevokeOnShutdown bool
@@ -407,6 +411,11 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		},
 	}
 
+	agent.NativeSidecar, err = agent.nativeSidecar()
+	if err != nil {
+		return agent, err
+	}
+
 	agent.Secrets, err = agent.secrets()
 	if err != nil {
 		return agent, err
@@ -645,8 +654,8 @@ func (a *Agent) Patch() ([]byte, error) {
 	}
 
 	// Init Container
-	if a.PrePopulate {
-		container, err := a.ContainerInitSidecar()
+	if a.PrePopulate || a.NativeSidecar {
+		container, err := a.ContainerInitSidecar(a.NativeSidecar)
 		if err != nil {
 			return nil, err
 		}
@@ -696,7 +705,7 @@ func (a *Agent) Patch() ([]byte, error) {
 	}
 
 	// Sidecar Container
-	if !a.PrePopulateOnly {
+	if !a.PrePopulateOnly && !a.NativeSidecar {
 		container, err := a.ContainerSidecar()
 		if err != nil {
 			return nil, err
@@ -755,6 +764,14 @@ func (a *Agent) Validate() error {
 			return errors.New("no Vault address found")
 		}
 	}
+
+	if a.NativeSidecar && a.PrePopulateOnly {
+		return errors.New("cannot set native sidecar and prepopulate only")
+	}
+
+	// TODO(tvoran): we should probably prevent any of the other sidecar/init
+	// container settings when NativeSidecar is set
+
 	return nil
 }
 
