@@ -1,6 +1,11 @@
 ## Unreleased
 
+## 1.4.2 (July 1, 2024)
+
 Changes:
+* Building with Go 1.22.4
+* Default Vault version update to 1.17.1
+* Testing with Vault 1.15 - 1.17
 * Dependency updates:
   * Docker image `alpine` 3.19.1 => 3.20.1
   * Docker image `ubi8/ubi-minimal` 8.9-1161 => 8.10-896.1717584414
