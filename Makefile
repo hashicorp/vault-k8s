@@ -1,7 +1,7 @@
 REGISTRY_NAME ?= docker.io/hashicorp
 IMAGE_NAME = vault-k8s
 VERSION ?= 0.0.0-dev
-VAULT_VERSION ?= 1.16.1
+VAULT_VERSION ?= 1.17.1
 IMAGE_TAG ?= $(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
 PUBLISH_LOCATION ?= https://releases.hashicorp.com
 DOCKER_DIR = ./build/docker
@@ -15,7 +15,7 @@ PKG = github.com/hashicorp/vault-k8s/version
 LDFLAGS ?= "-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-VAULT_HELM_CHART_VERSION ?= 0.27.0
+VAULT_HELM_CHART_VERSION ?= 0.28.0
 # TODO: add support for testing against enterprise
 
 TEST_WITHOUT_VAULT_TLS ?=
