@@ -47,7 +47,7 @@ runs:
     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
       with:
         repository: "hashicorp/vault-helm"
-        ref: "v0.27.0"
+        ref: "v0.28.0"
         path: "vault-helm"
 
     - name: Create Kind Cluster
@@ -56,7 +56,7 @@ runs:
         cluster_name: ${{ inputs.kind-cluster-name }}
         config: vault-helm/test/kind/config.yaml
         node_image: kindest/node:v${{ inputs.k8s-version }}
-        version: "v0.22.0"
+        version: "v0.23.0"
 
     - name: Create kind export log root
       id: create_kind_export_log_root
