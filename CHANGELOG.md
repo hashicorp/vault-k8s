@@ -8,7 +8,7 @@ Changes:
 * Testing with Vault 1.15 - 1.17
 * Dependency updates:
   * Docker image `alpine` 3.19.1 => 3.20.1
-  * Docker image `ubi8/ubi-minimal` 8.9-1161 => 8.10-896.1717584414
+  * Docker image `ubi8/ubi-minimal` 8.9-1161 => 8.10-1018
   * `github.com/go-logr/logr` v1.4.1 => v1.4.2
   * `github.com/hashicorp/vault/sdk` v0.11.1 => v0.13.0
   * `github.com/operator-framework/operator-lib` v0.12.0 => v0.14.0
