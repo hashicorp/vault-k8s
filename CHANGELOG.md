@@ -1,9 +1,9 @@
 ## Unreleased
 
-## 1.4.2 (July 1, 2024)
+## 1.4.2 (July 3, 2024)
 
 Changes:
-* Building with Go 1.22.4
+* Building with Go 1.22.5
 * Default Vault version update to 1.17.1
 * Testing with Vault 1.15 - 1.17
 * Dependency updates:
