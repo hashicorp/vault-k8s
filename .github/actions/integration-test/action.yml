@@ -25,7 +25,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
     - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
     - run: sudo npm install -g bats@${{ inputs.bats-version }}
       shell: bash
@@ -39,12 +39,12 @@ runs:
       shell: bash
 
     # Checkout this repo.
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         path: "vault-k8s"
 
     # Checkout vault-helm for acceptance test code.
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         repository: "hashicorp/vault-helm"
         ref: "v0.28.0"
