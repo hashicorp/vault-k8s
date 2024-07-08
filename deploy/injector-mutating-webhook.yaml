@@ -26,10 +26,6 @@ webhooks:
         apiGroups: [""]
         apiVersions: ["v1"]
         resources: ["pods"]
-      - operations: ["CREATE", "UPDATE"]
-        apiGroups: [""]
-        apiVersions: ["v1"]
-        resources: ["deployments", "jobs", "statefulsets"]
     namespaceSelector: {}
     objectSelector:
       matchExpressions:
