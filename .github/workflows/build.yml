@@ -67,18 +67,25 @@ jobs:
           go-version-file: .go-version
 
       - name: Build
+        id: build-binary
         env:
           GOOS: "linux"
           GOARCH: ${{ matrix.arch }}
           VERSION: ${{ needs.get-product-version.outputs.product-version }}
+        shell: bash
         run: |
-          mkdir dist out
-          make build
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip dist/
+          BUILD_DIR=dist
+          make build BUILD_DIR="${BUILD_DIR}"
+          OUT_DIR='build/out'
+          mkdir -p "${OUT_DIR}"
+          ZIP_FILE="${OUT_DIR}/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip"
+          zip -r -j "${ZIP_FILE}" "${BUILD_DIR}/" ./LICENSE
+          echo "path=${ZIP_FILE}" >> $GITHUB_OUTPUT
+          echo "name=$(basename ${ZIP_FILE})" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+          name: ${{ steps.build-binary.outputs.name }}
+          path: ${{ steps.build-binary.outputs.path }}
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
