@@ -1,10 +1,13 @@
 ## Unreleased
 
+Changes:
+* Default Vault version updated to 1.17.2
+
 ## 1.4.2 (July 3, 2024)
 
 Changes:
 * Building with Go 1.22.5
-* Default Vault version update to 1.17.1
+* Default Vault version updated to 1.17.1
 * Testing with Vault 1.15 - 1.17
 * Dependency updates:
   * Docker image `alpine` 3.19.1 => 3.20.1
@@ -28,7 +31,7 @@ Changes:
 
 Changes:
 * Building with Go 1.22.2
-* Default Vault version update to 1.16.1
+* Default Vault version updated to 1.16.1
 * Dependency updates:
   * Docker UBI image `ubi8/ubi-minimal` 8.9-1137 => 8.9-1161
   * `github.com/cenkalti/backoff/v4` v4.2.1 => v4.3.0
