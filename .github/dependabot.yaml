@@ -7,17 +7,33 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    reviewers:
-      - "hashicorp/vault-ecosystem-foundations"
+    labels: ["dependencies"]
+    groups:
+      gomod-breaking:
+        update-types:
+          - major
+      gomod-backward-compatible:
+        update-types:
+          - minor
+          - patch
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    reviewers:
-      - "hashicorp/vault-ecosystem-foundations"
+    labels: ["dependencies"]
+    groups:
+      github-actions-breaking:
+        update-types:
+          - major
+      github-actions-backward-compatible:
+        update-types:
+          - minor
+          - patch
+    # only update internal github actions, external github actions are handled
+    # by https://github.com/hashicorp/security-tsccr/tree/main/automation
+    allow:
+      - dependency-name: "hashicorp/*"
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "daily"
-    reviewers:
-      - "hashicorp/vault-ecosystem-foundations"

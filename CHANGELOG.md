@@ -1,5 +1,49 @@
 ## Unreleased
 
+## 1.4.2 (July 3, 2024)
+
+Changes:
+* Building with Go 1.22.5
+* Default Vault version update to 1.17.1
+* Testing with Vault 1.15 - 1.17
+* Dependency updates:
+  * Docker image `alpine` 3.19.1 => 3.20.1
+  * Docker image `ubi8/ubi-minimal` 8.9-1161 => 8.10-1018
+  * `github.com/go-logr/logr` v1.4.1 => v1.4.2
+  * `github.com/hashicorp/vault/sdk` v0.11.1 => v0.13.0
+  * `github.com/operator-framework/operator-lib` v0.12.0 => v0.14.0
+  * `github.com/prometheus/client_golang` v1.19.0 => v1.19.1
+  * `golang.org/x/crypto` v0.22.0 => v0.24.0
+  * `golang.org/x/net` v0.24.0 => v0.26.0
+  * `golang.org/x/sys` v0.19.0 => v0.21.0
+  * `golang.org/x/term` v0.19.0 => v0.21.0
+  * `golang.org/x/text` v0.14.0 => v0.16.0
+  * `k8s.io/api` v0.29.3 => v0.30.2
+  * `k8s.io/apimachinery` v0.29.3 => v0.30.2
+  * `k8s.io/client-go` v0.29.3 => v0.30.2
+  * `k8s.io/utils` v0.0.0-20230726121419-3b25d923346b => v0.0.0-20240502163921-fe8a2dddb1d0
+  * `sigs.k8s.io/controller-runtime` v0.17.2 => v0.18.4
+
+## 1.4.1 (April 8, 2024)
+
+Changes:
+* Building with Go 1.22.2
+* Default Vault version update to 1.16.1
+* Dependency updates:
+  * Docker UBI image `ubi8/ubi-minimal` 8.9-1137 => 8.9-1161
+  * `github.com/cenkalti/backoff/v4` v4.2.1 => v4.3.0
+  * `github.com/go-logr/logr` v1.3.0 => v1.4.1
+  * `github.com/hashicorp/go-hclog` v1.6.2 => v1.6.3
+  * `github.com/hashicorp/vault/sdk` v0.11.0 => v0.11.1
+  * `golang.org/x/crypto` v0.18.0 => v0.22.0
+  * `golang.org/x/net` v0.20.0 => v0.24.0
+  * `golang.org/x/sys` v0.16.0 => v0.19.0
+  * `golang.org/x/term` v0.16.0 => v0.19.0
+  * `k8s.io/api` v0.29.2 => v0.29.3
+  * `k8s.io/apimachinery` v0.29.2 => v0.29.3
+  * `k8s.io/client-go` v0.29.2 => v0.29.3
+  * `sigs.k8s.io/controller-runtime` v0.16.3 => v0.17.2
+
 Bugs:
 * Enable logging from operator-lib's leader election (used during auto-tls certificate generation) [GH-608](https://github.com/hashicorp/vault-k8s/pull/608)
 
@@ -27,8 +71,6 @@ Changes:
   * `github.com/operator-framework/operator-lib` v0.11.0 => v0.12.0
   * `github.com/evanphx/json-patch` v5.7.0 => v5.9.0
   * `github.com/stretchr/testify` v1.8.4 => v1.9.0
-  * `github.com/go-logr/logr` v1.3.0 => v1.4.1
-  * `sigs.k8s.io/controller-runtime` v0.16.3 => v0.17.2
 
 ## 1.3.1 (October 25, 2023)
 

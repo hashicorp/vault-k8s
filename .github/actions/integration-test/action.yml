@@ -1,0 +1,116 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Integration test
+description: Run the integration tests against a single version of k8s and Vault
+inputs:
+  k8s-version:
+    description: 'Kubernetes version to use for the kind cluster'
+    required: true
+  version:
+    description: 'Vault K8s version to use for the tests'
+    required: true
+  vault-version:
+    description: 'Vault version to use for the tests'
+    required: true
+  tarball-file:
+    description: 'Name of the tarball file artifact to download'
+    required: true
+  kind-cluster-name:
+    description: 'Name of the kind cluster to create and test against'
+    default: 'vault-k8s'
+  bats-version:
+    description: 'Version of bats to run tests with'
+    default: '1.11.0'
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+    - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+    - run: sudo npm install -g bats@${{ inputs.bats-version }}
+      shell: bash
+    - run: bats -v
+      shell: bash
+
+    - uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
+      with:
+        python-version: '3.10'
+    - run: pip install yq
+      shell: bash
+
+    # Checkout this repo.
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        path: "vault-k8s"
+
+    # Checkout vault-helm for acceptance test code.
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      with:
+        repository: "hashicorp/vault-helm"
+        ref: "v0.28.0"
+        path: "vault-helm"
+
+    - name: Create Kind Cluster
+      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+      with:
+        cluster_name: ${{ inputs.kind-cluster-name }}
+        config: vault-helm/test/kind/config.yaml
+        node_image: kindest/node:v${{ inputs.k8s-version }}
+        version: "v0.23.0"
+
+    - name: Create kind export log root
+      id: create_kind_export_log_root
+      shell: bash
+      run: |
+        vault_flavor=community
+        log_artifact_name="kind-${{ inputs.kind-cluster-name }}-$(git rev-parse --short ${{ github.sha }})-${{ inputs.k8s-version }}-${{ inputs.vault-version }}-${vault_flavor}-helm-logs"
+        log_root="/tmp/${log_artifact_name}"
+        mkdir -p "${log_root}"
+        echo "log_root=${log_root}" >> $GITHUB_OUTPUT
+        echo "log_artifact_name=${log_artifact_name}" >> $GITHUB_OUTPUT
+
+    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+      with:
+        name: ${{ inputs.tarball-file }}
+
+    - name: Load vault-k8s ${{ inputs.version }} image
+      shell: bash
+      run: |
+        [ -n "${{ inputs.tarball-file }}" ] || (echo "inputs.tarball-file not set" >&2 ; exit 1)
+        docker image load --input "${{ inputs.tarball-file }}"
+        kind load docker-image --name ${{ inputs.kind-cluster-name }} hashicorp/vault-k8s:"${{ inputs.version }}"
+
+    - name: Makefile tests
+      shell: bash
+      working-directory: vault-k8s
+      run: make deploy exercise teardown VERSION="${{ inputs.version }}" VAULT_VERSION="${{ inputs.vault-version }}"
+
+    - name: bats tests
+      shell: bash
+      working-directory: vault-helm
+      run: |
+        # assumes Python based yq :(
+        yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
+        yq --in-place --yaml-roundtrip '.server.image.tag |= "${{ inputs.vault-version }}"' ./values.yaml
+        yq --in-place --yaml-roundtrip '.injector.agentImage.tag |= "${{ inputs.vault-version }}"' ./values.yaml
+        bats ./test/acceptance -t --filter injector
+
+    - name: export kind cluster logs
+      if: always()
+      shell: bash
+      run: |
+       kind export logs --name ${{ inputs.kind-cluster-name }} ${{ steps.create_kind_export_log_root.outputs.log_root }}
+
+    - name: Store kind cluster logs
+      if: success()
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}
+        path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
+
+    - name: Store kind cluster logs failure
+      if: failure()
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}-failed
+        path: ${{ steps.create_kind_export_log_root.outputs.log_root }}

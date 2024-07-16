@@ -19,7 +19,7 @@ jobs:
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: get product version
         id: get-product-version
         run: |
@@ -34,15 +34,15 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Generate metadata file
         id: generate-metadata-file
-        uses: hashicorp/actions-generate-metadata@fdbc8803a0e53bcbb912ddeee3808329033d6357 # v1.1.1
+        uses: hashicorp/actions-generate-metadata@v1
         with:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -59,26 +59,33 @@ jobs:
     name: Go linux ${{ matrix.arch }} build
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup go
-        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
           go-version-file: .go-version
 
       - name: Build
+        id: build-binary
         env:
           GOOS: "linux"
           GOARCH: ${{ matrix.arch }}
           VERSION: ${{ needs.get-product-version.outputs.product-version }}
+        shell: bash
         run: |
-          mkdir dist out
-          make build
-          zip -r -j out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip dist/
-      - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32 # v3.1.3
+          BUILD_DIR=dist
+          make build BUILD_DIR="${BUILD_DIR}"
+          OUT_DIR='build/out'
+          mkdir -p "${OUT_DIR}"
+          ZIP_FILE="${OUT_DIR}/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip"
+          zip -r -j "${ZIP_FILE}" "${BUILD_DIR}/" ./LICENSE
+          echo "path=${ZIP_FILE}" >> $GITHUB_OUTPUT
+          echo "name=$(basename ${ZIP_FILE})" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: ${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
-          path: out/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip
+          name: ${{ steps.build-binary.outputs.name }}
+          path: ${{ steps.build-binary.outputs.path }}
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
@@ -94,9 +101,9 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Docker Build (Action)
-        uses: hashicorp/actions-docker-build@f6278ea21555b4b4737e4cf366e808ba2bb59146 # v1.6.1
+        uses: hashicorp/actions-docker-build@v2
         with:
           version: ${{env.version}}
           target: default
@@ -116,8 +123,8 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-      - uses: hashicorp/actions-docker-build@f6278ea21555b4b4737e4cf366e808ba2bb59146 # v1.6.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: hashicorp/actions-docker-build@11d43ef520c65f58683d048ce9b47d6617893c9a # v2
         with:
           version: ${{env.version}}
           target: ubi
