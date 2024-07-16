@@ -1,5 +1,8 @@
 ## Unreleased
 
+Bugs:
+* Disable handling update on pods [GH-619](https://github.com/hashicorp/vault-k8s/pull/619)
+
 ## 1.4.2 (July 3, 2024)
 
 Changes:
