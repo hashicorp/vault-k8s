@@ -22,6 +22,9 @@ inputs:
   bats-version:
     description: 'Version of bats to run tests with'
     default: '1.11.0'
+  vault-license:
+    description: 'Vault license to use for enterprise tests'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -47,7 +50,7 @@ runs:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         repository: "hashicorp/vault-helm"
-        ref: "v0.28.0"
+        ref: "v0.28.1"
         path: "vault-helm"
 
     - name: Create Kind Cluster
@@ -88,6 +91,8 @@ runs:
     - name: bats tests
       shell: bash
       working-directory: vault-helm
+      env:
+        VAULT_LICENSE_CI: ${{ inputs.vault-license }}
       run: |
         # assumes Python based yq :(
         yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
