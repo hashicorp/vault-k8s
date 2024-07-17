@@ -72,7 +72,7 @@ runs:
         echo "log_root=${log_root}" >> $GITHUB_OUTPUT
         echo "log_artifact_name=${log_artifact_name}" >> $GITHUB_OUTPUT
 
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: ${{ inputs.tarball-file }}
 
@@ -108,14 +108,14 @@ runs:
 
     - name: Store kind cluster logs
       if: success()
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
 
     - name: Store kind cluster logs failure
       if: failure()
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}-failed
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
