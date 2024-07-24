@@ -2,6 +2,10 @@
 
 Changes:
 * Default Vault version updated to 1.17.2
+* Dependency updates:
+  * `k8s.io/api` v0.30.2 => v0.30.3
+  * `k8s.io/apimachinery` v0.30.2 => v0.30.3
+  * `k8s.io/client-go` v0.30.2 => v0.30.3
 
 Bugs:
 * Disable handling update on pods [GH-619](https://github.com/hashicorp/vault-k8s/pull/619)
