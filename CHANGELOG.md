@@ -3,6 +3,7 @@
 Changes:
 * Default Vault version updated to 1.17.2
 * Dependency updates:
+  * Docker image `alpine` 3.20.1 => 3.20.2
   * `k8s.io/api` v0.30.2 => v0.30.3
   * `k8s.io/apimachinery` v0.30.2 => v0.30.3
   * `k8s.io/client-go` v0.30.2 => v0.30.3
