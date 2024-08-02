@@ -84,6 +84,15 @@ const (
 	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
+	// AnnotationAgentInjectTokenFile is the annotation key for specifying the
+	// path to which the auto-auth token should be written to disk.
+	// (defaults to 'token')
+	AnnotationAgentInjectTokenFile = "vault.hashicorp.com/agent-inject-token-file"
+
+	// AnnotationAgentInjectTokenPermission is the annotation key for specifying the
+	// permission of the token file written to disk. (defaults to '0640')
+	AnnotationAgentInjectTokenPermission = "vault.hashicorp.com/agent-inject-token-perms"
+
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
 	// to run a command after the secret is rendered. The name of the template is any
 	// unique string after "vault.hashicorp.com/agent-inject-command-". This should map
@@ -880,12 +889,40 @@ func (a *Agent) cacheExitOnErr() (bool, error) {
 	return parseutil.ParseBool(raw)
 }
 
-func (a *Agent) injectToken() (bool, error) {
+func (a *Agent) injectToken() error {
 	raw, ok := a.Annotations[AnnotationAgentInjectToken]
 	if !ok {
-		return DefaultAgentInjectToken, nil
+		a.InjectToken = DefaultAgentInjectToken
+		return nil
 	}
-	return parseutil.ParseBool(raw)
+	injectToken, err := parseutil.ParseBool(raw)
+	if err != nil {
+		return err
+	}
+	a.InjectToken = injectToken
+
+	raw, ok = a.Annotations[AnnotationAgentInjectTokenFile]
+	if !ok {
+		a.InjectTokenFile = DefaultAgentInjectTokenFile
+		return nil
+	}
+	injectTokenPath, err := parseutil.ParseString(raw)
+	if err != nil {
+		return err
+	}
+	a.InjectTokenFile = injectTokenPath
+
+	raw, ok = a.Annotations[AnnotationAgentInjectTokenPermission]
+	if !ok {
+		a.InjectTokenPermissions = DefaultAgentInjectTokenPermissions
+		return nil
+	}
+	injectTokenPermissions, err := parseutil.ParseInt(raw)
+	if err != nil {
+		return err
+	}
+	a.InjectTokenPermissions = injectTokenPermissions
+	return nil
 }
 
 // telemetryConfig accumulates the agent-telemetry annotations into a map which is
