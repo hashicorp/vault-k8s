@@ -84,19 +84,21 @@ const (
 	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	// AnnotationAgentInjectTemplateLeftDelim is the key annotation that configures Vault
 	// Agent what left delimiter to use for rendering the secrets.  The name
-	// of the template is any unique string after "vault.hashicorp.com/agent-inject-left-delimiter-",
-	// such as "vault.hashicorp.com/agent-inject-left-delimiter-foobar".  This should map
+	// of the template is any unique string after "vault.hashicorp.com/agent-template-left-delim-",
+	// such as "vault.hashicorp.com/agent-template-left-delim-foobar".  This should map
 	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default left delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#left_delimiter
-	AnnotationAgentInjectTemplateLeftDelim = "vault.hashicorp.com/agent-inject-left-delimiter"
+	AnnotationAgentInjectTemplateLeftDelim = "vault.hashicorp.com/agent-template-left-delim"
+	DefaultLeftDelim                       = "{{"
 
 	// AnnotationAgentInjectTemplateRightDelim is the key annotation that configures Vault
 	// Agent what right delimiter to use for rendering the secrets.  The name
-	// of the template is any unique string after "vault.hashicorp.com/agent-inject-right-delimiter-",
-	// such as "vault.hashicorp.com/agent-inject-right-delimiter-foobar".  This should map
+	// of the template is any unique string after "vault.hashicorp.com/agent-template-right-delim-",
+	// such as "vault.hashicorp.com/agent-template-right-delim-foobar".  This should map
 	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default right delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#right_delimiter
-	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-inject-right-delimiter"
+	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-template-right-delim"
+	DefaultRightDelim                       = "}}"
 
 	// AnnotationAgentInjectToken is the annotation key for injecting the token
 	// from auth/token/lookup-self
