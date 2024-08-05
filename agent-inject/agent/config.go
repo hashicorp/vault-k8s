@@ -17,8 +17,6 @@ const (
 	DefaultTemplateType = "map"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
-	DefaultLeftDelim    = "{{"
-	DefaultRightDelim   = "}}"
 )
 
 // Config is the top level struct that composes a Vault Agent
