@@ -4,6 +4,7 @@ Changes:
 * Default Vault version updated to 1.17.2
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.2
+  * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1052
   * `k8s.io/api` v0.30.2 => v0.30.3
   * `k8s.io/apimachinery` v0.30.2 => v0.30.3
   * `k8s.io/client-go` v0.30.2 => v0.30.3
