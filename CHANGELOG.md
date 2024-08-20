@@ -5,9 +5,12 @@ Changes:
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.2
   * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1052
-  * `k8s.io/api` v0.30.2 => v0.30.3
-  * `k8s.io/apimachinery` v0.30.2 => v0.30.3
-  * `k8s.io/client-go` v0.30.2 => v0.30.3
+  * `github.com/prometheus/client_golang` v1.19.1 => v1.20.0
+  * `k8s.io/api` v0.30.2 => v0.31.0
+  * `k8s.io/apimachinery` v0.30.2 => v0.31.0
+  * `k8s.io/client-go` v0.30.2 => v0.31.0
+  * `k8s.io/utils` v0.0.0-20240502163921-fe8a2dddb1d0 => v0.0.0-20240711033017-18e509b52bc8
+  * `sigs.k8s.io/controller-runtime` v0.18.4 => v0.19.0
 
 Bugs:
 * Disable handling update on pods [GH-619](https://github.com/hashicorp/vault-k8s/pull/619)
