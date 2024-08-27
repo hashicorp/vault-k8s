@@ -4,7 +4,7 @@ Changes:
 * Default Vault version updated to 1.17.2
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.2
-  * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1052
+  * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1052.1724178568
   * `github.com/prometheus/client_golang` v1.19.1 => v1.20.2
   * `k8s.io/api` v0.30.2 => v0.31.0
   * `k8s.io/apimachinery` v0.30.2 => v0.31.0
