@@ -56,6 +56,9 @@ type Specification struct {
 	// TLSAutoHosts is the AGENT_INJECT_TLS_AUTO_HOSTS environment variable.
 	TLSAutoHosts string `envconfig:"tls_auto_hosts"`
 
+	// TLSCACertFile is the AGENT_INJECT_TLS_CA_CERT_FILE environment variable.
+	TLSCACertFile string `envconfig:"tls_ca_cert_file"`
+
 	// TLSCertFile is the AGENT_INJECT_TLS_CERT_FILE environment variable.
 	TLSCertFile string `envconfig:"tls_cert_file"`
 
@@ -162,6 +165,8 @@ func (c *Command) init() {
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
 		"Comma-separated hosts for auto-generated TLS cert. If specified, will auto generate cert bundle.")
+	c.flagSet.StringVar(&c.flagCACertFile, "tls-ca-cert-file", "",
+		"PEM-encoded TLS CA certificate to serve")
 	c.flagSet.StringVar(&c.flagCertFile, "tls-cert-file", "",
 		"PEM-encoded TLS certificate to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagKeyFile, "tls-key-file", "",
@@ -299,6 +304,10 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TLSAutoHosts != "" {
 		c.flagAutoHosts = envs.TLSAutoHosts
+	}
+
+	if envs.TLSCACertFile != "" {
+		c.flagCACertFile = envs.TLSCACertFile
 	}
 
 	if envs.TLSCertFile != "" {
