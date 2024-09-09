@@ -15,9 +15,9 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mitchellh/cli v1.1.5
-	github.com/operator-framework/operator-lib v0.14.0
+	github.com/operator-framework/operator-lib v0.15.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.20.2
+	github.com/prometheus/client_golang v1.20.3
 	github.com/radovskyb/watcher v1.0.7
 	github.com/stretchr/testify v1.9.0
 	k8s.io/api v0.31.0
@@ -77,12 +77,12 @@ require (
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/term v0.23.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
