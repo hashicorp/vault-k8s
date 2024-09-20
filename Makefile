@@ -44,7 +44,7 @@ all: build
 version:
 	@echo $(VERSION)
 
-build:
+build: clean
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) go build \
 		-ldflags $(LDFLAGS) \
 		-o $(BUILD_DIR)/$(BIN_NAME) \

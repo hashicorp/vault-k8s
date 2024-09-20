@@ -78,8 +78,9 @@ jobs:
           make build BUILD_DIR="${BUILD_DIR}"
           OUT_DIR='build/out'
           mkdir -p "${OUT_DIR}"
+          cp -a LICENSE "${BUILD_DIR}/LICENSE.txt"
           ZIP_FILE="${OUT_DIR}/${{ env.PKG_NAME }}_${{ needs.get-product-version.outputs.product-version }}_linux_${{ matrix.arch }}.zip"
-          zip -r -j "${ZIP_FILE}" "${BUILD_DIR}/" ./LICENSE
+          zip -r -j "${ZIP_FILE}" "${BUILD_DIR}/"
           echo "path=${ZIP_FILE}" >> $GITHUB_OUTPUT
           echo "name=$(basename ${ZIP_FILE})" >> $GITHUB_OUTPUT
       - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
