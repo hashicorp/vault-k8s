@@ -4,7 +4,7 @@ Changes:
 * Default Vault version updated to 1.17.2
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.3
-  * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1052.1724178568
+  * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1086
   * `github.com/hashicorp/vault/sdk` v0.13.0 => v0.14.0
   * `github.com/operator-framework/operator-lib` v0.14.0 => v0.15.0
   * `github.com/prometheus/client_golang` v1.19.1 => v1.20.3
