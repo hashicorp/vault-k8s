@@ -47,6 +47,7 @@ type Command struct {
 	flagListen                     string // Address of Vault Server
 	flagLogLevel                   string // Log verbosity
 	flagLogFormat                  string // Log format
+	flagCACertFile                 string // TLS CA Certificate to serve
 	flagCertFile                   string // TLS Certificate to serve
 	flagKeyFile                    string // TLS private key to serve
 	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
@@ -179,6 +180,7 @@ func (c *Command) Run(args []string) int {
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
+			CAPath:  c.flagCACertFile,
 			CertPath: c.flagCertFile,
 			KeyPath:  c.flagKeyFile,
 		}
