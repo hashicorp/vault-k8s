@@ -5,14 +5,14 @@
 # Use 'docker build --target=<name> .' to build one.
 # e.g. `docker build --target=dev .`
 #
-# All non-dev targets have a VERSION argument that must be provided 
-# via --build-arg=VERSION=<version> when building. 
+# All non-dev targets have a VERSION argument that must be provided
+# via --build-arg=VERSION=<version> when building.
 # e.g. --build-arg VERSION=1.11.2
 #
-# `default` is the production docker image which cannot be built locally. 
+# `default` is the production docker image which cannot be built locally.
 # For local dev and testing purposes, please build and use the `dev` docker image.
 
-FROM docker.mirror.hashicorp.services/alpine:3.20.3 as dev
+FROM docker.mirror.hashicorp.services/alpine:3.20.3 AS dev
 
 RUN addgroup vault && \
     adduser -S -G vault vault
@@ -24,7 +24,7 @@ USER vault
 ENTRYPOINT ["/vault-k8s"]
 
 # This target creates a production release image for the project.
-FROM docker.mirror.hashicorp.services/alpine:3.20.3 as default
+FROM docker.mirror.hashicorp.services/alpine:3.20.3 AS default
 
 # PRODUCT_VERSION is the tag built, e.g. v0.1.0
 # PRODUCT_REVISION is the git hash built
@@ -41,10 +41,13 @@ LABEL name="Vault K8s" \
       version=$PRODUCT_VERSION \
       release=$PRODUCT_VERSION \
       revision=$PRODUCT_REVISION \
+      org.opencontainers.image.licenses="MPL-2.0" \
       summary="The Vault-K8s binary includes first-class integrations between Vault and Kubernetes." \
       description="Vault-K8s includes first-class integrations between Vault and Kuberentes. Integrations include the Vault Agent Injector mutating admission webhook."
 
 COPY LICENSE /licenses/mozilla.txt
+# Copy license to conform to HC IPS-002
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 
 # Create a non-root user to run the software.
 RUN addgroup vault && \
@@ -63,7 +66,7 @@ ENTRYPOINT ["/bin/vault-k8s"]
 
 # This target creates a production ubi release image
 # for the project for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1086 as ubi
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1086 AS ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
@@ -84,19 +87,22 @@ LABEL name="Vault K8s" \
       vendor="HashiCorp" \
       version=$PRODUCT_VERSION \
       release=$PRODUCT_VERSION \
+      org.opencontainers.image.licenses="MPL-2.0" \
       summary="The Vault-K8s binary includes first-class integrations between Vault and Kubernetes." \
       description="Vault-K8s includes first-class integrations between Vault and Kuberentes. Integrations include the Vault Agent Injector mutating admission webhook."
 
 # Copy license for Red Hat certification.
 COPY LICENSE /licenses/mozilla.txt
+# Copy license to conform to HC IPS-002
+COPY LICENSE /usr/share/doc/$PRODUCT_NAME/LICENSE.txt
 
 # Set up certificates and base tools.
 RUN set -eux && \
     microdnf install -y ca-certificates gnupg openssl tzdata wget unzip procps shadow-utils
 
 # Create a non-root user to run the software.
-# On OpenShift, this will not matter since the container 
-# is run as a random user and group. 
+# On OpenShift, this will not matter since the container
+# is run as a random user and group.
 # This is just kept for consistency with our other images.
 RUN groupadd --gid 1000 vault && \
     adduser --uid 100 --system -g vault vault && \
