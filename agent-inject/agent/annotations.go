@@ -323,6 +323,11 @@ const (
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". Defaults to false
 	AnnotationErrorOnMissingKey = "vault.hashicorp.com/error-on-missing-key"
+
+	// AnnotationNativeSidecar is the key of the annotation that configures
+	// whether a native sidecar container (init container that stays running) is
+	// added to the pod.
+	AnnotationNativeSidecar = "vault.hashicorp.com/agent-native-sidecar"
 )
 
 type AgentConfig struct {
@@ -711,6 +716,15 @@ func (a *Agent) prePopulate() (bool, error) {
 
 func (a *Agent) prePopulateOnly() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentPrePopulateOnly]
+	if !ok {
+		return false, nil
+	}
+
+	return parseutil.ParseBool(raw)
+}
+
+func (a *Agent) nativeSidecar() (bool, error) {
+	raw, ok := a.Annotations[AnnotationNativeSidecar]
 	if !ok {
 		return false, nil
 	}
