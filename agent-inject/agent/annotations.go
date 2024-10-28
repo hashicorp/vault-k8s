@@ -89,7 +89,6 @@ const (
 	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default left delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#left_delimiter
 	AnnotationAgentInjectTemplateLeftDelim = "vault.hashicorp.com/agent-template-left-delim"
-	DefaultLeftDelim                       = "{{"
 
 	// AnnotationAgentInjectTemplateRightDelim is the key annotation that configures Vault
 	// Agent what right delimiter to use for rendering the secrets.  The name
@@ -98,10 +97,9 @@ const (
 	// to the same unique value provided in "vault.hashicorp.com/agent-inject-secret-".
 	// If not provided, a default right delimiter is used as defined by https://www.vaultproject.io/docs/agent/template#right_delimiter
 	AnnotationAgentInjectTemplateRightDelim = "vault.hashicorp.com/agent-template-right-delim"
-	DefaultRightDelim                       = "}}"
 
-	// AnnotationAgentInjectToken is the annotation key for injecting the token
-	// from auth/token/lookup-self
+	// AnnotationAgentInjectToken is the annotation key for injecting the
+	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	AnnotationAgentInjectToken = "vault.hashicorp.com/agent-inject-token"
 
 	// AnnotationAgentInjectCommand is the key annotation that configures Vault Agent
