@@ -1,6 +1,7 @@
 ## Unreleased
 
 Changes:
+* Building with Go 1.22.8
 * Default Vault version updated to 1.17.2
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.3
