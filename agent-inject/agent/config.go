@@ -14,6 +14,8 @@ import (
 const (
 	DefaultMapTemplate  = "{{ with secret \"%s\" }}{{ range $k, $v := .Data }}{{ $k }}: {{ $v }}\n{{ end }}{{ end }}"
 	DefaultJSONTemplate = "{{ with secret \"%s\" }}{{ .Data | toJSON }}\n{{ end }}"
+	DefaultLeftDelim    = "{{"
+	DefaultRightDelim   = "}}"
 	DefaultTemplateType = "map"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
@@ -195,6 +197,16 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			}
 		}
 
+		leftDelim := secret.LeftDelimiter
+		if leftDelim == "" {
+			leftDelim = DefaultLeftDelim
+		}
+
+		rightDelim := secret.RightDelimiter
+		if rightDelim == "" {
+			rightDelim = DefaultRightDelim
+		}
+
 		filePathAndName := fmt.Sprintf("%s/%s", secret.MountPath, secret.Name)
 		if secret.FilePathAndName != "" {
 			filePathAndName = filepath.Join(secret.MountPath, secret.FilePathAndName)
@@ -204,8 +216,8 @@ func (a *Agent) newTemplateConfigs() []*Template {
 			Source:        templateFile,
 			Contents:      template,
 			Destination:   filePathAndName,
-			LeftDelim:     "{{",
-			RightDelim:    "}}",
+			LeftDelim:     leftDelim,
+			RightDelim:    rightDelim,
 			Command:       secret.Command,
 			ErrMissingKey: secret.ErrMissingKey,
 		}
