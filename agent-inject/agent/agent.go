@@ -131,6 +131,9 @@ type Agent struct {
 	// template_config specific configuration
 	VaultAgentTemplateConfig VaultAgentTemplateConfig
 
+	// VaultAgentMetricsListenerPort is the port used to server the Vault agent metrics
+	VaultAgentMetricsListenerPort uint16
+
 	// RunAsUser is the user ID to run the Vault agent container(s) as.
 	RunAsUser int64
 
@@ -542,6 +545,17 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	agent.AutoAuthExitOnError, err = agent.getAutoAuthExitOnError()
 	if err != nil {
 		return nil, err
+	}
+
+	if pod.Annotations[AnnotationAgentMetricsListenerPort] != "" {
+		vaultAgentMetricsListenerPort, err := parseutil.SafeParseInt(pod.Annotations[AnnotationAgentMetricsListenerPort])
+		if err != nil {
+			return agent, err
+		}
+		if vaultAgentMetricsListenerPort < 1 || vaultAgentMetricsListenerPort > 65535 {
+			return agent, errors.New("invalid port number: must be in the range 1 to 65535")
+		}
+		agent.VaultAgentMetricsListenerPort = uint16(vaultAgentMetricsListenerPort)
 	}
 
 	return agent, nil

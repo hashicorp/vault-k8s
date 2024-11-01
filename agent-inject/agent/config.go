@@ -90,12 +90,13 @@ type Template struct {
 	ErrMissingKey  bool   `json:"error_on_missing_key,omitempty"`
 }
 
-// Listener defines the configuration for Vault Agent Cache Listener
+// Listener defines the configuration for Vault Agent Cache Listener and/ or Vault Agent Metrics Listener
 type Listener struct {
 	Type       string    `json:"type"`
 	Address    string    `json:"address"`
 	TLSDisable bool      `json:"tls_disable"`
 	AgentAPI   *AgentAPI `json:"agent_api,omitempty"`
+	Role       string    `json:"role,omitempty"`
 }
 
 // AgentAPI defines the agent_api stanza for a listener
@@ -271,7 +272,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 
 	cacheListener := makeCacheListener(a.VaultAgentCache.ListenerPort)
 	if a.VaultAgentCache.Persist {
-		config.Listener = cacheListener
+		config.Listener = append(config.Listener, &cacheListener)
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 			Persist: &CachePersist{
@@ -281,7 +282,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 			},
 		}
 	} else if a.VaultAgentCache.Enable && !a.PrePopulateOnly && !init {
-		config.Listener = cacheListener
+		config.Listener = append(config.Listener, &cacheListener)
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
 		}
@@ -296,7 +297,7 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 				EnableQuit: a.EnableQuit,
 			}
 		} else {
-			config.Listener = makeCacheListener(a.VaultAgentCache.ListenerPort)
+			config.Listener = append(config.Listener, &cacheListener)
 			config.Listener[0].AgentAPI = &AgentAPI{
 				EnableQuit: a.EnableQuit,
 			}
@@ -307,6 +308,11 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		}
 	}
 
+	if a.VaultAgentMetricsListenerPort > 0 {
+		metricsListener := makeMetricsListener(a.VaultAgentMetricsListenerPort)
+		config.Listener = append(config.Listener, &metricsListener)
+	}
+
 	return config.render()
 }
 
@@ -314,12 +320,19 @@ func (c *Config) render() ([]byte, error) {
 	return json.Marshal(c)
 }
 
-func makeCacheListener(port string) []*Listener {
-	return []*Listener{
-		{
-			Type:       "tcp",
-			Address:    fmt.Sprintf("127.0.0.1:%s", port),
-			TLSDisable: true,
-		},
+func makeCacheListener(port string) Listener {
+	return Listener{
+		Type:       "tcp",
+		Address:    fmt.Sprintf("127.0.0.1:%s", port),
+		TLSDisable: true,
+	}
+}
+
+func makeMetricsListener(port uint16) Listener {
+	return Listener{
+		Type:       "tcp",
+		Address:    fmt.Sprintf("0.0.0.0:%d", port),
+		TLSDisable: true,
+		Role:       "metrics_only",
 	}
 }

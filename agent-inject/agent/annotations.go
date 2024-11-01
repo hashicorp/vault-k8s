@@ -323,6 +323,9 @@ const (
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". Defaults to false
 	AnnotationErrorOnMissingKey = "vault.hashicorp.com/error-on-missing-key"
+
+	// AnnotationAgentMetricsListenerPort configures the port the agent metrics server should listen on
+	AnnotationAgentMetricsListenerPort = "vault.hashicorp.com/agent-metrics-listener-port"
 )
 
 type AgentConfig struct {
