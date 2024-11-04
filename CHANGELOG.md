@@ -11,6 +11,11 @@ Changes:
   * `github.com/hashicorp/vault/sdk` v0.13.0 => v0.14.0
   * `github.com/operator-framework/operator-lib` v0.14.0 => v0.15.0
   * `github.com/prometheus/client_golang` v1.19.1 => v1.20.5
+  * `golang.org/x/crypto` v0.26.0 => v0.28.0
+  * `golang.org/x/net` v0.28.0 => v0.30.0
+  * `golang.org/x/sys` v0.24.0 => v0.26.0
+  * `golang.org/x/term` v0.23.0 => v0.25.0
+  * `golang.org/x/text` v0.17.0 => v0.19.0
   * `k8s.io/api` v0.30.2 => v0.31.2
   * `k8s.io/apimachinery` v0.30.2 => v0.31.2
   * `k8s.io/client-go` v0.30.2 => v0.31.2
