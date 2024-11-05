@@ -51,6 +51,11 @@ func TestNewConfig(t *testing.T) {
 
 		"vault.hashicorp.com/agent-inject-command-bar": "pkill -HUP app",
 
+		"vault.hashicorp.com/agent-inject-secret-baz":        "db/creds/baz",
+		"vault.hashicorp.com/agent-inject-template-baz":      `[[ with secret "db/creds/baz" ]][[ range $k, $v := .Data ]][[ $k ]]: [[ $v ]]\n[[ end ]][[ end ]]`,
+		"vault.hashicorp.com/agent-template-left-delim-baz":  "[[",
+		"vault.hashicorp.com/agent-template-right-delim-baz": "]]",
+
 		AnnotationAgentCacheEnable: "true",
 	}
 
@@ -121,8 +126,8 @@ func TestNewConfig(t *testing.T) {
 		t.Error("agent Cache should be disabled for init containers")
 	}
 
-	if len(config.Templates) != 6 {
-		t.Errorf("expected 4 template, got %d", len(config.Templates))
+	if len(config.Templates) != 7 {
+		t.Errorf("expected 7 templates, got %d", len(config.Templates))
 	}
 
 	for _, template := range config.Templates {
@@ -133,6 +138,10 @@ func TestNewConfig(t *testing.T) {
 
 			if template.Contents != "template foo" {
 				t.Errorf("expected template contents to be %s, got %s", "template foo", template.Contents)
+			}
+
+			if template.LeftDelim != DefaultLeftDelim || template.RightDelim != DefaultRightDelim {
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", DefaultLeftDelim, DefaultRightDelim, template.LeftDelim, template.RightDelim)
 			}
 		} else if strings.Contains(template.Destination, "bar") {
 			if template.Destination != "/vault/secrets/bar" {
@@ -169,6 +178,10 @@ func TestNewConfig(t *testing.T) {
 		} else if template.Source == "just-template-file" {
 			if template.Destination != "/vault/secrets/just-template-file" {
 				t.Errorf("expected template destination to be %s, got %s", "/vault/secrets/just-template-file", template.Destination)
+			}
+		} else if strings.Contains(template.Destination, "baz") {
+			if template.LeftDelim != "[[" || template.RightDelim != "]]" {
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", "[[", "]]", template.LeftDelim, template.RightDelim)
 			}
 		} else {
 			t.Error("shouldn't have got here")
@@ -627,7 +640,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 				AnnotationTemplateConfigExitOnRetryFailure: "true",
 			},
 			&TemplateConfig{
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
 			},
 		},
@@ -637,7 +650,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 				AnnotationTemplateConfigExitOnRetryFailure: "false",
 			},
 			&TemplateConfig{
-				ExitOnRetryFailure: false,
+				ExitOnRetryFailure:    false,
 				MaxConnectionsPerHost: 0,
 			},
 		},
@@ -647,9 +660,9 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 				AnnotationTemplateConfigStaticSecretRenderInterval: "10s",
 			},
 			&TemplateConfig{
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure:         true,
 				StaticSecretRenderInterval: "10s",
-				MaxConnectionsPerHost: 0,
+				MaxConnectionsPerHost:      0,
 			},
 		},
 		{
@@ -658,7 +671,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 				AnnotationTemplateConfigMaxConnectionsPerHost: "100",
 			},
 			&TemplateConfig{
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 100,
 			},
 		},
@@ -666,7 +679,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			"template_config_empty",
 			map[string]string{},
 			&TemplateConfig{
-				ExitOnRetryFailure: true,
+				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
 			},
 		},

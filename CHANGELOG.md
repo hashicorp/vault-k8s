@@ -22,6 +22,9 @@ Changes:
   * `k8s.io/utils` v0.0.0-20240502163921-fe8a2dddb1d0 => v0.0.0-20240711033017-18e509b52bc8
   * `sigs.k8s.io/controller-runtime` v0.18.4 => v0.19.1
 
+Features:
+* Add annotations for customizing template delimiters [GH-664](https://github.com/hashicorp/vault-k8s/pull/664)
+
 Bugs:
 * Disable handling update on pods [GH-619](https://github.com/hashicorp/vault-k8s/pull/619)
 
