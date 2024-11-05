@@ -80,8 +80,6 @@ const (
 	// If not provided, the template content key annotation is used.
 	AnnotationAgentInjectTemplateFile = "vault.hashicorp.com/agent-inject-template-file"
 
-	// AnnotationAgentInjectToken is the annotation key for injecting the
-	// auto-auth token into the secrets volume (e.g. /vault/secrets/token)
 	// AnnotationAgentInjectTemplateLeftDelim is the key annotation that configures Vault
 	// Agent what left delimiter to use for rendering the secrets.  The name
 	// of the template is any unique string after "vault.hashicorp.com/agent-template-left-delim-",

@@ -127,7 +127,7 @@ func TestNewConfig(t *testing.T) {
 	}
 
 	if len(config.Templates) != 7 {
-		t.Errorf("expected 7 template, got %d", len(config.Templates))
+		t.Errorf("expected 7 templates, got %d", len(config.Templates))
 	}
 
 	for _, template := range config.Templates {
@@ -141,7 +141,7 @@ func TestNewConfig(t *testing.T) {
 			}
 
 			if template.LeftDelim != DefaultLeftDelim || template.RightDelim != DefaultRightDelim {
-				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, DefaultLeftDelim, DefaultRightDelim)
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", DefaultLeftDelim, DefaultRightDelim, template.LeftDelim, template.RightDelim)
 			}
 		} else if strings.Contains(template.Destination, "bar") {
 			if template.Destination != "/vault/secrets/bar" {
@@ -181,7 +181,7 @@ func TestNewConfig(t *testing.T) {
 			}
 		} else if strings.Contains(template.Destination, "baz") {
 			if template.LeftDelim != "[[" || template.RightDelim != "]]" {
-				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", template.LeftDelim, template.RightDelim, "[[", "]]")
+				t.Errorf("expected default delimiters to be %s (left) and %s (right), got %s (left) and %s (right)", "[[", "]]", template.LeftDelim, template.RightDelim)
 			}
 		} else {
 			t.Error("shouldn't have got here")
