@@ -39,10 +39,10 @@ jobs:
       - run: echo "setting versions"
     outputs:
       # JSON encoded array of k8s versions.
-      K8S_VERSIONS: '["1.30.0", "1.29.4", "1.28.9", "1.27.13", "1.26.15"]'
-      VAULT_N: "1.17.2"
-      VAULT_N_1: "1.16.3"
-      VAULT_N_2: "1.15.6"
+      K8S_VERSIONS: '["1.31.1", "1.30.4", "1.29.8", "1.28.13"]'
+      VAULT_N: "1.18.1"
+      VAULT_N_1: "1.17.6"
+      VAULT_N_2: "1.16.3"
 
   latest-vault:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
