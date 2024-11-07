@@ -1,5 +1,9 @@
 ## Unreleased
 
+Changes:
+* Dependency updates:
+  * Docker image `ubi8/ubi-minimal` 8.10-1086 => 8.10-1130
+
 ## 1.5.0 (November 6, 2024)
 
 Changes:
