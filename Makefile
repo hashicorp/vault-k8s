@@ -15,7 +15,7 @@ PKG = github.com/hashicorp/vault-k8s/version
 LDFLAGS ?= "-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-VAULT_HELM_CHART_VERSION ?= 0.28.1
+VAULT_HELM_CHART_VERSION ?= 0.29.0
 # TODO: add support for testing against enterprise
 
 TEST_WITHOUT_VAULT_TLS ?=
