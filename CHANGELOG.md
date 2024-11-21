@@ -10,7 +10,7 @@ Changes:
 * Building with Go 1.22.8
 * Default Vault version updated to 1.18.1
 * Testing with Vault 1.16 - 1.18
-* Testing with K8s versions 1.28 - 1.31
+* Testing with K8s versions 1.27 - 1.31
 * Dependency updates:
   * Docker image `alpine` 3.20.1 => 3.20.3
   * Docker image `ubi8/ubi-minimal` 8.10-1018 => 8.10-1086
