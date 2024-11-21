@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/vault-k8s/agent-inject/agent"
@@ -24,6 +25,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 )
+
+const warningInitOnlyInjection = "workload uses initContainer only; consider migrating to VSO"
 
 var (
 	admissionScheme = runtime.NewScheme()
@@ -85,6 +88,14 @@ type Handler struct {
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	h.Log.Info("Request received", "Method", r.Method, "URL", r.URL)
 
+	// Measure request processing duration and monitor request queue
+	requestQueue.Inc()
+	requestStart := time.Now()
+	defer func() {
+		requestProcessingTime.Observe(float64(time.Since(requestStart).Milliseconds()))
+		requestQueue.Dec()
+	}()
+
 	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 		msg := fmt.Sprintf("Invalid content-type: %q", ct)
 		http.Error(w, msg, http.StatusBadRequest)
@@ -142,11 +153,20 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Sprintf("error marshalling admission response: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
+		incrementInjectionFailures(admReq.Request.Namespace)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
 		h.Log.Error("error writing response", "Error", err)
+		incrementInjectionFailures(admReq.Request.Namespace)
+		return
+	}
+
+	if admResp.Response.Allowed {
+		incrementInjections(admReq.Request.Namespace, *admResp.Response)
+	} else {
+		incrementInjectionFailures(admReq.Request.Namespace)
 	}
 }
 
@@ -243,6 +263,13 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 	if err != nil {
 		err := fmt.Errorf("error creating patch for agent: %s", err)
 		return admissionError(req.UID, err)
+	}
+
+	// Expose when workloads are injecting initContainers only. This is useful to identify
+	// workloads that are likely good candidates for migration to Vault Secrets Operator for
+	// greater scalability and performance.
+	if agentSidecar.PrePopulateOnly {
+		resp.Warnings = append(resp.Warnings, warningInitOnlyInjection)
 	}
 
 	resp.Patch = patch
