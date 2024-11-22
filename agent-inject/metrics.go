@@ -1,19 +1,17 @@
 package agent_inject
 
 import (
-	"slices"
-
 	"github.com/prometheus/client_golang/prometheus"
-	admissionv1 "k8s.io/api/admission/v1"
 )
 
 const (
-	metricsNamespace         = "vault"
-	metricsSubsystem         = "agent_injector"
-	metricsLabelNamespace    = "namespace"
-	metricsLabelType         = "injection_type"
-	metricsLabelTypeDefault  = "sidecar"
-	metricsLabelTypeInitOnly = "init_only"
+	metricsNamespace            = "vault"
+	metricsSubsystem            = "agent_injector"
+	metricsLabelNamespace       = "namespace"
+	metricsLabelType            = "injection_type"
+	metricsLabelTypeDefault     = "default"
+	metricsLabelTypeInitOnly    = "init_only"
+	metricsLabelTypeSidecarOnly = "sidecar_only"
 )
 
 var (
@@ -47,10 +45,13 @@ var (
 	}, []string{metricsLabelNamespace})
 )
 
-func incrementInjections(namespace string, res admissionv1.AdmissionResponse) {
+func incrementInjections(namespace string, res MutateResponse) {
+	// Injection type can be one of: default (both initContainer and sidecar); init_only; or sidecar_only
 	typeLabel := metricsLabelTypeDefault
-	if slices.Contains(res.Warnings, warningInitOnlyInjection) {
+	if res.InjectedInit && !res.InjectedSidecar {
 		typeLabel = metricsLabelTypeInitOnly
+	} else if res.InjectedSidecar && !res.InjectedInit {
+		typeLabel = metricsLabelTypeSidecarOnly
 	}
 
 	injectionsByNamespace.With(prometheus.Labels{

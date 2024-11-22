@@ -422,7 +422,7 @@ func TestHandlerHandle(t *testing.T) {
 	for _, tt := range cases {
 		t.Run(tt.Name, func(t *testing.T) {
 			req := require.New(t)
-			resp := tt.Handler.Mutate(&tt.Req)
+			resp := (tt.Handler.Mutate(&tt.Req)).Resp
 			if (tt.Err == "") != resp.Allowed {
 				t.Fatalf("allowed: %v, expected err: %v", resp.Allowed, tt.Err)
 			}

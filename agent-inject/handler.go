@@ -26,8 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-const warningInitOnlyInjection = "workload uses initContainer only; consider migrating to VSO"
-
 var (
 	admissionScheme = runtime.NewScheme()
 	deserializer    = func() runtime.Decoder {
@@ -120,7 +118,10 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var admResp admissionv1.AdmissionReview
+	var (
+		mutateResp MutateResponse
+		admResp    admissionv1.AdmissionReview
+	)
 
 	// Both v1 and v1beta1 AdmissionReview types are exactly the same, so the v1beta1 type can
 	// be decoded into the v1 type. However the runtime codec's decoder guesses which type to
@@ -137,7 +138,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		return
 	} else {
-		admResp.Response = h.Mutate(admReq.Request)
+		mutateResp = h.Mutate(admReq.Request)
+		admResp.Response = mutateResp.Resp
 	}
 
 	// Default to a v1 AdmissionReview, otherwise the API server may not recognize the request
@@ -164,24 +166,32 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if admResp.Response.Allowed {
-		incrementInjections(admReq.Request.Namespace, *admResp.Response)
+		incrementInjections(admReq.Request.Namespace, mutateResp)
 	} else {
 		incrementInjectionFailures(admReq.Request.Namespace)
 	}
 }
 
+type MutateResponse struct {
+	Resp            *admissionv1.AdmissionResponse
+	InjectedInit    bool
+	InjectedSidecar bool
+}
+
 // Mutate takes an admission request and performs mutation if necessary,
 // returning the final API response.
-func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) MutateResponse {
 	// Decode the pod from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		h.Log.Error("could not unmarshal request to pod: %s", err)
 		h.Log.Debug("%s", req.Object.Raw)
-		return &admissionv1.AdmissionResponse{
-			UID: req.UID,
-			Result: &metav1.Status{
-				Message: err.Error(),
+		return MutateResponse{
+			Resp: &admissionv1.AdmissionResponse{
+				UID: req.UID,
+				Result: &metav1.Status{
+					Message: err.Error(),
+				},
 			},
 		}
 	}
@@ -198,7 +208,9 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		err := fmt.Errorf("error checking if should inject agent: %s", err)
 		return admissionError(req.UID, err)
 	} else if !inject {
-		return resp
+		return MutateResponse{
+			Resp: resp,
+		}
 	}
 
 	h.Log.Debug("checking namespaces..")
@@ -265,25 +277,24 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) *admissionv1.Admissi
 		return admissionError(req.UID, err)
 	}
 
-	// Expose when workloads are injecting initContainers only. This is useful to identify
-	// workloads that are likely good candidates for migration to Vault Secrets Operator for
-	// greater scalability and performance.
-	if agentSidecar.PrePopulateOnly {
-		resp.Warnings = append(resp.Warnings, warningInitOnlyInjection)
-	}
-
 	resp.Patch = patch
 	patchType := admissionv1.PatchTypeJSONPatch
 	resp.PatchType = &patchType
 
-	return resp
+	return MutateResponse{
+		Resp:            resp,
+		InjectedInit:    agentSidecar.PrePopulate,
+		InjectedSidecar: !agentSidecar.PrePopulateOnly,
+	}
 }
 
-func admissionError(UID types.UID, err error) *admissionv1.AdmissionResponse {
-	return &admissionv1.AdmissionResponse{
-		UID: UID,
-		Result: &metav1.Status{
-			Message: err.Error(),
+func admissionError(UID types.UID, err error) MutateResponse {
+	return MutateResponse{
+		Resp: &admissionv1.AdmissionResponse{
+			UID: UID,
+			Result: &metav1.Status{
+				Message: err.Error(),
+			},
 		},
 	}
 }
