@@ -3,6 +3,11 @@
 Changes:
 * Dependency updates:
   * Docker image `ubi8/ubi-minimal` 8.10-1086 => 8.10-1130
+  * github.com/stretchr/testify v1.9.0 => v1.10.0
+  * k8s.io/api v0.31.2 => v0.31.3
+  * k8s.io/apimachinery v0.31.2 => v0.31.3
+  * k8s.io/client-go v0.31.2 => v0.31.3
+  * sigs.k8s.io/controller-runtime v0.19.1 => v0.19.2
 
 ## 1.5.0 (November 6, 2024)
 
