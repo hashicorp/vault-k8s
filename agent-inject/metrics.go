@@ -12,7 +12,7 @@ const (
 	metricsSubsystem            = "agent_injector"
 	metricsLabelNamespace       = "namespace"
 	metricsLabelType            = "injection_type"
-	metricsLabelTypeDefault     = "default"
+	metricsLabelTypeBoth        = "init_and_sidecar"
 	metricsLabelTypeInitOnly    = "init_only"
 	metricsLabelTypeSidecarOnly = "sidecar_only"
 )
@@ -21,15 +21,14 @@ var (
 	requestQueue = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
-		Name:      "request_queue_total",
-		Help:      "Total count of webhook requests in the queue",
+		Name:      "request_queue_length",
+		Help:      "Count of webhook requests in the injector's queue",
 	})
 
 	requestProcessingTime = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "request_processing_duration_ms",
-		Help:      "Histogram of webhook request processing times in milliseconds",
 		Buckets:   []float64{5, 10, 25, 50, 75, 100, 250, 500, 1000, 2500, 5000, 7500, 10000},
 	})
 
@@ -49,8 +48,8 @@ var (
 )
 
 func incrementInjections(namespace string, res MutateResponse) {
-	// Injection type can be one of: default (both initContainer and sidecar); init_only; or sidecar_only
-	typeLabel := metricsLabelTypeDefault
+	// Injection type can be one of: init_and_sidecar (default); init_only; or sidecar_only
+	typeLabel := metricsLabelTypeBoth
 	if res.InjectedInit && !res.InjectedSidecar {
 		typeLabel = metricsLabelTypeInitOnly
 	} else if res.InjectedSidecar && !res.InjectedInit {
