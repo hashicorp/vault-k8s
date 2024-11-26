@@ -180,7 +180,7 @@ func (c *Command) Run(args []string) int {
 	}
 	if c.flagCertFile != "" {
 		certSource = &cert.DiskSource{
-			CAPath:  c.flagCACertFile,
+			CAPath:   c.flagCACertFile,
 			CertPath: c.flagCertFile,
 			KeyPath:  c.flagKeyFile,
 		}
