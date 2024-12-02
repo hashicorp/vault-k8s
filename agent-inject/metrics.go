@@ -29,6 +29,7 @@ var (
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
 		Name:      "request_processing_duration_ms",
+		Help:      "Webhook request processing times in milliseconds",
 		Buckets:   []float64{5, 10, 25, 50, 75, 100, 250, 500, 1000, 2500, 5000, 7500, 10000},
 	})
 
