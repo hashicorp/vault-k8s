@@ -18,6 +18,20 @@ const (
 )
 
 var (
+	requestsReceived = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: metricsSubsystem,
+		Name:      "requests_received_total",
+		Help:      "Count of webhook requests received by the injector",
+	})
+
+	requestsErrored = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Subsystem: metricsSubsystem,
+		Name:      "requests_errored_total",
+		Help:      "Count of webhook requests that could not be processed by the injector",
+	})
+
 	requestQueue = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
 		Subsystem: metricsSubsystem,
@@ -48,6 +62,13 @@ var (
 	}, []string{metricsLabelNamespace})
 )
 
+func incrementRequests(err error) {
+	requestsReceived.Inc()
+	if err != nil {
+		requestsErrored.Inc()
+	}
+}
+
 func incrementInjections(namespace string, res MutateResponse) {
 	// Injection type can be one of: init_and_sidecar (default); init_only; or sidecar_only
 	typeLabel := metricsLabelTypeBoth
@@ -69,6 +90,8 @@ func incrementInjectionFailures(namespace string) {
 
 func MustRegisterInjectorMetrics(registry prometheus.Registerer) {
 	registry.MustRegister(
+		requestsReceived,
+		requestsErrored,
 		requestQueue,
 		requestProcessingTime,
 		injectionsByNamespace,
