@@ -1,13 +1,28 @@
 ## Unreleased
 
+## 1.6.0 (December 3, 2024)
+
 Changes:
+* Building with Go 1.22.9
+* Default Vault version updated to 1.18.2
 * Dependency updates:
   * Docker image `ubi8/ubi-minimal` 8.10-1086 => 8.10-1130
   * github.com/stretchr/testify v1.9.0 => v1.10.0
+  * golang.org/x/crypto v0.28.0 => v0.29.0
+  * golang.org/x/net v0.30.0 => v0.31.0
+  * golang.org/x/sys v0.26.0 => v0.27.0
+  * golang.org/x/term v0.25.0 => v0.26.0
+  * golang.org/x/text v0.19.0 => v0.20.0
   * k8s.io/api v0.31.2 => v0.31.3
   * k8s.io/apimachinery v0.31.2 => v0.31.3
   * k8s.io/client-go v0.31.2 => v0.31.3
   * sigs.k8s.io/controller-runtime v0.19.1 => v0.19.2
+
+Features:
+* Agent injection telemetry [GH-703](https://github.com/hashicorp/vault-k8s/pull/703) [GH-709](https://github.com/hashicorp/vault-k8s/pull/709)
+
+Improvements:
+* Support `AGENT_INJECT_TLS_CA_CERT_FILE` env option when using manual TLS [GH-679](https://github.com/hashicorp/vault-k8s/pull/679)
 
 ## 1.5.0 (November 6, 2024)
 
