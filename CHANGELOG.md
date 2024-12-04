@@ -3,7 +3,7 @@
 ## 1.6.0 (December 3, 2024)
 
 Changes:
-* Building with Go 1.22.9
+* Building with Go 1.22.10
 * Default Vault version updated to 1.18.2
 * Dependency updates:
   * Docker image `ubi8/ubi-minimal` 8.10-1086 => 8.10-1130
