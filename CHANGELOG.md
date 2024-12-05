@@ -8,11 +8,11 @@ Changes:
 * Dependency updates:
   * Docker image `ubi8/ubi-minimal` 8.10-1086 => 8.10-1130
   * github.com/stretchr/testify v1.9.0 => v1.10.0
-  * golang.org/x/crypto v0.28.0 => v0.29.0
-  * golang.org/x/net v0.30.0 => v0.31.0
-  * golang.org/x/sys v0.26.0 => v0.27.0
-  * golang.org/x/term v0.25.0 => v0.26.0
-  * golang.org/x/text v0.19.0 => v0.20.0
+  * golang.org/x/crypto v0.28.0 => v0.30.0
+  * golang.org/x/net v0.30.0 => v0.32.0
+  * golang.org/x/sys v0.26.0 => v0.28.0
+  * golang.org/x/term v0.25.0 => v0.27.0
+  * golang.org/x/text v0.19.0 => v0.21.0
   * k8s.io/api v0.31.2 => v0.31.3
   * k8s.io/apimachinery v0.31.2 => v0.31.3
   * k8s.io/client-go v0.31.2 => v0.31.3
