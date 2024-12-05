@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.6.0 (December 3, 2024)
+## 1.6.0 (December 5, 2024)
 
 Changes:
 * Building with Go 1.22.10
