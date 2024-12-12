@@ -18,6 +18,7 @@ func Test_incrementInjections(t *testing.T) {
 		namespace      string
 		mutateResponse MutateResponse
 		expectedLabels map[string]string
+		noIncrement    bool
 	}{
 		"init_only": {
 			namespace: "init",
@@ -52,16 +53,33 @@ func Test_incrementInjections(t *testing.T) {
 				metricsLabelType:      metricsLabelTypeBoth,
 			},
 		},
+		"no_injection": {
+			namespace: "none",
+			mutateResponse: MutateResponse{
+				InjectedInit:    false,
+				InjectedSidecar: false,
+			},
+			expectedLabels: nil,
+			noIncrement:    true,
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			t.Cleanup(func() {
 				injectionsByNamespace.Reset()
 			})
+
+			expInc := 1
+			if test.noIncrement {
+				expInc = 0
+			}
+
 			incrementInjections(test.namespace, test.mutateResponse)
-			assert.Equal(t, 1, testutil.CollectAndCount(injectionsByNamespace))
-			check := injectionsByNamespace.With(prometheus.Labels(test.expectedLabels))
-			assert.Equal(t, float64(1), testutil.ToFloat64(check))
+			assert.Equal(t, expInc, testutil.CollectAndCount(injectionsByNamespace))
+			if !test.noIncrement {
+				check := injectionsByNamespace.With(prometheus.Labels(test.expectedLabels))
+				assert.Equal(t, float64(1), testutil.ToFloat64(check))
+			}
 		})
 	}
 }
