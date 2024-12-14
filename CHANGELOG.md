@@ -1,5 +1,9 @@
 ## Unreleased
 
+Changes:
+* Dependency updates:
+  * Docker image `alpine` 3.20.3 => 3.21.0
+
 ## 1.6.0 (December 5, 2024)
 
 Changes:
