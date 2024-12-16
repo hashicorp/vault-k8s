@@ -1,9 +1,14 @@
 ## Unreleased
 
+## 1.6.1 (December 16, 2024)
+
 Changes:
 * Dependency updates:
   * Docker image `alpine` 3.20.3 => 3.21.0
   * golang.org/x/crypto v0.30.0 => v0.31.0
+
+Bugs:
+* Fix metrics sidecar injection false positives [GH-716](https://github.com/hashicorp/vault-k8s/pull/716)
 
 ## 1.6.0 (December 5, 2024)
 
