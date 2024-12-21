@@ -642,6 +642,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0.9,
 			},
 		},
 		{
@@ -652,6 +653,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure:    false,
 				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0.9,
 			},
 		},
 		{
@@ -663,6 +665,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 				ExitOnRetryFailure:         true,
 				StaticSecretRenderInterval: "10s",
 				MaxConnectionsPerHost:      0,
+				LeaseRenewalThreshold:      0.9,
 			},
 		},
 		{
@@ -673,6 +676,17 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 100,
+				LeaseRenewalThreshold: 0.9,
+			},
+		},
+		{
+			"lease_renewal_threshold 0.5",
+			map[string]string{
+				AnnotationTemplateConfigLeaseRenewalThreshold: "0.5",
+			},
+			&TemplateConfig{
+				ExitOnRetryFailure:    true,
+				LeaseRenewalThreshold: 0.5,
 			},
 		},
 		{
@@ -681,6 +695,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0.9,
 			},
 		},
 	}

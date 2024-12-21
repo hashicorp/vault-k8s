@@ -45,44 +45,45 @@ import (
 type Command struct {
 	UI cli.Ui
 
-	flagListen                     string // Address of Vault Server
-	flagLogLevel                   string // Log verbosity
-	flagLogFormat                  string // Log format
-	flagCACertFile                 string // TLS CA Certificate to serve
-	flagCertFile                   string // TLS Certificate to serve
-	flagKeyFile                    string // TLS private key to serve
-	flagExitOnRetryFailure         bool   // Set template_config.exit_on_retry_failure on agent
-	flagStaticSecretRenderInterval string // Set template_config.static_secret_render_interval on agent
-	flagMaxConnectionsPerHost      int64  // Set template_config.max_connections_per_host on agent
-	flagAutoName                   string // MutatingWebhookConfiguration for updating
-	flagAutoHosts                  string // SANs for the auto-generated TLS cert.
-	flagVaultService               string // Name of the Vault service
-	flagVaultCACertBytes           string // CA Cert to trust for TLS with Vault.
-	flagProxyAddress               string // HTTP proxy address used to talk to the Vault service
-	flagVaultImage                 string // Name of the Vault Image to use
-	flagVaultAuthType              string // Type of Vault Auth Method to use
-	flagVaultAuthPath              string // Mount path of the Vault Auth Method
-	flagVaultNamespace             string // Vault enterprise namespace
-	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
-	flagRunAsUser                  string // User (uid) to run Vault agent as
-	flagRunAsGroup                 string // Group (gid) to run Vault agent as
-	flagRunAsSameUser              bool   // Run Vault agent as the User (uid) of the first application container
-	flagSetSecurityContext         bool   // Set SecurityContext in injected containers
-	flagTelemetryPath              string // Path under which to expose metrics
-	flagUseLeaderElector           bool   // Use leader elector code
-	flagDefaultTemplate            string // Toggles which default template to use
-	flagResourceRequestCPU         string // Set CPU request in the injected containers
-	flagResourceRequestMem         string // Set Memory request in the injected containers
-	flagResourceRequestEphemeral   string // Set Ephemeral Storage request in the injected containers
-	flagResourceLimitCPU           string // Set CPU limit in the injected containers
-	flagResourceLimitMem           string // Set Memory limit in the injected containers
-	flagResourceLimitEphemeral     string // Set Ephemeral storage limit in the injected containers
-	flagTLSMinVersion              string // Minimum TLS version supported by the webhook server
-	flagTLSCipherSuites            string // Comma-separated list of supported cipher suites
-	flagAuthMinBackoff             string // Auth min backoff on failure
-	flagAuthMaxBackoff             string // Auth min backoff on failure
-	flagDisableIdleConnections     string // Idle connections control
-	flagDisableKeepAlives          string // Keep-alives control
+	flagListen                     string  // Address of Vault Server
+	flagLogLevel                   string  // Log verbosity
+	flagLogFormat                  string  // Log format
+	flagCACertFile                 string  // TLS CA Certificate to serve
+	flagCertFile                   string  // TLS Certificate to serve
+	flagKeyFile                    string  // TLS private key to serve
+	flagExitOnRetryFailure         bool    // Set template_config.exit_on_retry_failure on agent
+	flagStaticSecretRenderInterval string  // Set template_config.static_secret_render_interval on agent
+	flagMaxConnectionsPerHost      int64   // Set template_config.max_connections_per_host on agent
+	flagLeaseRenewalThreshold      float64 // Set template_config.lease_renewal_threshold on agent
+	flagAutoName                   string  // MutatingWebhookConfiguration for updating
+	flagAutoHosts                  string  // SANs for the auto-generated TLS cert.
+	flagVaultService               string  // Name of the Vault service
+	flagVaultCACertBytes           string  // CA Cert to trust for TLS with Vault.
+	flagProxyAddress               string  // HTTP proxy address used to talk to the Vault service
+	flagVaultImage                 string  // Name of the Vault Image to use
+	flagVaultAuthType              string  // Type of Vault Auth Method to use
+	flagVaultAuthPath              string  // Mount path of the Vault Auth Method
+	flagVaultNamespace             string  // Vault enterprise namespace
+	flagRevokeOnShutdown           bool    // Revoke Vault Token on pod shutdown
+	flagRunAsUser                  string  // User (uid) to run Vault agent as
+	flagRunAsGroup                 string  // Group (gid) to run Vault agent as
+	flagRunAsSameUser              bool    // Run Vault agent as the User (uid) of the first application container
+	flagSetSecurityContext         bool    // Set SecurityContext in injected containers
+	flagTelemetryPath              string  // Path under which to expose metrics
+	flagUseLeaderElector           bool    // Use leader elector code
+	flagDefaultTemplate            string  // Toggles which default template to use
+	flagResourceRequestCPU         string  // Set CPU request in the injected containers
+	flagResourceRequestMem         string  // Set Memory request in the injected containers
+	flagResourceRequestEphemeral   string  // Set Ephemeral Storage request in the injected containers
+	flagResourceLimitCPU           string  // Set CPU limit in the injected containers
+	flagResourceLimitMem           string  // Set Memory limit in the injected containers
+	flagResourceLimitEphemeral     string  // Set Ephemeral storage limit in the injected containers
+	flagTLSMinVersion              string  // Minimum TLS version supported by the webhook server
+	flagTLSCipherSuites            string  // Comma-separated list of supported cipher suites
+	flagAuthMinBackoff             string  // Auth min backoff on failure
+	flagAuthMaxBackoff             string  // Auth min backoff on failure
+	flagDisableIdleConnections     string  // Idle connections control
+	flagDisableKeepAlives          string  // Keep-alives control
 
 	flagSet *flag.FlagSet
 
@@ -222,6 +223,7 @@ func (c *Command) Run(args []string) int {
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 		MaxConnectionsPerHost:      c.flagMaxConnectionsPerHost,
+		LeaseRenewalThreshold:      c.flagLeaseRenewalThreshold,
 		AuthMinBackoff:             c.flagAuthMinBackoff,
 		AuthMaxBackoff:             c.flagAuthMaxBackoff,
 		DisableIdleConnections:     c.flagDisableIdleConnections,

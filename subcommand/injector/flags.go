@@ -50,6 +50,10 @@ type Specification struct {
 	// AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST environment variable.
 	TemplateConfigMaxConnectionsPerHost string `envconfig:"AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST"`
 
+	// TemplateConfigLeaseRenewalThreshold is the
+	// AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD environment variable.
+	TemplateConfigLeaseRenewalThreshold string `envconfig:"AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD"`
+
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
 
@@ -161,6 +165,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
 	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", "",
 		"Value for Agent's template_config.exit_on_retry_failure.")
+	c.flagSet.Float64Var(&c.flagLeaseRenewalThreshold, "template-config-lease-renewal-threshold", agent.DefaultTemplateConfigLeaseRenewalThreshold,
+		"Value for Agent's template_config.lease_renewal_threshold.")
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
@@ -293,6 +299,15 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TemplateConfigMaxConnectionsPerHost != "" {
 		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.TemplateConfigLeaseRenewalThreshold != "" {
+		// TODO: use parseutil
+		// Dependency: https://github.com/hashicorp/go-secure-stdlib/issues/152
+		c.flagLeaseRenewalThreshold, err = strconv.ParseFloat(envs.TemplateConfigLeaseRenewalThreshold, 64)
 		if err != nil {
 			return err
 		}
