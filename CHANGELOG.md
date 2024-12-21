@@ -1,14 +1,20 @@
 ## Unreleased
 
+## 1.6.1 (December 16, 2024)
+
 Changes:
 * Building with Go 1.23.4
 * Dependency updates:
   * Docker image `alpine` 3.20.3 => 3.21.0
+  * Docker image `ubi8/ubi-minimal` 8.10-1130 => 8.10-1154
   * golang.org/x/crypto v0.30.0 => v0.31.0
   * k8s.io/apimachinery v0.31.3 => v0.32.0
   * k8s.io/client-go v0.31.3 => v0.32.0
   * k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 => v0.0.0-20241104100929-3ea5e8cea738
   * sigs.k8s.io/controller-runtime v0.19.2 => v0.19.3
+
+Bugs:
+* Fix metrics sidecar injection false positives [GH-716](https://github.com/hashicorp/vault-k8s/pull/716)
 
 ## 1.6.0 (December 5, 2024)
 
