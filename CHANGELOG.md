@@ -5,6 +5,7 @@
 Changes:
 * Dependency updates:
   * Docker image `alpine` 3.20.3 => 3.21.0
+  * Docker image `ubi8/ubi-minimal` 8.10-1130 => 8.10-1154
   * golang.org/x/crypto v0.30.0 => v0.31.0
 
 Bugs:
