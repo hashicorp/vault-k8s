@@ -165,6 +165,8 @@ func (c *Command) init() {
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
 	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", "",
 		"Value for Agent's template_config.exit_on_retry_failure.")
+	c.flagSet.Float64Var(&c.flagLeaseRenewalThreshold, "template-config-lease-renewal-threshold", agent.DefaultTemplateConfigLeaseRenewalThreshold,
+		"Value for Agent's template_config.lease_renewal_threshold.")
 	c.flagSet.StringVar(&c.flagAutoName, "tls-auto", "",
 		"MutatingWebhookConfiguration name. If specified, will auto generate cert bundle.")
 	c.flagSet.StringVar(&c.flagAutoHosts, "tls-auto-hosts", "",
