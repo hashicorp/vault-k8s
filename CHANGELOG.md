@@ -1,5 +1,13 @@
 ## Unreleased
 
+Changes:
+* Building with Go 1.23.4
+* Dependency updates:
+  * k8s.io/apimachinery v0.31.3 => v0.32.0
+  * k8s.io/client-go v0.31.3 => v0.32.0
+  * k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 => v0.0.0-20241104100929-3ea5e8cea738
+  * sigs.k8s.io/controller-runtime v0.19.2 => v0.19.3
+
 ## 1.6.1 (December 16, 2024)
 
 Changes:
