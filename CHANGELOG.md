@@ -1,4 +1,6 @@
 ## Unreleased
+Features:
+* Add support for `lease_renewal_threshold ` within Agent injector [GH-721](https://github.com/hashicorp/vault-k8s/pull/721)
 
 ## 1.6.1 (December 16, 2024)
 
