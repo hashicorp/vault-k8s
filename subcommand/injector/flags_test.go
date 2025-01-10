@@ -172,6 +172,8 @@ func TestCommandEnvBools(t *testing.T) {
 	}{
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: true, cmdPtr: &cmd.flagRevokeOnShutdown},
 		{env: "AGENT_INJECT_REVOKE_ON_SHUTDOWN", value: false, cmdPtr: &cmd.flagRevokeOnShutdown},
+		{env: "AGENT_INJECT_EXIT_AFTER_AUTH", value: true, cmdPtr: &cmd.flagExitAfterAuth},
+		{env: "AGENT_INJECT_EXIT_AFTER_AUTH", value: false, cmdPtr: &cmd.flagExitAfterAuth},
 		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: true, cmdPtr: &cmd.flagRunAsSameUser},
 		{env: "AGENT_INJECT_RUN_AS_SAME_USER", value: false, cmdPtr: &cmd.flagRunAsSameUser},
 		{env: "AGENT_INJECT_SET_SECURITY_CONTEXT", value: true, cmdPtr: &cmd.flagSetSecurityContext},

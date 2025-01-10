@@ -64,6 +64,7 @@ type Command struct {
 	flagVaultAuthPath              string // Mount path of the Vault Auth Method
 	flagVaultNamespace             string // Vault enterprise namespace
 	flagRevokeOnShutdown           bool   // Revoke Vault Token on pod shutdown
+	flagExitAfterAuth              bool   // Exit after successful auth
 	flagRunAsUser                  string // User (uid) to run Vault agent as
 	flagRunAsGroup                 string // Group (gid) to run Vault agent as
 	flagRunAsSameUser              bool   // Run Vault agent as the User (uid) of the first application container
@@ -208,6 +209,7 @@ func (c *Command) Run(args []string) int {
 		RequireAnnotation:          true,
 		Log:                        logger,
 		RevokeOnShutdown:           c.flagRevokeOnShutdown,
+		ExitAfterAuth:              c.flagExitAfterAuth,
 		UserID:                     c.flagRunAsUser,
 		GroupID:                    c.flagRunAsGroup,
 		SameID:                     c.flagRunAsSameUser,

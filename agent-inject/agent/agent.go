@@ -90,6 +90,9 @@ type Agent struct {
 	// token on shutting down.
 	RevokeOnShutdown bool
 
+	// ExitAfterAuth is used to control if the agent should exit after a successful auth.
+	ExitAfterAuth bool
+
 	// RevokeGrace controls after receiving the signal for pod
 	// termination that the container will attempt to revoke its own Vault token.
 	RevokeGrace uint64
@@ -443,6 +446,11 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	agent.RevokeOnShutdown, err = agent.revokeOnShutdown()
 	if err != nil {
 		return agent, err
+	}
+
+	agent.ExitAfterAuth, err = agent.getExitAfterAuth()
+	if err != nil {
+		return nil, err
 	}
 
 	agent.Containers = strings.Split(pod.Annotations[AnnotationAgentInjectContainers], ",")

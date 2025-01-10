@@ -59,6 +59,7 @@ type Handler struct {
 	Clientset                  *kubernetes.Clientset
 	Log                        hclog.Logger
 	RevokeOnShutdown           bool
+	ExitAfterAuth              bool
 	UserID                     string
 	GroupID                    string
 	SameID                     bool
@@ -229,6 +230,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) MutateResponse {
 		ProxyAddress:               h.ProxyAddress,
 		Namespace:                  req.Namespace,
 		RevokeOnShutdown:           h.RevokeOnShutdown,
+		ExitAfterAuth:              h.ExitAfterAuth,
 		UserID:                     h.UserID,
 		GroupID:                    h.GroupID,
 		SameID:                     h.SameID,

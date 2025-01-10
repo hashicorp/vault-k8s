@@ -92,6 +92,9 @@ type Specification struct {
 	// RevokeOnShutdown is AGENT_INJECT_REVOKE_ON_SHUTDOWN environment variable.
 	RevokeOnShutdown string `split_words:"true"`
 
+	// ExitAfterAuth is the AGENT_INJECT_EXIT_AFTER_AUTH environment variable.
+	ExitAfterAuth string `split_words:"true"`
+
 	// RunAsUser is the AGENT_INJECT_RUN_AS_USER environment variable. (uid)
 	RunAsUser string `envconfig:"AGENT_INJECT_RUN_AS_USER"`
 
@@ -187,6 +190,8 @@ func (c *Command) init() {
 	c.flagSet.StringVar(&c.flagVaultNamespace, "vault-namespace", "", "Vault enterprise namespace.")
 	c.flagSet.BoolVar(&c.flagRevokeOnShutdown, "revoke-on-shutdown", false,
 		"Automatically revoke Vault Token on Pod termination.")
+	c.flagSet.BoolVar(&c.flagExitAfterAuth, "exit-after-auth", false,
+		"Exit after successful authentication to Vault.")
 	c.flagSet.StringVar(&c.flagRunAsUser, "run-as-user", strconv.Itoa(agent.DefaultAgentRunAsUser),
 		fmt.Sprintf("User (uid) to run Vault agent as. Defaults to %d.", agent.DefaultAgentRunAsUser))
 	c.flagSet.StringVar(&c.flagRunAsGroup, "run-as-group", strconv.Itoa(agent.DefaultAgentRunAsGroup),
@@ -347,6 +352,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.RevokeOnShutdown != "" {
 		c.flagRevokeOnShutdown, err = parseutil.ParseBool(envs.RevokeOnShutdown)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.ExitAfterAuth != "" {
+		c.flagExitAfterAuth, err = parseutil.ParseBool(envs.ExitAfterAuth)
 		if err != nil {
 			return err
 		}

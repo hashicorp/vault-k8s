@@ -40,6 +40,7 @@ func basicAgentConfig() AgentConfig {
 		ResourceLimitCPU:   DefaultResourceLimitCPU,
 		ResourceLimitMem:   DefaultResourceLimitMem,
 		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+		ExitAfterAuth:      true,
 	}
 }
 
@@ -71,7 +72,7 @@ func TestInitCanSet(t *testing.T) {
 		}
 
 		if raw != tt.annotationValue {
-			t.Errorf("Default annotation confiured value incorrect, wanted %s, got %s", tt.annotationValue, raw)
+			t.Errorf("Default annotation configured value incorrect, wanted %s, got %s", tt.annotationValue, raw)
 		}
 	}
 }
@@ -927,6 +928,18 @@ func TestCouldErrorAnnotations(t *testing.T) {
 		{AnnotationAgentAuthMaxBackoff, "1s", true},
 		{AnnotationAgentAuthMaxBackoff, "1m", true},
 		{AnnotationAgentAuthMaxBackoff, "x", false},
+
+		{AnnotationAgentExitAfterAuth, "true", true},
+		{AnnotationAgentExitAfterAuth, "false", true},
+		{AnnotationAgentExitAfterAuth, "TRUE", true},
+		{AnnotationAgentExitAfterAuth, "FALSE", true},
+		{AnnotationAgentExitAfterAuth, "0", true},
+		{AnnotationAgentExitAfterAuth, "1", true},
+		{AnnotationAgentExitAfterAuth, "t", true},
+		{AnnotationAgentExitAfterAuth, "f", true},
+		{AnnotationAgentExitAfterAuth, "tRuE", false},
+		{AnnotationAgentExitAfterAuth, "fAlSe", false},
+		{AnnotationAgentExitAfterAuth, "", true},
 	}
 
 	for i, tt := range tests {
@@ -1363,6 +1376,24 @@ func TestAutoAuthExitOnError(t *testing.T) {
 	}
 
 	require.Equal(t, true, agent.AutoAuthExitOnError)
+}
+
+func TestExitAfterAuth(t *testing.T) {
+	pod := testPod(map[string]string{
+		"vault.hashicorp.com/agent-exit-after-auth": "true",
+	})
+	agentConfig := basicAgentConfig()
+	err := Init(pod, agentConfig)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	agent, err := New(pod)
+	if err != nil {
+		t.Errorf("got error, shouldn't have: %s", err)
+	}
+
+	require.Equal(t, true, agent.ExitAfterAuth)
 }
 
 func TestDisableIdleConnections(t *testing.T) {
