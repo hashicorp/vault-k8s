@@ -1,4 +1,6 @@
 ## Unreleased
+Features:
+* Add support for `lease_renewal_threshold ` within Agent injector [GH-721](https://github.com/hashicorp/vault-k8s/pull/721)
 
 Changes:
 * Building with Go 1.23.4
