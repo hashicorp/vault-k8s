@@ -378,7 +378,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		case <-webhooksWatcher:
 			// Webhooks changed, make sure the CA bundle is up-to-date.
-			log.Info("Webhooks changed. Updating certs...")
+			log.Trace("Checking to ensure CA bundle is up-to-date...")
 
 		case <-ctx.Done():
 			// Quit
