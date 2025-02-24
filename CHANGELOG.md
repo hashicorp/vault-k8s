@@ -1,12 +1,14 @@
 ## Unreleased
 
 Changes:
-* Building with Go 1.23.4
+* Building with Go 1.23.6
 * Dependency updates:
-  * golang.org/x/crypto v0.31.0 => v0.32.0
-  * golang.org/x/net v0.32.0 => v0.34.0
-  * golang.org/x/sys v0.28.0 => v0.29.0
-  * golang.org/x/term v0.27.0 => v0.28.0
+  * golang.org/x/crypto v0.31.0 => v0.35.0
+  * golang.org/x/oauth2 v0.24.0 => v0.27.0
+  * golang.org/x/net v0.32.0 => v0.35.0
+  * golang.org/x/sys v0.28.0 => v0.30.0
+  * golang.org/x/term v0.27.0 => v0.29.0
+  * golang.org/x/text v0.21.0 => v0.22.0
   * k8s.io/apimachinery v0.31.3 => v0.32.0
   * k8s.io/client-go v0.31.3 => v0.32.0
   * k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 => v0.0.0-20241104100929-3ea5e8cea738
