@@ -158,6 +158,9 @@ const (
 	// make sure it's written to `/home/vault/.vault-token`. Only supported for sidecar containers.
 	AnnotationAgentRevokeOnShutdown = "vault.hashicorp.com/agent-revoke-on-shutdown"
 
+	// AnnotationAgentExitAfterAuth is the key of the annotation that configures whether the vault-agent sidecar will exit after successful authentication.
+	AnnotationAgentExitAfterAuth = "vault.hashicorp.com/agent-exit-after-auth"
+
 	// AnnotationAgentRevokeGrace sets the number of seconds after receiving the signal for pod
 	// termination that the container will attempt to revoke its own Vault token. Defaults to 5s.
 	AnnotationAgentRevokeGrace = "vault.hashicorp.com/agent-revoke-grace"
@@ -349,6 +352,7 @@ type AgentConfig struct {
 	VaultNamespace             string
 	Namespace                  string
 	RevokeOnShutdown           bool
+	ExitAfterAuth              bool
 	UserID                     string
 	GroupID                    string
 	SameID                     bool
@@ -464,6 +468,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationAgentRevokeOnShutdown] = strconv.FormatBool(cfg.RevokeOnShutdown)
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentExitAfterAuth]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentExitAfterAuth] = strconv.FormatBool(cfg.ExitAfterAuth)
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRevokeGrace]; !ok {
@@ -738,6 +746,15 @@ func (a *Agent) prePopulateOnly() (bool, error) {
 
 func (a *Agent) revokeOnShutdown() (bool, error) {
 	raw, ok := a.Annotations[AnnotationAgentRevokeOnShutdown]
+	if !ok {
+		return false, nil
+	}
+
+	return parseutil.ParseBool(raw)
+}
+
+func (a *Agent) getExitAfterAuth() (bool, error) {
+	raw, ok := a.Annotations[AnnotationAgentExitAfterAuth]
 	if !ok {
 		return false, nil
 	}
