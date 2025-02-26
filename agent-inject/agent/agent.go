@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultVaultImage                       = "hashicorp/vault:1.18.2"
+	DefaultVaultImage                       = "hashicorp/vault:1.18.5"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
