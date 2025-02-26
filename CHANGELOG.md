@@ -1,25 +1,38 @@
 ## Unreleased
 
+## 1.6.2 (February 26, 2025)
+
 Changes:
 * Building with Go 1.23.6
+* Default Vault version updated to 1.18.5
+* Testing with K8s versions 1.28 - 1.32
 * Dependency updates:
+  * Docker image `alpine` 3.21.0 => 3.21.3
+  * Docker image `ubi8/ubi-minimal` 8.10-1130 => 8.10-1179.1739286367
+  * github.com/evanphx/json-patch v5.9.0+incompatible => v5.9.11+incompatible
+  * github.com/hashicorp/go-secure-stdlib/parseutil v0.1.8 => v0.1.9
+  * github.com/hashicorp/vault/sdk v0.14.0 => v0.15.0
+  * github.com/operator-framework/operator-lib v0.15.0 => v0.17.0
   * golang.org/x/crypto v0.31.0 => v0.35.0
-  * golang.org/x/oauth2 v0.24.0 => v0.27.0
   * golang.org/x/net v0.32.0 => v0.35.0
+  * golang.org/x/oauth2 v0.21.0 => v0.27.0
   * golang.org/x/sys v0.28.0 => v0.30.0
   * golang.org/x/term v0.27.0 => v0.29.0
   * golang.org/x/text v0.21.0 => v0.22.0
-  * k8s.io/apimachinery v0.31.3 => v0.32.0
-  * k8s.io/client-go v0.31.3 => v0.32.0
+  * k8s.io/api v0.31.3 => v0.32.2
+  * k8s.io/apimachinery v0.31.3 => v0.32.2
+  * k8s.io/client-go v0.31.3 => v0.32.2
   * k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 => v0.0.0-20241104100929-3ea5e8cea738
-  * sigs.k8s.io/controller-runtime v0.19.2 => v0.19.3
+  * sigs.k8s.io/controller-runtime v0.19.2 => v0.20.2
+
+Bugs:
+* Update webhook CA bundle verification log message [GH-739](https://github.com/hashicorp/vault-k8s/pull/739)
 
 ## 1.6.1 (December 16, 2024)
 
 Changes:
 * Dependency updates:
   * Docker image `alpine` 3.20.3 => 3.21.0
-  * Docker image `ubi8/ubi-minimal` 8.10-1130 => 8.10-1154
   * golang.org/x/crypto v0.30.0 => v0.31.0
 
 Bugs:
