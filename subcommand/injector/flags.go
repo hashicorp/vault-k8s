@@ -50,6 +50,10 @@ type Specification struct {
 	// AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST environment variable.
 	TemplateConfigMaxConnectionsPerHost string `envconfig:"AGENT_INJECT_TEMPLATE_MAX_CONNECTIONS_PER_HOST"`
 
+	// TemplateConfigLeaseRenewalThreshold is the
+	// AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD environment variable.
+	TemplateConfigLeaseRenewalThreshold string `envconfig:"AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD"'
+
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
 
@@ -293,6 +297,13 @@ func (c *Command) parseEnvs() error {
 
 	if envs.TemplateConfigMaxConnectionsPerHost != "" {
 		c.flagMaxConnectionsPerHost, err = parseutil.ParseInt(envs.TemplateConfigMaxConnectionsPerHost)
+		if err != nil {
+			return err
+		}
+	}
+
+	if envs.TemplateConfigLeaseRenewalThreshold != "" {
+		c.flagLeaseRenewalThreshold, err = strconv.ParseFloat(envs.TemplateConfigLeaseRenewalThreshold, 64)
 		if err != nil {
 			return err
 		}
