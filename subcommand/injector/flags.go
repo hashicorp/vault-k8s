@@ -52,7 +52,7 @@ type Specification struct {
 
 	// TemplateConfigLeaseRenewalThreshold is the
 	// AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD environment variable.
-	TemplateConfigLeaseRenewalThreshold string `envconfig:"AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD"'
+	TemplateConfigLeaseRenewalThreshold string `envconfig:"AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD"`
 
 	// TLSAuto is the AGENT_INJECT_TLS_AUTO environment variable.
 	TLSAuto string `envconfig:"tls_auto"`
