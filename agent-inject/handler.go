@@ -74,6 +74,7 @@ type Handler struct {
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	MaxConnectionsPerHost      int64
+	LeaseRenewalThreshold      float64
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
@@ -244,6 +245,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) MutateResponse {
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 		MaxConnectionsPerHost:      h.MaxConnectionsPerHost,
+		LeaseRenewalThreshold:      h.LeaseRenewalThreshold,
 		AuthMinBackoff:             h.AuthMinBackoff,
 		AuthMaxBackoff:             h.AuthMaxBackoff,
 		DisableIdleConnections:     h.DisableIdleConnections,
