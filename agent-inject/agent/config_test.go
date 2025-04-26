@@ -692,6 +692,7 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			&TemplateConfig{
 				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0,
 			},
 		},
 	}

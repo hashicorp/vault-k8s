@@ -235,7 +235,9 @@ func TestCommandEnvFloats(t *testing.T) {
 		value  float64
 		cmdPtr *float64
 	}{
-		{env: "AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD", value: 0.75, cmdPtr: &cmd.flagLeaseRenewalThreshold},
+		{env: "AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD",
+			value:  0.75,
+			cmdPtr: &cmd.flagLeaseRenewalThreshold},
 	}
 
 	for _, tt := range tests {

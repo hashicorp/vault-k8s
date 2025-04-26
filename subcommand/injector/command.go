@@ -54,7 +54,7 @@ type Command struct {
 	flagExitOnRetryFailure         bool     // Set template_config.exit_on_retry_failure on agent
 	flagStaticSecretRenderInterval string   // Set template_config.static_secret_render_interval on agent
 	flagMaxConnectionsPerHost      int64    // Set template_config.max_connections_per_host on agent
-	flagLeaseRenewalThreshold      float64  // Set template_config.max_connections_per_host on agent
+	flagLeaseRenewalThreshold      float64  // Set template_config.lease_renewal_threshold on agent
 	flagAutoName                   string   // MutatingWebhookConfiguration for updating
 	flagAutoHosts                  string   // SANs for the auto-generated TLS cert.
 	flagVaultService               string   // Name of the Vault service
