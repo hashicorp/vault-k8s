@@ -355,6 +355,11 @@ type VaultAgentTemplateConfig struct {
 	//  that the Vault Agent templating engine can use for a particular Vault host. This limit
 	//  includes connections in the dialing, active, and idle states.
 	MaxConnectionsPerHost int64
+
+	// LeaseRenewalThreshold How long Vault Agent's template engine should wait
+	// for to refresh dynamic, non-renewable leases, measured as a fraction of
+	// the lease duration.
+	LeaseRenewalThreshold float64
 }
 
 // New creates a new instance of Agent by parsing all the Kubernetes annotations.
@@ -526,10 +531,16 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		return nil, err
 	}
 
+	leaseRenewalThreshold, err := agent.templateConfigLeaseRenewalThreshold()
+	if err != nil {
+		return nil, err
+	}
+
 	agent.VaultAgentTemplateConfig = VaultAgentTemplateConfig{
 		ExitOnRetryFailure:         exitOnRetryFailure,
 		StaticSecretRenderInterval: pod.Annotations[AnnotationTemplateConfigStaticSecretRenderInterval],
 		MaxConnectionsPerHost:      maxConnectionsPerHost,
+		LeaseRenewalThreshold:      leaseRenewalThreshold,
 	}
 
 	agent.EnableQuit, err = agent.getEnableQuit()
