@@ -1484,6 +1484,7 @@ func TestParseTemplateConfigAnnotations(t *testing.T) {
 	tests := map[string]struct {
 		annotations   map[string]string
 		expectedValue float64
+		expectedErr   bool
 	}{
 		"lease renewal threshold set": {
 			annotations: map[string]string{
@@ -1495,6 +1496,13 @@ func TestParseTemplateConfigAnnotations(t *testing.T) {
 			annotations:   map[string]string{},
 			expectedValue: 0,
 		},
+		"invalid lease renewal threshold": {
+			annotations: map[string]string{
+				"vault.hashicorp.com/template-lease-renewal-threshold": "one-third",
+			},
+			expectedValue: 0,
+			expectedErr:   true,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1503,8 +1511,12 @@ func TestParseTemplateConfigAnnotations(t *testing.T) {
 			err := Init(pod, agentConfig)
 			require.NoError(t, err)
 			agent, err := New(pod)
-			require.NoError(t, err)
-			require.Equal(t, tc.expectedValue, agent.VaultAgentTemplateConfig.LeaseRenewalThreshold)
+			if tc.expectedErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tc.expectedValue, agent.VaultAgentTemplateConfig.LeaseRenewalThreshold)
+			}
 		})
 	}
 }
