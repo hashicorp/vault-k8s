@@ -227,3 +227,34 @@ func TestCommandEnvInts(t *testing.T) {
 		})
 	}
 }
+
+func TestCommandEnvFloats(t *testing.T) {
+	var cmd Command
+	tests := []struct {
+		env    string
+		value  float64
+		cmdPtr *float64
+	}{
+		{
+			env:    "AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD",
+			value:  0.75,
+			cmdPtr: &cmd.flagLeaseRenewalThreshold},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.env, func(t *testing.T) {
+			if err := os.Setenv(tt.env, strconv.FormatFloat(tt.value, 'f', -1, 64)); err != nil {
+				t.Errorf("got error setting env, shouldn't have: %s", err)
+			}
+			defer os.Unsetenv(tt.env)
+
+			if err := cmd.parseEnvs(); err != nil {
+				t.Errorf("got error parsing envs, shouldn't have: %s", err)
+			}
+
+			if *tt.cmdPtr != tt.value {
+				t.Errorf("env wasn't parsed, should have been: got %f, expected %f", *tt.cmdPtr, tt.value)
+			}
+		})
+	}
+}
