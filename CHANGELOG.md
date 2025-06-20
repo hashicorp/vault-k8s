@@ -1,5 +1,8 @@
 ## Unreleased
 
+Changes:
+* Building with Go 1.24.4
+
 ## 1.6.2 (February 26, 2025)
 
 Changes:

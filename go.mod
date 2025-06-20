@@ -2,7 +2,7 @@ module github.com/hashicorp/vault-k8s
 
 go 1.24.0
 
-toolchain go1.24.1
+toolchain go1.24.4
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
