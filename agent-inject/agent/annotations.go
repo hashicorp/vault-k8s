@@ -295,6 +295,11 @@ const (
 	//  includes connections in the dialing, active, and idle states.
 	AnnotationTemplateConfigMaxConnectionsPerHost = "vault.hashicorp.com/template-max-connections-per-host"
 
+	// AnnotationTemplateConfigLeaseRenewalThreshold
+	// How long Vault Agent's template engine should wait for to refresh dynamic,
+	// non-renewable leases, measured as a fraction of the lease duration.
+	AnnotationTemplateConfigLeaseRenewalThreshold = "vault.hashicorp.com/template-lease-renewal-threshold"
+
 	// AnnotationAgentEnableQuit configures whether the quit endpoint is
 	// enabled in the injected agent config
 	AnnotationAgentEnableQuit = "vault.hashicorp.com/agent-enable-quit"
@@ -365,6 +370,7 @@ type AgentConfig struct {
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	MaxConnectionsPerHost      int64
+	LeaseRenewalThreshold      float64
 	AuthMinBackoff             string
 	AuthMaxBackoff             string
 	DisableIdleConnections     string
@@ -863,6 +869,15 @@ func (a *Agent) templateConfigMaxConnectionsPerHost() (int64, error) {
 	}
 
 	return parseutil.ParseInt(raw)
+}
+
+func (a *Agent) templateConfigLeaseRenewalThreshold() (float64, error) {
+	raw, ok := a.Annotations[AnnotationTemplateConfigLeaseRenewalThreshold]
+	if !ok {
+		return 0, nil
+	}
+
+	return strconv.ParseFloat(raw, 64)
 }
 
 func (a *Agent) getAutoAuthExitOnError() (bool, error) {

@@ -676,11 +676,23 @@ func TestConfigVaultAgentTemplateConfig(t *testing.T) {
 			},
 		},
 		{
+			"lease_renewal_threshold 0.75",
+			map[string]string{
+				AnnotationTemplateConfigLeaseRenewalThreshold: "0.75",
+			},
+			&TemplateConfig{
+				ExitOnRetryFailure:    true,
+				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0.75,
+			},
+		},
+		{
 			"template_config_empty",
 			map[string]string{},
 			&TemplateConfig{
 				ExitOnRetryFailure:    true,
 				MaxConnectionsPerHost: 0,
+				LeaseRenewalThreshold: 0,
 			},
 		},
 	}
