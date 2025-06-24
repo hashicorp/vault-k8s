@@ -1,7 +1,26 @@
 ## Unreleased
 
+## 1.7.0 (June 24, 2025)
+
 Changes:
 * Building with Go 1.24.4
+* Default Vault version updated to 1.19.5
+* Testing with K8s versions 1.29 - 1.33
+* Dependency updates:
+  * Docker image `alpine` 3.21.3 => 3.22.0
+  * Docker image `ubi8/ubi-minimal` 8.10-1179.1739286367 => 8.10-1295.1749680713
+  * github.com/go-logr/logr v1.4.2 => v1.4.3
+  * github.com/hashicorp/go-secure-stdlib/parseutil v0.1.9 => v0.2.0
+  * github.com/hashicorp/vault/sdk v0.15.0 => v0.18.0
+  * github.com/operator-framework/operator-lib v0.17.0 => v0.18.0
+  * github.com/prometheus/client_golang v1.21.0 => v1.22.0
+  * k8s.io/api v0.32.2 => v0.33.2
+  * k8s.io/apimachinery v0.32.2 => v0.33.2
+  * k8s.io/client-go v0.32.2 => v0.33.2
+  * sigs.k8s.io/controller-runtime v0.20.2 => v0.21.0
+
+Features:
+* Add support for setting `template_config.lease_duration_threshold` in Agent config [GH-761](https://github.com/hashicorp/vault-k8s/pull/761)
 
 ## 1.6.2 (February 26, 2025)
 
