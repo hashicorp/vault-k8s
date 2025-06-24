@@ -41,9 +41,9 @@ jobs:
       # JSON encoded array of k8s versions.
       K8S_VERSIONS: '["1.33.1", "1.32.5", "1.31.9", "1.30.13", "1.29.14"]'
       VAULT_N: "1.19.5"
-      VAULT_N_1: "1.18.10"
-      VAULT_N_2: "1.17.17"
-      VAULT_LTS_1: "1.16.21"
+      VAULT_N_1: "1.18.5"
+      VAULT_N_2: "1.17.6"
+      VAULT_LTS_1: "1.16.3"
 
   latest-vault:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
