@@ -66,7 +66,7 @@ ENTRYPOINT ["/bin/vault-k8s"]
 
 # This target creates a production ubi release image
 # for the project for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1295 AS ubi
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1295.1749680713.1749680713 AS ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
