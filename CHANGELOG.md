@@ -8,7 +8,7 @@ Changes:
 * Testing with K8s versions 1.29 - 1.33
 * Dependency updates:
   * Docker image `alpine` 3.21.3 => 3.22.0
-  * Docker image `ubi8/ubi-minimal` 8.10-1179.1739286367 => 8.10-1295.1749680713.1749680713
+  * Docker image `ubi8/ubi-minimal` 8.10-1179.1739286367 => 8.10-1295.1749680713
   * github.com/go-logr/logr v1.4.2 => v1.4.3
   * github.com/hashicorp/go-secure-stdlib/parseutil v0.1.9 => v0.2.0
   * github.com/hashicorp/vault/sdk v0.15.0 => v0.18.0
