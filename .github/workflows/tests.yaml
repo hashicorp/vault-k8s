@@ -39,10 +39,11 @@ jobs:
       - run: echo "setting versions"
     outputs:
       # JSON encoded array of k8s versions.
-      K8S_VERSIONS: '["1.32.2", "1.31.6", "1.30.10", "1.29.14", "1.28.15"]'
-      VAULT_N: "1.18.5"
-      VAULT_N_1: "1.17.6"
-      VAULT_N_2: "1.16.3"
+      K8S_VERSIONS: '["1.33.1", "1.32.5", "1.31.9", "1.30.13", "1.29.14"]'
+      VAULT_N: "1.19.5"
+      VAULT_N_1: "1.18.10"
+      VAULT_N_2: "1.17.17"
+      VAULT_LTS_1: "1.16.21"
 
   latest-vault:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
@@ -81,6 +82,7 @@ jobs:
         vault-version:
           - ${{ needs.versions.outputs.VAULT_N_1 }}
           - ${{ needs.versions.outputs.VAULT_N_2 }}
+          - ${{ needs.versions.outputs.VAULT_LTS_1 }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

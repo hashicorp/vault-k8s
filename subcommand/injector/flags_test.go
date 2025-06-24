@@ -119,7 +119,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_VAULT_CACERT_BYTES", value: "foo", cmdPtr: &cmd.flagVaultCACertBytes},
 		{env: "AGENT_INJECT_PROXY_ADDR", value: "http://proxy:3128", cmdPtr: &cmd.flagProxyAddress},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
-		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.18.5", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:1.19.5", cmdPtr: &cmd.flagVaultImage},
 		{env: "AGENT_INJECT_VAULT_NAMESPACE", value: "test-namespace", cmdPtr: &cmd.flagVaultNamespace},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},
@@ -238,7 +238,8 @@ func TestCommandEnvFloats(t *testing.T) {
 		{
 			env:    "AGENT_INJECT_TEMPLATE_LEASE_RENEWAL_THRESHOLD",
 			value:  0.75,
-			cmdPtr: &cmd.flagLeaseRenewalThreshold},
+			cmdPtr: &cmd.flagLeaseRenewalThreshold,
+		},
 	}
 
 	for _, tt := range tests {
