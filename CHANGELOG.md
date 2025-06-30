@@ -20,7 +20,7 @@ Changes:
   * sigs.k8s.io/controller-runtime v0.20.2 => v0.21.0
 
 Features:
-* Add support for setting `template_config.lease_duration_threshold` in Agent config [GH-761](https://github.com/hashicorp/vault-k8s/pull/761)
+* Add support for setting `template_config.lease_renewal_threshold` in Agent config [GH-761](https://github.com/hashicorp/vault-k8s/pull/761)
 
 ## 1.6.2 (February 26, 2025)
 
