@@ -1,6 +1,6 @@
 module github.com/hashicorp/vault-k8s
 
-go 1.24.0
+go 1.24.3
 
 toolchain go1.24.4
 
@@ -15,7 +15,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/text v0.2.0
 	github.com/mitchellh/cli v1.1.5
-	github.com/operator-framework/operator-lib v0.18.0
+	github.com/operator-framework/operator-lib v0.19.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/radovskyb/watcher v1.0.7
@@ -23,7 +23,7 @@ require (
 	k8s.io/api v0.33.2
 	k8s.io/apimachinery v0.33.2
 	k8s.io/client-go v0.33.2
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/controller-runtime v0.21.0
 )
 
