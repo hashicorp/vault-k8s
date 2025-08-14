@@ -1,5 +1,8 @@
 ## Unreleased
 
+Features:
+* Add support for disabling base environment variables (`NAMESPACE`, `HOST_IP`, `POD_IP`) in the Agent injector via the `vault.hashicorp.com/agent-no-base-env-vars` annotation [GH-782](https://github.com/hashicorp/vault-k8s/pull/782)
+
 ## 1.7.0 (June 24, 2025)
 
 Changes:
