@@ -2,8 +2,6 @@ module github.com/hashicorp/vault-k8s
 
 go 1.24.3
 
-toolchain go1.24.4
-
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/evanphx/json-patch v5.9.11+incompatible
