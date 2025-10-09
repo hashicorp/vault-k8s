@@ -591,6 +591,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 		pod.ObjectMeta.Annotations[AnnotationAgentDisableKeepAlives] = cfg.DisableKeepAlives
 	}
 
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationTemplateConfigLeaseRenewalThreshold]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationTemplateConfigLeaseRenewalThreshold] = strconv.FormatFloat(cfg.LeaseRenewalThreshold, 'f', -1, 64)
+	}
+
 	// validate JSON patches
 	if patch, ok := pod.ObjectMeta.Annotations[AnnotationAgentJsonPatch]; ok {
 		// ignore empty string
