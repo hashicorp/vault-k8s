@@ -1,7 +1,7 @@
 ## Unreleased
 
 Changes:
-* Building with Go 1.25.1
+* Building with Go 1.25.3
 * Default Vault version updated to 1.20.4
 
 ## 1.7.0 (June 24, 2025)
