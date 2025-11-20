@@ -15,5 +15,6 @@ artifacts {
     "vault-k8s_default_linux_arm64_${version}_${commit_sha}.docker.tar",
     "vault-k8s_default_linux_arm_${version}_${commit_sha}.docker.tar",
     "vault-k8s_ubi_linux_amd64_${version}_${commit_sha}.docker.redhat.tar",
+    "vault-k8s_ubi_linux_arm64_${version}_${commit_sha}.docker.redhat.tar",
   ]
 }

@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 1.7.1 (November 21, 2025)
+## 1.7.1 (November 20, 2025)
 
 Changes:
 * Building with Go 1.25.4
@@ -16,6 +16,9 @@ Changes:
   * k8s.io/client-go v0.33.2 => v0.34.2
   * k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 => v0.0.0-20250604170112-4c0f3b243397
   * sigs.k8s.io/controller-runtime v0.21.0 => v0.22.4
+
+Improvements:
+* Add arm64 to the UBI container builds [GH-799](https://github.com/hashicorp/vault-k8s/pull/799)
 
 ## 1.7.0 (June 24, 2025)
 
