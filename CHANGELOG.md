@@ -1,8 +1,21 @@
 ## Unreleased
 
+## 1.7.1 (November 21, 2025)
+
 Changes:
-* Building with Go 1.25.3
-* Default Vault version updated to 1.20.4
+* Building with Go 1.25.4
+* Default Vault version updated to 1.21.1
+* Dependency updates:
+  * Docker image `ubi8/ubi-minimal` 8.10-1295.1749680713 => 8.10-1763613452
+  * github.com/hashicorp/vault/sdk v0.18.0 => v0.20.0
+  * github.com/operator-framework/operator-lib v0.18.0 => v0.19.0
+  * github.com/prometheus/client_golang v1.22.0 => v1.23.2
+  * github.com/stretchr/testify v1.10.0 => v1.11.1
+  * k8s.io/api v0.33.2 => v0.34.2
+  * k8s.io/apimachinery v0.33.2 => v0.34.2
+  * k8s.io/client-go v0.33.2 => v0.34.2
+  * k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 => v0.0.0-20250604170112-4c0f3b243397
+  * sigs.k8s.io/controller-runtime v0.21.0 => v0.22.4
 
 ## 1.7.0 (June 24, 2025)
 
