@@ -40,9 +40,11 @@ jobs:
     outputs:
       # JSON encoded array of k8s versions.
       K8S_VERSIONS: '["1.33.4", "1.32.8", "1.31.12", "1.30.13", "1.29.14"]'
-      VAULT_N: "1.20.4"
-      VAULT_N_1: "1.19.5"
-      VAULT_N_2: "1.18.5"
+      # Latest Vault CE versions. Once vault-helm's tests support testing with
+      # ENT N-1, N-2, and LTS we can update these to the latest ENT versions.
+      VAULT_N: "1.21.1"
+      VAULT_N_1: "1.20.4"
+      VAULT_N_2: "1.19.5"
       VAULT_LTS_1: "1.16.3"
 
   latest-vault:
