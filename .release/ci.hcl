@@ -6,7 +6,7 @@ schema = "1"
 project "vault-k8s" {
   team = "vault"
   slack {
-    notification_channel = "C03RXFX5M4L" // #feed-vault-releases
+    notification_channel = "C09LD1XT5MX" // #feed-vault-releases
   }
   github {
     organization = "hashicorp"
