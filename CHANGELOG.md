@@ -1,12 +1,13 @@
 ## Unreleased
 
-## 1.7.1 (November 20, 2025)
+## 1.7.1 (December 1, 2025)
 
 Changes:
 * Building with Go 1.25.4
 * Default Vault version updated to 1.21.1
 * Dependency updates:
-  * Docker image `ubi8/ubi-minimal` 8.10-1295.1749680713 => 8.10-1763613452
+  * Docker image `alpine` 3.22.0 => 3.22.2
+  * Docker image `ubi8/ubi-minimal` 8.10-1295.1749680713 => 8.10-1764046129
   * github.com/hashicorp/vault/sdk v0.18.0 => v0.20.0
   * github.com/operator-framework/operator-lib v0.18.0 => v0.19.0
   * github.com/prometheus/client_golang v1.22.0 => v1.23.2
