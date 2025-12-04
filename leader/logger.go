@@ -1,4 +1,4 @@
-// Copyright (c) HashiCorp, Inc.
+// Copyright IBM Corp. 2019, 2025
 // SPDX-License-Identifier: MPL-2.0
 
 // Borrowed from https://github.com/hashicorp/consul-api-gateway/blob/4ca5788fa357e389336049bd652f28309ee29d4a/internal/k8s/logger.go
