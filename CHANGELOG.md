@@ -1,5 +1,16 @@
 ## Unreleased
 
+## 1.7.2 (December 18, 2025)
+
+Changes:
+* Building with Go 1.25.5
+* Dependency updates:
+  * container image `alpine` 3.22.2 => 3.23.2
+  * container image `ubi8/ubi-minimal` 8.10-1764046129 => 8.10-1765178706
+  * k8s.io/api v0.34.2 => v0.34.3
+  * k8s.io/apimachinery v0.34.2 => v0.34.3
+  * k8s.io/client-go v0.34.2 => v0.34.3
+
 ## 1.7.1 (December 1, 2025)
 
 Changes:
