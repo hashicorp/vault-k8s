@@ -43,9 +43,9 @@ jobs:
       # Latest Vault CE versions. Once vault-helm's tests support testing with
       # ENT N-1, N-2, and LTS we can update these to the latest ENT versions.
       VAULT_N: "1.21.2"
-      VAULT_N_1: "1.20.7"
-      VAULT_N_2: "1.19.13"
-      VAULT_LTS_1: "1.16.29"
+      VAULT_N_1: "1.20.4"
+      VAULT_N_2: "1.19.5"
+      VAULT_LTS_1: "1.16.3"
 
   latest-vault:
     name: vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
