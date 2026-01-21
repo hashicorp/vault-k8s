@@ -564,6 +564,49 @@ func Test_serviceaccount(t *testing.T) {
 				},
 			},
 		},
+		"projected service account with pattern annotation": {
+			expected: &ServiceAccountTokenVolume{
+				Name:      "kube-api-access-cfjv5",
+				MountPath: "/var/run/secrets/special/serviceaccount",
+				TokenPath: "vault-token",
+			},
+			expectedError: "",
+			pod: &corev1.Pod{
+				ObjectMeta: v1.ObjectMeta{
+					Annotations: map[string]string{
+						"vault.hashicorp.com/agent-service-account-token-volume-name-pattern": "kube-api-access-*",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "kube-api-access-cfjv5",
+									MountPath: "/var/run/secrets/special/serviceaccount",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "kube-api-access-cfjv5",
+							VolumeSource: corev1.VolumeSource{
+								Projected: &corev1.ProjectedVolumeSource{
+									Sources: []corev1.VolumeProjection{
+										{
+											ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+												Path: "vault-token",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

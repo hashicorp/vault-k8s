@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/gobwas/glob"
 	"github.com/hashicorp/go-secure-stdlib/parseutil"
 	"github.com/hashicorp/vault/sdk/helper/strutil"
 	corev1 "k8s.io/api/core/v1"
@@ -812,6 +813,24 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 		return nil, fmt.Errorf("failed to find service account volume %q", volumeName)
 	}
 
+	if volumeNamePattern := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeNamePattern]; volumeNamePattern != "" {
+		for _, container := range pod.Spec.Containers {
+			for _, volumeMount := range container.VolumeMounts {
+				pattern := glob.MustCompile(volumeNamePattern)
+				if pattern.Match(volumeMount.Name) {
+					tokenPath, err := getProjectedTokenPath(pod, volumeMount.Name)
+					if err != nil {
+						return nil, err
+					}
+					return &ServiceAccountTokenVolume{
+						Name:      volumeMount.Name,
+						MountPath: volumeMount.MountPath,
+						TokenPath: tokenPath,
+					}, nil
+				}
+			}
+		}
+	}
 	// Fallback to searching for normal service account token
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {

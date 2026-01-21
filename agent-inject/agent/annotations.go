@@ -184,6 +184,10 @@ const (
 	// and gid) is set on the injected Vault Agent containers
 	AnnotationAgentSetSecurityContext = "vault.hashicorp.com/agent-set-security-context"
 
+	// AnnotationAgentServiceAccountTokenVolumeNamePattern is the optional name pattern of a volume containing a
+	// service account token
+	AnnotationAgentServiceAccountTokenVolumeNamePattern = "vault.hashicorp.com/agent-service-account-token-volume-name-pattern"
+
 	// AnnotationAgentServiceAccountTokenVolumeName is the optional name of a volume containing a
 	// service account token
 	AnnotationAgentServiceAccountTokenVolumeName = "vault.hashicorp.com/agent-service-account-token-volume-name"
@@ -482,6 +486,10 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
 		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
+	}
+
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeNamePattern]; !ok {
+		pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeNamePattern] = ""
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; !ok {
