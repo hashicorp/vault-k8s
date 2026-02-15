@@ -285,8 +285,9 @@ func TestContainerSidecar(t *testing.T) {
 		t.Errorf("wrong number of args, got %d, should have been %d", len(container.Args), 1)
 	}
 
-	if container.Args[0] != DefaultContainerArg {
-		t.Errorf("arg value wrong, should have been %s, got %s", DefaultContainerArg, container.Args[0])
+	arg := fmt.Sprintf(DefaultContainerArg, agent.SidecarType)
+	if container.Args[0] != arg {
+		t.Errorf("arg value wrong, should have been %s, got %s", arg, container.Args[0])
 	}
 
 	if container.Resources.Limits.Cpu().String() != DefaultResourceLimitCPU {
