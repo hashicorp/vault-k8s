@@ -1,4 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
+# Copyright IBM Corp. 2019, 2026
 # SPDX-License-Identifier: MPL-2.0
 
 name: Integration test
@@ -25,6 +25,9 @@ inputs:
   vault-license:
     description: 'Vault license to use for enterprise tests'
     required: true
+  vault-enterprise:
+    description: 'Test against Vault Enterprise'
+    required: true
 runs:
   using: "composite"
   steps:
@@ -50,7 +53,7 @@ runs:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         repository: "hashicorp/vault-helm"
-        ref: "v0.31.0"
+        ref: "v0.32.0"
         path: "vault-helm"
 
     - name: Create Kind Cluster
@@ -66,6 +69,9 @@ runs:
       shell: bash
       run: |
         vault_flavor=community
+        if [ ${{ inputs.vault-enterprise }} == 'true' ]; then
+          vault_flavor=ent
+        fi
         log_artifact_name="kind-${{ inputs.kind-cluster-name }}-$(git rev-parse --short ${{ github.sha }})-${{ inputs.k8s-version }}-${{ inputs.vault-version }}-${vault_flavor}-helm-logs"
         log_root="/tmp/${log_artifact_name}"
         mkdir -p "${log_root}"
@@ -93,11 +99,9 @@ runs:
       working-directory: vault-helm
       env:
         VAULT_LICENSE_CI: ${{ inputs.vault-license }}
+        VAULT_VERSION: ${{ inputs.vault-version }}
+        ENT_TESTS: ${{ inputs.vault-enterprise }}
       run: |
-        # assumes Python based yq :(
-        yq --in-place --yaml-roundtrip '.injector.image.tag |= "${{ inputs.version }}"' ./values.yaml
-        yq --in-place --yaml-roundtrip '.server.image.tag |= "${{ inputs.vault-version }}"' ./values.yaml
-        yq --in-place --yaml-roundtrip '.injector.agentImage.tag |= "${{ inputs.vault-version }}"' ./values.yaml
         bats ./test/acceptance -t --filter injector
 
     - name: export kind cluster logs
