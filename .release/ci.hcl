@@ -11,7 +11,7 @@ project "vault-k8s" {
   github {
     organization = "hashicorp"
     repository = "vault-k8s"
-    release_branches = ["main"]
+    release_branches = ["main", "VAULT-42343/prepare-v1.7.3-test-scan"]
   }
 }
 
