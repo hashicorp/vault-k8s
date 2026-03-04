@@ -92,7 +92,12 @@ runs:
     - name: Makefile tests
       shell: bash
       working-directory: vault-k8s
-      run: make deploy exercise teardown VERSION="${{ inputs.version }}" VAULT_VERSION="${{ inputs.vault-version }}"
+      env:
+        VAULT_LICENSE_CI: ${{ inputs.vault-license }}
+        VAULT_VERSION: ${{ inputs.vault-version }}
+        ENT_TESTS: ${{ inputs.vault-enterprise }}
+        VERSION: ${{ inputs.version }}
+      run: make deploy exercise teardown
 
     - name: bats tests
       shell: bash
