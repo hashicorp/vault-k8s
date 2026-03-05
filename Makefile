@@ -1,7 +1,7 @@
 REGISTRY_NAME ?= docker.io/hashicorp
 IMAGE_NAME = vault-k8s
 VERSION ?= 0.0.0-dev
-VAULT_VERSION ?= 1.21.1
+VAULT_VERSION ?= 1.21.4
 IMAGE_TAG ?= $(REGISTRY_NAME)/$(IMAGE_NAME):$(VERSION)
 PUBLISH_LOCATION ?= https://releases.hashicorp.com
 DOCKER_DIR = ./build/docker
@@ -15,8 +15,8 @@ PKG = github.com/hashicorp/vault-k8s/version
 LDFLAGS ?= "-X '$(PKG).Version=v$(VERSION)'"
 TESTARGS ?= '-test.v'
 
-VAULT_HELM_CHART_VERSION ?= 0.31.0
-# TODO: add support for testing against enterprise
+VAULT_HELM_CHART_VERSION ?= 0.32.0
+ENT_TESTS ?= false
 
 TEST_WITHOUT_VAULT_TLS ?=
 ifndef TEST_WITHOUT_VAULT_TLS
@@ -34,9 +34,19 @@ endif
 VAULT_HELM_DEFAULT_ARGS ?= --repo https://helm.releases.hashicorp.com --version=$(VAULT_HELM_CHART_VERSION) \
 	--wait --timeout=5m \
 	--values=$(HELM_VALUES_FILE) \
-	--set server.image.tag=$(VAULT_VERSION) \
-	--set injector.agentImage.tag=$(VAULT_VERSION) \
 	--set 'injector.image.tag=$(VERSION)'
+
+ifeq ($(ENT_TESTS), true)
+	ENT_REGISTRY=docker.mirror.hashicorp.services/hashicorp/vault-enterprise
+	VAULT_HELM_DEFAULT_ARGS += --set server.enterpriseLicense.secretName=vault-ent-license \
+		--set server.image.repository=$(ENT_REGISTRY) \
+		--set server.image.tag=$(VAULT_VERSION)-ent \
+		--set injector.agentImage.repository=$(ENT_REGISTRY) \
+		--set injector.agentImage.tag=$(VAULT_VERSION)-ent
+else
+	VAULT_HELM_DEFAULT_ARGS += --set server.image.tag=$(VAULT_VERSION) \
+		--set injector.agentImage.tag=$(VAULT_VERSION)
+endif
 
 .PHONY: all test build image clean version deploy exercise teardown
 all: build
@@ -60,6 +70,9 @@ ifndef TEST_WITHOUT_VAULT_TLS
 	VAULT_HELM_POST_INSTALL_ARGS = "--set=injector.extraEnvironmentVars.AGENT_INJECT_VAULT_CACERT_BYTES=$$(kubectl exec vault-0 -- sh -c 'cat /tmp/vault-ca.pem | base64 -w0')"
 endif
 deploy:
+	@if [ "$(ENT_TESTS)" = "true" ]; then\
+		kubectl create secret generic vault-ent-license --from-literal="license=$(VAULT_LICENSE_CI)";\
+	fi
 	helm upgrade --install vault vault $(VAULT_HELM_DEFAULT_ARGS) \
 		--set "injector.enabled=false"
 	kubectl delete pod -l "app.kubernetes.io/instance=vault"
@@ -93,6 +106,9 @@ teardown:
 	helm uninstall --namespace default vault --wait 2> /dev/null || true
 	kubectl delete --ignore-not-found serviceaccount test-app-sa
 	kubectl delete --ignore-not-found pod nginx
+	@if [ "$(ENT_TESTS)" = "true" ]; then\
+		kubectl delete --ignore-not-found secret vault-ent-license || true;\
+	fi
 
 clean:
 	-rm -rf $(BUILD_DIR)
