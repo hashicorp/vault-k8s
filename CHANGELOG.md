@@ -1,9 +1,20 @@
 ## Unreleased
 
+## 1.7.3 (March 5, 2026)
+
 Changes:
 * Tested with Kubernetes versions 1.35-1.31
 * Test with Kind v0.31.0
 * Building with Go 1.25.7
+* Dependency updates:
+  * container image `alpine` 3.23.2 => 3.23.3
+  * container image `ubi8/ubi-minimal` 8.10-1765178706 => 8.10-1772599255
+  * github.com/hashicorp/vault/sdk v0.20.0 => v0.23.0
+  * k8s.io/api v0.34.3 => v0.35.2
+  * k8s.io/apimachinery v0.34.3 => v0.35.2
+  * k8s.io/client-go v0.34.3 => v0.35.2
+  * k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 => v0.0.0-20251002143259-bc988d571ff4
+  * sigs.k8s.io/controller-runtime v0.22.4 => v0.23.1
 
 ## 1.7.2 (December 18, 2025)
 
