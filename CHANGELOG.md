@@ -6,6 +6,7 @@ Changes:
 * Tested with Kubernetes versions 1.35-1.31
 * Test with Kind v0.31.0
 * Building with Go 1.25.7
+* Default Vault version updated to 1.21.4
 * Dependency updates:
   * container image `alpine` 3.23.2 => 3.23.3
   * container image `ubi8/ubi-minimal` 8.10-1765178706 => 8.10-1772599255
