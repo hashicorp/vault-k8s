@@ -50,7 +50,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		volumeMounts = append(volumeMounts, a.copyVolumeMounts(a.CopyVolumeMounts)...)
 	}
 
-	arg := DefaultContainerArg
+	arg := fmt.Sprintf(DefaultContainerArg, a.SidecarType)
 
 	if a.ConfigMapName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -58,7 +58,7 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config-init.hcl", TokenFile, configVolumePath)
+		arg = fmt.Sprintf("touch %s && vault %s -config=%s/config-init.hcl", TokenFile, a.SidecarType, configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {

@@ -33,6 +33,8 @@ const (
 	DefaultAgentCacheExitOnErr              = false
 	DefaultAgentUseLeaderElector            = false
 	DefaultAgentInjectToken                 = false
+	DefaultAgentSidecarType                 = "agent"
+	DefaultProxyUseAutoAuthToken            = true
 	DefaultTemplateConfigExitOnRetryFailure = true
 	DefaultServiceAccountMount              = "/var/run/secrets/vault.hashicorp.com/serviceaccount"
 	DefaultEnableQuit                       = false
@@ -120,6 +122,13 @@ type Agent struct {
 	// ConfigMapName is the name of the configmap a user wants to mount to Vault Agent
 	// container(s).
 	ConfigMapName string
+
+	// SidecarType is the type of the sidecar container that is injected into the pod
+	SidecarType string
+
+	// Use the auto auth token in the sidecar proxy, usable only when SidecarType is set to "proxy"
+	// acceptable values are boolean true / false and "force"
+	ProxyUseAutoAuthToken interface{}
 
 	// Vault is the structure holding all the Vault specific configurations.
 	Vault Vault
@@ -376,6 +385,8 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	agent := &Agent{
 		Annotations:               pod.Annotations,
 		ConfigMapName:             pod.Annotations[AnnotationAgentConfigMap],
+		SidecarType:               pod.Annotations[AnnotationAgentSidecarType],
+		ProxyUseAutoAuthToken:     pod.Annotations[AnnotationAgentProxyUseAutoAuthToken],
 		ImageName:                 pod.Annotations[AnnotationAgentImage],
 		DefaultTemplate:           pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:                 pod.Annotations[AnnotationAgentLimitsCPU],
@@ -427,6 +438,9 @@ func New(pod *corev1.Pod) (*Agent, error) {
 	if err != nil {
 		return agent, err
 	}
+
+	agent.SidecarType = agent.sidecarType()
+	agent.ProxyUseAutoAuthToken = agent.proxyUseAutoAuthToken()
 
 	agent.Vault.AgentTelemetryConfig = agent.telemetryConfig()
 
@@ -771,6 +785,9 @@ func (a *Agent) Validate() error {
 		if a.Vault.Address == "" {
 			return errors.New("no Vault address found")
 		}
+	}
+	if a.SidecarType != "" && !(a.SidecarType == "agent" || a.SidecarType == "proxy") {
+		return errors.New(fmt.Sprintf("Invalid sidecar type, expected one of agent / proxy, got %s", a.SidecarType))
 	}
 	return nil
 }
