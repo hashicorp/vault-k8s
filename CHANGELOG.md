@@ -1,5 +1,16 @@
 ## Unreleased
 
+## 1.7.4 (April 30, 2026)
+
+Changes:
+* Building with Go 1.26.2
+* Default Vault version updated to 2.0.0
+* Dependency updates:
+  * container image `alpine` 3.23.3 => 3.23.4
+  * container image `ubi8/ubi-minimal` 8.10-1772599255 => 8.10-1777392407
+  * github.com/hashicorp/vault/sdk v0.23.0 => v0.25.1
+  * sigs.k8s.io/controller-runtime v0.23.1 => v0.23.3
+
 ## 1.7.3 (March 5, 2026)
 
 Changes:

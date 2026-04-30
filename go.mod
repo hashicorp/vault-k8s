@@ -1,6 +1,6 @@
 module github.com/hashicorp/vault-k8s
 
-go 1.26.0
+go 1.26.2
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0
