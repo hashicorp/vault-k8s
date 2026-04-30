@@ -43,7 +43,7 @@ jobs:
       VAULT_N: "2.0.0"
       VAULT_N_1: "1.21.5"
       VAULT_N_2: "1.20.10"
-      VAULT_LTS_1: "1.16.31"
+      VAULT_LTS_1: "1.19.16"
 
   latest-vault:
     name: ${{ matrix.vault-enterprise && 'ent' || 'ce' }} vault:${{ matrix.vault-version }} kind:${{ matrix.k8s-version }}
