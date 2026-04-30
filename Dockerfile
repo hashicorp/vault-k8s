@@ -12,7 +12,7 @@
 # `default` is the production docker image which cannot be built locally.
 # For local dev and testing purposes, please build and use the `dev` docker image.
 
-FROM docker.mirror.hashicorp.services/alpine:3.23.3 AS dev
+FROM docker.mirror.hashicorp.services/alpine:3.23.4 AS dev
 
 RUN addgroup vault && \
     adduser -S -G vault vault
@@ -24,7 +24,7 @@ USER vault
 ENTRYPOINT ["/vault-k8s"]
 
 # This target creates a production release image for the project.
-FROM docker.mirror.hashicorp.services/alpine:3.23.3 AS default
+FROM docker.mirror.hashicorp.services/alpine:3.23.4 AS default
 
 # PRODUCT_VERSION is the tag built, e.g. v0.1.0
 # PRODUCT_REVISION is the git hash built
@@ -66,7 +66,7 @@ ENTRYPOINT ["/bin/vault-k8s"]
 
 # This target creates a production ubi release image
 # for the project for use on OpenShift.
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1773809973 AS ubi
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.10-1777392407 AS ubi
 
 ARG PRODUCT_NAME
 ARG PRODUCT_VERSION
