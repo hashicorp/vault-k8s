@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["arm", "arm64", "386", "amd64", "s390x", "ppc64le"]
       fail-fast: true
 
     name: Go linux ${{ matrix.arch }} build
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["arm", "arm64", "386", "amd64", "s390x", "ppc64le"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
