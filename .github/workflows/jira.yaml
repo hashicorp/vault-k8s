@@ -6,6 +6,13 @@ on:
     types: [opened, closed, reopened]
   issue_comment: # Also triggers when commenting on a PR from the conversation view
     types: [created]
+
+# Reusable Jira sync only reads issue/PR metadata to mirror to Jira.
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
 jobs:
   sync:
     uses: hashicorp/vault-workflows-common/.github/workflows/jira.yaml@main

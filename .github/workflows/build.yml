@@ -13,6 +13,9 @@ on:
 env:
   PKG_NAME: "vault-k8s"
 
+permissions:
+  contents: read
+
 jobs:
   get-product-version:
     runs-on: ubuntu-latest

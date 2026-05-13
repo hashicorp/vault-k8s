@@ -3,6 +3,9 @@ name: Tests
 # Run this workflow on pushes and manually
 on: [push, workflow_dispatch]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     env:
