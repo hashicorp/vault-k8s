@@ -1,4 +1,31 @@
-## Unreleased
+## 1.7.5 (June 29, 2026)
+
+Changes:
+* Building with Go 1.26.4
+* Build linux/s390x images
+* Dependency updates:
+  * container image `alpine` 3.23.4 => 3.24.1
+  * container image `ubi8/ubi-minimal` 8.10-1777392407 => 1781701189
+  * k8s.io/api v0.35.2 => v0.36.2
+  * k8s.io/apimachinery v0.35.2 => v0.36.2
+  * k8s.io/client-go v0.35.2 => v0.36.2
+  * k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 => v0.0.0-20260210185600-b8788abfbbc2
+  * sigs.k8s.io/controller-runtime v0.23.3 => v0.24.1
+  * github.com/prometheus/common v0.66.1 => v0.67.5
+  * github.com/prometheus/procfs v0.16.1 => v0.19.2
+  * golang.org/x/crypto v0.49.0 => v0.53.0
+  * golang.org/x/net v0.52.0 => v0.56.0
+  * golang.org/x/sys v0.42.0 => v0.46.0
+  * golang.org/x/term v0.41.0 => v0.44.0
+  * golang.org/x/text v0.35.0 => v0.38.0
+* CI: update GitHub Actions to latest versions
+  * actions/checkout v4.2.2 => v7.0.0
+  * actions/setup-node v4.3.0 => v6.4.0
+  * actions/setup-python v5.5.0 => v6.3.0
+  * actions/setup-go v5.4.0 => v6.5.0
+  * actions/upload-artifact v7.0.0 => v7.0.1
+  * actions/download-artifact v4.2.1 => v8.0.1
+  * helm/kind-action v1.12.0 => v1.14.0
 
 ## 1.7.4 (April 30, 2026)
 
