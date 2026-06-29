@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["arm", "arm64", "386", "amd64", "s390x"]
       fail-fast: true
 
     name: Go linux ${{ matrix.arch }} build
@@ -112,6 +112,7 @@ jobs:
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
+            icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}
 
   build-docker-ubi-redhat:
     name: Docker Build UBI Image for RedHat Registry
@@ -121,14 +122,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["amd64", "arm64"]
+        arch: ["amd64", "arm64", "s390x"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: hashicorp/actions-docker-build@v2
+      - name: Docker Build (Action) ${{ matrix.arch }}
+        # linux/s390x images can only ever be published the Red Hat catalog and ICR.
+        if: ${{ matrix.arch != 's390x'}}
+        uses: hashicorp/actions-docker-build@v2
         with:
           version: ${{env.version}}
           target: ubi
@@ -136,3 +140,16 @@ jobs:
           redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
+            icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}-ubi
+
+      - name: Docker Build (Action) ${{ matrix.arch }}
+        # linux/s390x images are published to the Red Hat catalog and ICR.
+        if: ${{ matrix.arch == 's390x'}}
+        uses: hashicorp/actions-docker-build@v2
+        with:
+          version: ${{env.version}}
+          target: ubi
+          arch: ${{matrix.arch}}
+          redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi
+          tags: |
+            icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}-ubi
