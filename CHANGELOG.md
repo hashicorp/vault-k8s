@@ -3,6 +3,9 @@
 Changes:
 * Building with Go 1.26.4
 * Build linux/s390x images
+* Test with Vault 2.0.3, 1.21.8, 1.20.13, 1.19.19
+* Test with Kind v0.32.0
+* Test with K8s 1.36.1, 1.35.5, 1.34.8, 1.33.12, 1.32.11
 * Dependency updates:
   * container image `alpine` 3.23.4 => 3.24.1
   * container image `ubi8/ubi-minimal` 8.10-1777392407 => 1781701189
