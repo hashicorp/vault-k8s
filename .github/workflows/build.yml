@@ -19,7 +19,7 @@ jobs:
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: get product version
         id: get-product-version
         run: |
@@ -34,7 +34,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -53,16 +53,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64"]
+        arch: ["arm", "arm64", "386", "amd64", "s390x"]
       fail-fast: true
 
     name: Go linux ${{ matrix.arch }} build
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version-file: .go-version
 
@@ -102,7 +102,7 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v2
         with:
@@ -121,14 +121,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["amd64", "arm64"]
+        arch: ["amd64", "arm64", "s390x"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: hashicorp/actions-docker-build@v2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Docker Build (Action) ${{ matrix.arch }}
+        # linux/s390x images can only ever be published the Red Hat catalog and ICR.
+        if: ${{ matrix.arch != 's390x'}}
+        uses: hashicorp/actions-docker-build@v2
         with:
           version: ${{env.version}}
           target: ubi
@@ -136,3 +139,16 @@ jobs:
           redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
+            icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}-ubi
+
+      - name: Docker Build (Action) ${{ matrix.arch }}
+        # linux/s390x images are published to the Red Hat catalog and ICR.
+        if: ${{ matrix.arch == 's390x'}}
+        uses: hashicorp/actions-docker-build@v2
+        with:
+          version: ${{env.version}}
+          target: ubi
+          arch: ${{matrix.arch}}
+          redhat_tag: quay.io/redhat-isv-containers/5f89bbc30b94cf64cfeb500b:${{env.version}}-ubi
+          tags: |
+            icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}-ubi

@@ -31,38 +31,38 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
     - run: sudo npm install -g bats@${{ inputs.bats-version }}
       shell: bash
     - run: bats -v
       shell: bash
 
-    - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
       with:
         python-version: '3.10'
     - run: pip install yq
       shell: bash
 
     # Checkout this repo.
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         path: "vault-k8s"
 
     # Checkout vault-helm for acceptance test code.
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
         repository: "hashicorp/vault-helm"
         ref: "v0.32.0"
         path: "vault-helm"
 
     - name: Create Kind Cluster
-      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
       with:
         cluster_name: ${{ inputs.kind-cluster-name }}
         config: vault-helm/test/kind/config.yaml
         node_image: kindest/node:v${{ inputs.k8s-version }}
-        version: "v0.31.0"
+        version: "v0.32.0"
 
     - name: Create kind export log root
       id: create_kind_export_log_root
@@ -78,7 +78,7 @@ runs:
         echo "log_root=${log_root}" >> $GITHUB_OUTPUT
         echo "log_artifact_name=${log_artifact_name}" >> $GITHUB_OUTPUT
 
-    - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+    - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
       with:
         name: ${{ inputs.tarball-file }}
 
@@ -117,14 +117,14 @@ runs:
 
     - name: Store kind cluster logs
       if: success()
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
 
     - name: Store kind cluster logs failure
       if: failure()
-      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: ${{ steps.create_kind_export_log_root.outputs.log_artifact_name }}-failed
         path: ${{ steps.create_kind_export_log_root.outputs.log_root }}
