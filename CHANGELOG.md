@@ -3,6 +3,7 @@
 Changes:
 * Building with Go 1.26.4
 * Build linux/s390x images
+* Default Vault version updated to 2.0.3
 * Test with Vault 2.0.3, 1.21.8, 1.20.13, 1.19.19
 * Test with Kind v0.32.0
 * Test with K8s 1.36.1, 1.35.5, 1.34.8, 1.33.12, 1.32.11
