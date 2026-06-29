@@ -40,7 +40,10 @@ var baseContainerEnvVars []corev1.EnvVar = []corev1.EnvVar{
 // ContainerEnvVars adds the applicable environment vars
 // for the Vault Agent sidecar.
 func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
-	envs := baseContainerEnvVars
+	var envs []corev1.EnvVar
+	if !a.NoBaseEnvVars {
+		envs = baseContainerEnvVars
+	}
 
 	if a.Vault.GoMaxProcs != "" {
 		envs = append(envs, corev1.EnvVar{

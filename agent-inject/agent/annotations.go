@@ -344,6 +344,10 @@ const (
 	// should map to the same unique value provided in
 	// "vault.hashicorp.com/agent-inject-secret-". Defaults to false
 	AnnotationErrorOnMissingKey = "vault.hashicorp.com/error-on-missing-key"
+
+	// AnnotationAgentNoBaseEnvVars configures whether the agent will inject
+	// the basic environment variables NAMESPACE, HOST_IP and POD_IP.
+	AnnotationAgentNoBaseEnvVars = "vault.hashicorp.com/agent-no-base-env-vars"
 )
 
 type AgentConfig struct {
