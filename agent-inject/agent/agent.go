@@ -816,6 +816,10 @@ func serviceaccount(pod *corev1.Pod) (*ServiceAccountTokenVolume, error) {
 	for _, container := range pod.Spec.Containers {
 		for _, volumes := range container.VolumeMounts {
 			if strings.Contains(volumes.MountPath, "serviceaccount") {
+				// Prevent using IRSA token for Kubernetes auth
+				if strings.Contains(volumes.MountPath, "eks.amazonaws.com") {
+					continue
+				}
 				return &ServiceAccountTokenVolume{
 					Name:      volumes.Name,
 					MountPath: volumes.MountPath,
