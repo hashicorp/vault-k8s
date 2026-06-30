@@ -5,6 +5,7 @@ package agent_inject
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -86,6 +87,7 @@ type Handler struct {
 // served via an HTTP server.
 func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	h.Log.Info("Request received", "Method", r.Method, "URL", r.URL)
+	var procErr error
 
 	// Measure request processing duration and monitor request queue
 	requestQueue.Inc()
@@ -93,12 +95,14 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		requestProcessingTime.Observe(float64(time.Since(requestStart).Milliseconds()))
 		requestQueue.Dec()
+		incrementRequests(procErr)
 	}()
 
 	if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 		msg := fmt.Sprintf("Invalid content-type: %q", ct)
 		http.Error(w, msg, http.StatusBadRequest)
 		h.Log.Warn("warning for request", "Warn", msg, "Code", http.StatusBadRequest)
+		procErr = errors.New(msg)
 		return
 	}
 
@@ -109,6 +113,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 			msg := fmt.Sprintf("error reading request body: %s", err)
 			http.Error(w, msg, http.StatusBadRequest)
 			h.Log.Error("error on request", "Error", msg, "Code", http.StatusBadRequest)
+			procErr = errors.New(msg)
 			return
 		}
 	}
@@ -116,6 +121,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		msg := "Empty request body"
 		http.Error(w, msg, http.StatusBadRequest)
 		h.Log.Error("warning for request", "Warn", msg, "Code", http.StatusBadRequest)
+		procErr = errors.New(strings.ToLower(msg))
 		return
 	}
 
@@ -137,6 +143,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Sprintf("error decoding admission request: %s", err)
 		http.Error(w, msg, http.StatusInternalServerError)
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
+		procErr = errors.New(msg)
 		return
 	} else {
 		mutateResp = h.Mutate(admReq.Request)
@@ -157,12 +164,15 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, msg, http.StatusInternalServerError)
 		h.Log.Error("error on request", "Error", msg, "Code", http.StatusInternalServerError)
 		incrementInjectionFailures(admReq.Request.Namespace)
+		procErr = errors.New(msg)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		h.Log.Error("error writing response", "Error", err)
+		msg := "error writing response"
+		h.Log.Error(msg, "Error", err)
 		incrementInjectionFailures(admReq.Request.Namespace)
+		procErr = errors.New(msg)
 		return
 	}
 
@@ -171,6 +181,8 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	} else {
 		incrementInjectionFailures(admReq.Request.Namespace)
 	}
+
+	return
 }
 
 type MutateResponse struct {
