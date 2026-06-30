@@ -278,7 +278,8 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		config.AutoAuth.Sinks = append(config.AutoAuth.Sinks, &Sink{
 			Type: "file",
 			Config: map[string]interface{}{
-				"path": path.Join(a.Annotations[AnnotationVaultSecretVolumePath], "token"),
+				"path": path.Join(a.Annotations[AnnotationVaultSecretVolumePath], a.InjectTokenFile),
+				"mode": a.InjectTokenPermissions,
 			},
 		})
 	}
