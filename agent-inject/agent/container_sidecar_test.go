@@ -1255,7 +1255,7 @@ func TestContainerCache(t *testing.T) {
 			err = agent.Validate()
 			require.NoError(t, err)
 
-			init, err := agent.ContainerInitSidecar()
+			init, err := agent.ContainerInitSidecar(false)
 			require.NoError(t, err)
 
 			sidecar, err := agent.ContainerSidecar()
@@ -1458,7 +1458,7 @@ func TestAgentJsonPatch(t *testing.T) {
 
 			var sidecar corev1.Container
 			if tt.init {
-				sidecar, err = agent.ContainerInitSidecar()
+				sidecar, err = agent.ContainerInitSidecar(false)
 			} else {
 				sidecar, err = agent.ContainerSidecar()
 			}

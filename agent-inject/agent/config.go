@@ -19,6 +19,7 @@ const (
 	DefaultTemplateType = "map"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
+	nativeSidecarFile   = "/home/vault/.native-sidecar-started"
 )
 
 // Config is the top level struct that composes a Vault Agent
@@ -35,6 +36,7 @@ type Config struct {
 	DisableIdleConnections []string        `json:"disable_idle_connections,omitempty"`
 	DisableKeepAlives      []string        `json:"disable_keep_alives,omitempty"`
 	Telemetry              *Telemetry      `json:"telemetry,omitempty"`
+	TemplatesDoneCommand   []string        `json:"templates_done_command,omitempty"`
 }
 
 // Vault contains configuration for connecting to Vault servers
@@ -232,8 +234,7 @@ func (a *Agent) newTemplateConfigs() []*Template {
 
 func (a *Agent) newConfig(init bool) ([]byte, error) {
 	config := Config{
-		PidFile:       PidFile,
-		ExitAfterAuth: init,
+		PidFile: PidFile,
 		Vault: &VaultConfig{
 			Address:       a.Vault.Address,
 			CACert:        a.Vault.CACert,
@@ -272,6 +273,14 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 		},
 		DisableIdleConnections: a.DisableIdleConnections,
 		DisableKeepAlives:      a.DisableKeepAlives,
+	}
+
+	// Override the init value for ExitAfterAuth if we're using a native sidecar
+	if a.NativeSidecar {
+		config.ExitAfterAuth = false
+		config.TemplatesDoneCommand = []string{"/bin/touch", nativeSidecarFile}
+	} else if init {
+		config.ExitAfterAuth = true
 	}
 
 	if a.InjectToken {
