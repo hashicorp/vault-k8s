@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["arm", "arm64", "386", "amd64", "s390x"]
+        arch: ["arm", "arm64", "386", "amd64", "s390x", "ppc64le"]
       fail-fast: true
 
     name: Go linux ${{ matrix.arch }} build
@@ -121,7 +121,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: ["amd64", "arm64", "s390x"]
+        arch: ["amd64", "arm64", "s390x", "ppc64le"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.get-product-version.outputs.product-version}}
@@ -129,8 +129,8 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Docker Build (Action) ${{ matrix.arch }}
-        # linux/s390x images can only ever be published the Red Hat catalog and ICR.
-        if: ${{ matrix.arch != 's390x'}}
+        # linux/s390x and linux/ppc64le images can only ever be published to the Red Hat catalog and ICR.
+        if: ${{ matrix.arch != 's390x' && matrix.arch != 'ppc64le'}}
         uses: hashicorp/actions-docker-build@v2
         with:
           version: ${{env.version}}
@@ -142,8 +142,8 @@ jobs:
             icr.io/cpopen/ibm-vault/${{env.repo}}:${{env.version}}-ubi
 
       - name: Docker Build (Action) ${{ matrix.arch }}
-        # linux/s390x images are published to the Red Hat catalog and ICR.
-        if: ${{ matrix.arch == 's390x'}}
+        # linux/s390x and linux/ppc64le images are published to the Red Hat catalog and ICR.
+        if: ${{ matrix.arch == 's390x' || matrix.arch == 'ppc64le'}}
         uses: hashicorp/actions-docker-build@v2
         with:
           version: ${{env.version}}

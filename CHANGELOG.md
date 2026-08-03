@@ -1,3 +1,8 @@
+## Unreleased
+
+Changes:
+* Build linux/ppc64le UBI images and publish to ICR and Red Hat catalog
+
 ## 1.7.5 (June 29, 2026)
 
 Changes:

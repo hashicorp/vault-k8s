@@ -9,6 +9,7 @@ artifacts {
     "vault-k8s_${version}_linux_arm.zip",
     "vault-k8s_${version}_linux_arm64.zip",
     "vault-k8s_${version}_linux_s390x.zip",
+    "vault-k8s_${version}_linux_ppc64le.zip",
   ]
   container = [
     "vault-k8s_default_linux_386_${version}_${commit_sha}.docker.tar",
@@ -22,5 +23,8 @@ artifacts {
     # s390x is published to the Red Hat catalog and ICR
     "vault-k8s_ubi_linux_s390x_${version}_${commit_sha}.docker.redhat.tar",
     "vault-k8s_ubi_linux_s390x_${version}_${commit_sha}.docker.tar",
+    # ppc64le is published to the Red Hat catalog and ICR
+    "vault-k8s_ubi_linux_ppc64le_${version}_${commit_sha}.docker.redhat.tar",
+    "vault-k8s_ubi_linux_ppc64le_${version}_${commit_sha}.docker.tar",
   ]
 }
