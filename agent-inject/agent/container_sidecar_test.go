@@ -1321,6 +1321,7 @@ func TestAgentJsonPatch(t *testing.T) {
 
 	baseInitContainer := baseContainer
 	baseInitContainer.Name = "vault-agent-init"
+	baseInitContainer.Args = []string{InitContainerArg}
 	baseInitContainer.Env = append(
 		baseContainerEnvVars,
 		corev1.EnvVar{Name: "VAULT_LOG_LEVEL", Value: "info"},
@@ -1478,4 +1479,101 @@ func TestAgentJsonPatch(t *testing.T) {
 
 func optional[T any](x T) *T {
 	return &x
+}
+
+// TestContainerInitSidecarArgGuard verifies that the vault-agent-init container
+// uses InitContainerArg (with the token-file guard) rather than DefaultContainerArg.
+// This guard makes the init container a no-op if a previous successful run already
+// wrote the token file, protecting against spurious kubelet restarts
+// (e.g. after docker container prune removes the completed container record).
+func TestContainerInitSidecarArgGuard(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationVaultRole: "foobar",
+	}
+
+	pod := testPod(annotations)
+
+	agentConfig := AgentConfig{
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+	}
+
+	require.NoError(t, Init(pod, agentConfig))
+
+	agent, err := New(pod)
+	require.NoError(t, err)
+	require.NoError(t, agent.Validate())
+
+	container, err := agent.ContainerInitSidecar()
+	require.NoError(t, err)
+
+	if container.Args[0] != InitContainerArg {
+		t.Errorf("init container arg wrong: got %q, want %q", container.Args[0], InitContainerArg)
+	}
+
+	// Sidecar must still use the unguarded arg (it never exits).
+	sidecar, err := agent.ContainerSidecar()
+	require.NoError(t, err)
+	if sidecar.Args[0] != DefaultContainerArg {
+		t.Errorf("sidecar container arg wrong: got %q, want %q", sidecar.Args[0], DefaultContainerArg)
+	}
+}
+
+// TestContainerInitSidecarArgGuardConfigMap verifies the token-file guard is also
+// present on the ConfigMap-driven arg path of the init container.
+func TestContainerInitSidecarArgGuardConfigMap(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationAgentConfigMap:       "foobarConfigMap",
+		AnnotationVaultRole:            "foobar",
+		AnnotationAgentPrePopulate:     "true",
+		AnnotationAgentPrePopulateOnly: "true",
+	}
+
+	pod := testPod(annotations)
+
+	agentConfig := AgentConfig{
+		Image:              "foobar-image",
+		Address:            "http://foobar:1234",
+		AuthType:           DefaultVaultAuthType,
+		AuthPath:           "test",
+		Namespace:          "test",
+		UserID:             "1000",
+		GroupID:            "100",
+		SameID:             DefaultAgentRunAsSameUser,
+		SetSecurityContext: DefaultAgentSetSecurityContext,
+		DefaultTemplate:    "map",
+		ResourceRequestCPU: DefaultResourceRequestCPU,
+		ResourceRequestMem: DefaultResourceRequestMem,
+		ResourceLimitCPU:   DefaultResourceLimitCPU,
+		ResourceLimitMem:   DefaultResourceLimitMem,
+		ExitOnRetryFailure: DefaultTemplateConfigExitOnRetryFailure,
+	}
+
+	require.NoError(t, Init(pod, agentConfig))
+
+	agent, err := New(pod)
+	require.NoError(t, err)
+	require.NoError(t, agent.Validate())
+
+	container, err := agent.ContainerInitSidecar()
+	require.NoError(t, err)
+
+	expectedArg := fmt.Sprintf("%stouch %s && vault agent -config=%s/config-init.hcl",
+		initTokenFileGuard, TokenFile, configVolumePath)
+	if container.Args[0] != expectedArg {
+		t.Errorf("init container (configmap) arg wrong:\n got  %q\n want %q", container.Args[0], expectedArg)
+	}
 }
