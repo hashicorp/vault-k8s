@@ -19,6 +19,16 @@ const (
 	DefaultTemplateType = "map"
 	PidFile             = "/home/vault/.pid"
 	TokenFile           = "/home/vault/.vault-token"
+
+	// initTokenFileGuard is the shell prefix prepended to vault-agent-init startup
+	// commands. It exits 0 immediately if the token file already exists, making the
+	// init container idempotent against spurious kubelet restarts (e.g. after
+	// docker container prune removes the stopped container record from the node).
+	initTokenFileGuard = "[ -f " + TokenFile + " ] && exit 0; "
+
+	// InitContainerArg is the startup command for vault-agent-init. It wraps
+	// DefaultContainerArg with initTokenFileGuard.
+	InitContainerArg = initTokenFileGuard + DefaultContainerArg
 )
 
 // Config is the top level struct that composes a Vault Agent
