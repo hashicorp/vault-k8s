@@ -61,6 +61,7 @@ build: clean
 		.
 
 image: build
+	# --load required for Podman/buildx: exports image into local daemon store
 	docker build --load --build-arg VERSION=$(VERSION) --no-cache -t $(IMAGE_TAG) .
 
 # Deploys Vault dev server and a locally built Agent Injector.

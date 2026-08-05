@@ -113,7 +113,7 @@ jobs:
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
 
-  build-docker-ubi-redhat:
+  build-docker-ubi:
     name: Docker Build UBI Image for RedHat Registry
     needs:
       - get-product-version
