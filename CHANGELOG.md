@@ -1,4 +1,4 @@
-## 1.7.6 (August 5, 2026)
+## 1.7.6 (August 6, 2026)
 
 Changes:
 * Building with Go 1.26.5
