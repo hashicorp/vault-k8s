@@ -10,6 +10,20 @@ binary {
 	secrets {
 		all = true
 	}
+
+	triage {
+		suppress {
+			vulnerabilities = [
+				// GO-2026-5932: golang.org/x/crypto/openpgp is flagged as unmaintained
+				// and unsafe by design. There is no fixed version — the advisory covers
+				// all versions (introduced: 0, no fixed event). vault-k8s does not
+				// import openpgp directly; it is pulled in transitively but never
+				// called at runtime. Suppressed until upstream removes the package
+				// or a transitive dependency drops it.
+				"GO-2026-5932",
+			]
+		}
+	}
 }
 
 container {
