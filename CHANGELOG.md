@@ -1,7 +1,26 @@
-## Unreleased
+## 1.7.6 (August 6, 2026)
 
 Changes:
+* Building with Go 1.26.5
+* Default Vault version updated to 2.0.4
+* Test with Vault 2.0.4, 1.21.9, 1.20.14, 1.19.20
 * Build linux/ppc64le UBI images and publish to ICR and Red Hat catalog
+
+Dependency updates:
+* Build(deps): bump ubi8/ubi-minimal from 1781701189 to 1785302650
+* Build(deps): bump the gomod-backward-compatible group with 5 updates
+  * Updates github.com/go-logr/logr from 1.4.3 to 1.4.4
+  * Updates github.com/prometheus/client_golang from 1.23.2 to 1.24.1
+  * Updates k8s.io/api from 0.36.2 to 0.36.3
+  * Updates k8s.io/apimachinery from 0.36.2 to 0.36.3
+  * Updates k8s.io/client-go from 0.36.2 to 0.36.3
+* Security: upgrade Go toolchain 1.26.4 => 1.26.5 (fixes GO-2026-5856, GO-2026-4970)
+* CI: update GitHub Actions to latest versions
+  * actions/checkout v7.0.0 => v7.0.1
+  * actions/setup-go v6.5.0 => v7.0.0
+  * actions/setup-node v6.4.0 => v7.0.0
+  * actions/setup-python v6.3.0 => v7.0.0
+
 
 ## 1.7.5 (June 29, 2026)
 
