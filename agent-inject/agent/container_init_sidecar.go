@@ -9,6 +9,7 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 )
 
 // ContainerInitSidecar creates a new init container to be added
@@ -16,7 +17,7 @@ import (
 // be removed because an exit_after_auth environment variable is
 // available for the agent.  This means we won't need to generate
 // two config files.
-func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
+func (a *Agent) ContainerInitSidecar(nativeSidecar bool) (corev1.Container, error) {
 	volumeMounts := []corev1.VolumeMount{
 		{
 			Name:      tokenVolumeNameInit,
@@ -95,6 +96,10 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 	if a.SetSecurityContext {
 		newContainer.SecurityContext = a.securityContext()
 	}
+	if a.NativeSidecar {
+		newContainer.RestartPolicy = ptr.To(corev1.ContainerRestartPolicyAlways)
+		newContainer.StartupProbe = a.startupProbe()
+	}
 
 	// apply any JSON patch requested
 	if a.InitJsonPatch == "" {
@@ -119,4 +124,16 @@ func (a *Agent) ContainerInitSidecar() (corev1.Container, error) {
 		return newContainer, err
 	}
 	return newContainer, nil
+}
+
+func (a *Agent) startupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		ProbeHandler: corev1.ProbeHandler{
+			Exec: &corev1.ExecAction{
+				Command: []string{"/usr/bin/test", "-e", nativeSidecarFile},
+			},
+		},
+		InitialDelaySeconds: 5,
+		PeriodSeconds:       5,
+	}
 }
