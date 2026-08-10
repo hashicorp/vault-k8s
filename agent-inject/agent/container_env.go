@@ -165,6 +165,22 @@ func (a *Agent) ContainerEnvVars(init bool) ([]corev1.EnvVar, error) {
 		}
 	}
 
+	// Mirror pod container envs, but don't overwrite ones we added above,
+	// and no duplicates
+	if a.Pod != nil && a.Pod.Spec.Containers != nil {
+		for _, c := range a.Pod.Spec.Containers {
+		envVars:
+			for _, e := range c.Env {
+				for _, v := range envs {
+					if v.Name == e.Name {
+						continue envVars
+					}
+				}
+				envs = append(envs, *e.DeepCopy())
+			}
+		}
+	}
+
 	return envs, nil
 }
 
