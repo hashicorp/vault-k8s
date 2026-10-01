@@ -401,8 +401,14 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
-			// retry after a delay
-			timer.Reset(expBackoff.NextBackOff())
+			// retry after a delay; if the backoff has exceeded MaxElapsedTime,
+			// NextBackOff returns backoff.Stop (-1). timer.Reset(-1) would fire
+			// immediately causing a tight loop, so fall back to MaxInterval.
+			next := expBackoff.NextBackOff()
+			if next == backoff.Stop {
+				next = expBackoff.MaxInterval
+			}
+			timer.Reset(next)
 		} else {
 			expBackoff.Reset()
 			timer.Reset(defaultLoopTime)
