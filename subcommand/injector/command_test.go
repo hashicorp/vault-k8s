@@ -65,35 +65,19 @@ func TestTLSConfig(t *testing.T) {
 	}
 }
 
-// TestCertWatcherBackoffStop verifies that when the exponential backoff exceeds
-// MaxElapsedTime and NextBackOff() returns backoff.Stop (-1), the certWatcher
-// falls back to MaxInterval instead of calling timer.Reset(-1), which would
-// cause a tight loop producing a continuous stream of "Could not load TLS
-// keypair" warnings when the TLS cert is provided via source_disk and the file is not PEM format.
-func TestCertWatcherBackoffStop(t *testing.T) {
-	expBackoff := backoff.NewExponentialBackOff(
-		// Use a tiny MaxElapsedTime so the test exhausts the backoff quickly
-		// without actually waiting 15 minutes.
-		backoff.WithMaxElapsedTime(1*time.Millisecond),
-		backoff.WithInitialInterval(1*time.Millisecond),
-	)
+// TestCertWatcherBackoff verifies that configuring exponential backoff with
+// MaxElapsedTime = 0 never returns backoff.Stop (-1) and keeps retrying at
+// intervals bounded by MaxInterval, preventing tight loops when certificate updates fail.
+func TestCertWatcherBackoff(t *testing.T) {
+	expBackoff := backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(0))
 
-	// Drain the backoff until it returns Stop.
-	var next time.Duration
+	assert.Equal(t, backoff.DefaultInitialInterval, expBackoff.InitialInterval)
+	assert.Equal(t, time.Duration(0), expBackoff.MaxElapsedTime)
+
 	for i := 0; i < 100; i++ {
-		next = expBackoff.NextBackOff()
-		if next == backoff.Stop {
-			break
-		}
+		next := expBackoff.NextBackOff()
+		assert.NotEqual(t, backoff.Stop, next, "NextBackOff should never return backoff.Stop when MaxElapsedTime is 0")
+		assert.Positive(t, next, "retry interval must be positive to prevent tight loop")
+		assert.LessOrEqual(t, next, time.Duration(float64(expBackoff.MaxInterval)*(1+expBackoff.RandomizationFactor)))
 	}
-	assert.Equal(t, backoff.Stop, next, "expected backoff to be exhausted and return Stop")
-
-	// This is the fixed logic from certWatcher: fall back to MaxInterval
-	// instead of passing backoff.Stop (-1) directly to timer.Reset.
-	if next == backoff.Stop {
-		next = expBackoff.MaxInterval
-	}
-
-	assert.Positive(t, next, "retry interval must be positive after backoff.Stop; timer.Reset(-1) would cause a tight loop")
-	assert.Equal(t, expBackoff.MaxInterval, next, "retry interval should fall back to MaxInterval when backoff is exhausted")
 }
