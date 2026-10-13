@@ -4,16 +4,13 @@
 package injector
 
 import (
-	"context"
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
-
-	"github.com/cenkalti/backoff/v4"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/vault-k8s/helper/cert"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTLSConfig(t *testing.T) {
@@ -72,30 +69,17 @@ func TestTLSConfig(t *testing.T) {
 // MaxElapsedTime = 0 never returns backoff.Stop (-1) and keeps retrying at
 // intervals bounded by MaxInterval, preventing tight loops when certificate updates fail.
 func TestCertWatcherBackoff(t *testing.T) {
-	c := &Command{}
-	logger := hclog.NewNullLogger()
+	synctest.Test(t, func(t *testing.T) {
+		expBackoff := newCertWatcherBackoff()
+		// Sleeping for more than the default 15 minutes MaxElapsedTime and 1 hour (defaultLoopTime), 90 minutes of virtual time
+		time.Sleep(90 * time.Minute)
 
-	// Simulate invalid certificate bundle (e.g. non-PEM data on disk)
-	invalidBundle := cert.Bundle{
-		Cert: []byte("not-a-valid-pem-cert"),
-		Key:  []byte("not-a-valid-pem-key"),
-	}
-
-	// Verify updateCertificate fails on invalid keypair
-	err := c.updateCertificate(context.Background(), nil, invalidBundle, nil, nil, logger)
-	assert.Error(t, err, "expected updateCertificate to fail with invalid keypair")
-	assert.Contains(t, err.Error(), "tls: failed to find any PEM data")
-
-	// Verify exponential backoff configured with MaxElapsedTime = 0 never returns Stop on repeated failures
-	expBackoff := backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(0))
-	assert.Equal(t, time.Duration(0), expBackoff.MaxElapsedTime)
-
-	for i := 0; i < 100; i++ {
-		err = c.updateCertificate(context.Background(), nil, invalidBundle, nil, nil, logger)
-		assert.Error(t, err)
-
-		next := expBackoff.NextBackOff()
-		assert.NotEqual(t, backoff.Stop, next, "NextBackOff should never return backoff.Stop when MaxElapsedTime is 0")
-		assert.Positive(t, next, "retry interval must be positive to prevent tight loop")
-	}
+		// With WithMaxElapsedTime(0), NextBackOff() must still return a valid positive retry
+		// duration and NOT backoff.Stop (-1), even after 1 hour of elapsed time.
+		for i := 0; i < 100; i++ {
+			next := expBackoff.NextBackOff()
+			assert.NotEqual(t, backoff.Stop, next, "NextBackOff should never return backoff.Stop when MaxElapsedTime is 0")
+			assert.Positive(t, next, "retry interval must be positive to prevent tight loop")
+		}
+	})
 }
