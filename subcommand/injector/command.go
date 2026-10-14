@@ -360,6 +360,10 @@ func getAdminAPIVersion(ctx context.Context, clientset *kubernetes.Clientset) (s
 	return adminAPIVersion, err
 }
 
+func newCertWatcherBackoff() *backoff.ExponentialBackOff {
+    return backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(0))
+}
+
 func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, clientset *kubernetes.Clientset, leaderElector leader.Elector, log hclog.Logger) {
 	var bundle cert.Bundle
 	webhooksCache, webhooksWatcher, err := watchWebhooks(ctx, clientset)
@@ -370,7 +374,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 	defaultLoopTime := 1 * time.Hour // update after this amount of time even if nothing has happened
 	timer := time.NewTimer(defaultLoopTime)
-	expBackoff := backoff.NewExponentialBackOff()
+	expBackoff := newCertWatcherBackoff()
 
 	for {
 		select {
@@ -401,7 +405,7 @@ func (c *Command) certWatcher(ctx context.Context, ch <-chan cert.Bundle, client
 
 		err := c.updateCertificate(ctx, clientset, bundle, webhooksCache, leaderElector, log)
 		if err != nil {
-			// retry after a delay
+			// retry after an exponentially increasing delay, capped at MaxInterval
 			timer.Reset(expBackoff.NextBackOff())
 		} else {
 			expBackoff.Reset()

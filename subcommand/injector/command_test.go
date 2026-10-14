@@ -1,14 +1,16 @@
-// Copyright IBM Corp. 2019, 2025
+// Copyright IBM Corp. 2019, 2026
 // SPDX-License-Identifier: MPL-2.0
 
 package injector
 
 import (
 	"fmt"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"testing/synctest"
+	"time"
 )
 
 func TestTLSConfig(t *testing.T) {
@@ -61,4 +63,23 @@ func TestTLSConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCertWatcherBackoff verifies that configuring exponential backoff with
+// MaxElapsedTime = 0 never returns backoff.Stop (-1) and keeps retrying at
+// intervals bounded by MaxInterval, preventing tight loops when certificate updates fail.
+func TestCertWatcherBackoff(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		expBackoff := newCertWatcherBackoff()
+		// Sleeping for more than the default 15 minutes MaxElapsedTime and 1 hour (defaultLoopTime), 90 minutes of virtual time
+		time.Sleep(90 * time.Minute)
+
+		// With WithMaxElapsedTime(0), NextBackOff() must still return a valid positive retry
+		// duration and NOT backoff.Stop (-1), even after 1 hour of elapsed time.
+		for i := 0; i < 100; i++ {
+			next := expBackoff.NextBackOff()
+			assert.NotEqual(t, backoff.Stop, next, "NextBackOff should never return backoff.Stop when MaxElapsedTime is 0")
+			assert.Positive(t, next, "retry interval must be positive to prevent tight loop")
+		}
+	})
 }
