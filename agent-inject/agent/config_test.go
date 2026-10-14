@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestNewConfig(t *testing.T) {
@@ -511,6 +512,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 	tests := []struct {
 		name              string
 		annotations       map[string]string
+		volumes           []corev1.Volume
 		expectedInitCache bool
 		expectedCache     *Cache
 		expectedListeners []*Listener
@@ -560,6 +562,45 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 			},
 		},
 		{
+			name: "service account token volume",
+			annotations: map[string]string{
+				AnnotationAgentCacheEnable:                   "true",
+				AnnotationAgentServiceAccountTokenVolumeName: "vault-token",
+			},
+			volumes: []corev1.Volume{
+				{
+					Name: "vault-token",
+					VolumeSource: corev1.VolumeSource{
+						Projected: &corev1.ProjectedVolumeSource{
+							Sources: []corev1.VolumeProjection{
+								{
+									ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+										Path: "token",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedInitCache: true,
+			expectedCache: &Cache{
+				UseAutoAuthToken: "true",
+				Persist: &CachePersist{
+					Type:                    "kubernetes",
+					Path:                    "/vault/agent-cache",
+					ServiceAccountTokenFile: "/var/run/secrets/vault.hashicorp.com/serviceaccount/token",
+				},
+			},
+			expectedListeners: []*Listener{
+				{
+					Type:       "tcp",
+					Address:    "127.0.0.1:8200",
+					TLSDisable: true,
+				},
+			},
+		},
+		{
 			name: "just memory cache when only sidecar",
 			annotations: map[string]string{
 				AnnotationAgentCacheEnable: "true",
@@ -592,6 +633,7 @@ func TestConfigVaultAgentCache_persistent(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pod := testPod(tt.annotations)
+			pod.Spec.Volumes = append(pod.Spec.Volumes, tt.volumes...)
 
 			agentConfig := basicAgentConfig()
 			err := Init(pod, agentConfig)

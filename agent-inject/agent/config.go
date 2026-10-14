@@ -285,14 +285,24 @@ func (a *Agent) newConfig(init bool) ([]byte, error) {
 
 	cacheListener := makeCacheListener(a.VaultAgentCache.ListenerPort)
 	if a.VaultAgentCache.Persist {
+		persist := &CachePersist{
+			Type:      "kubernetes",
+			Path:      cacheVolumePath,
+			ExitOnErr: a.VaultAgentCache.ExitOnErr,
+		}
+		// The persistent cache reads the service account token from the default
+		// Kubernetes path unless told otherwise, so point it at the same token as
+		// auto-auth when that comes from a named volume.
+		if a.Annotations[AnnotationAgentServiceAccountTokenVolumeName] != "" &&
+			a.ServiceAccountTokenVolume != nil &&
+			a.ServiceAccountTokenVolume.MountPath != "" &&
+			a.ServiceAccountTokenVolume.TokenPath != "" {
+			persist.ServiceAccountTokenFile = path.Join(a.ServiceAccountTokenVolume.MountPath, a.ServiceAccountTokenVolume.TokenPath)
+		}
 		config.Listener = cacheListener
 		config.Cache = &Cache{
 			UseAutoAuthToken: a.VaultAgentCache.UseAutoAuthToken,
-			Persist: &CachePersist{
-				Type:      "kubernetes",
-				Path:      cacheVolumePath,
-				ExitOnErr: a.VaultAgentCache.ExitOnErr,
-			},
+			Persist:          persist,
 		}
 	} else if a.VaultAgentCache.Enable && !a.PrePopulateOnly && !init {
 		config.Listener = cacheListener
