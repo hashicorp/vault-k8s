@@ -1,3 +1,29 @@
+## 1.7.7 (October 27, 2026)
+
+Changes:
+* Building with Go 1.27.3
+* Default Vault version updated to 2.2.1
+* Test with Vault 2.2.1, 1.21.13, 1.20.17, 1.19.24
+* Test with Kind v0.33.0
+* Test with K8s 1.37.0, 1.36.4, 1.35.8, 1.34.11, 1.33.12
+
+Bug Fixes:
+* Fix certWatcher tight loop when certificate update backoff is exhausted [GH-904](https://github.com/hashicorp/vault-k8s/pull/904)
+
+Dependency updates:
+* container image `alpine` 3.24.1 => 3.24.3 (fixes ALPINE-CVE-2026-85091 in zlib)
+* container image `ubi8/ubi-minimal` 1785302650 => 1792742899
+* github.com/hashicorp/vault/sdk v0.25.1 => v0.26.0
+* github.com/prometheus/client_golang v1.24.1 => v1.25.0
+* github.com/stretchr/testify v1.11.1 => v1.12.1
+* k8s.io/api v0.36.3 => v0.37.1
+* k8s.io/apimachinery v0.36.3 => v0.37.1
+* k8s.io/client-go v0.36.3 => v0.37.1
+* k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 => v0.0.0-20260626114624-be93311217bd
+* sigs.k8s.io/controller-runtime v0.24.1 => v0.25.2
+* CI: update GitHub Actions to latest versions
+  * actions/upload-artifact v7.0.1 => v7.0.2
+
 ## 1.7.6 (August 6, 2026)
 
 Changes:
