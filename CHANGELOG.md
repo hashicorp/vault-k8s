@@ -1,4 +1,4 @@
-## 1.7.7 (October 26, 2026)
+## 1.7.7 (October 27, 2026)
 
 Changes:
 * Building with Go 1.27.3
