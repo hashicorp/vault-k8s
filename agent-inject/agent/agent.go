@@ -188,6 +188,9 @@ type Agent struct {
 
 	// AutoAuthExitOnError is used to control if a failure in the auto_auth method will cause the agent to exit or try indefinitely (the default).
 	AutoAuthExitOnError bool
+
+	// NoBaseEnvVars controls whether the agent will inject the basic environment variables NAMESPACE, HOST_IP and POD_IP.
+	NoBaseEnvVars bool
 }
 
 type ServiceAccountTokenVolume struct {
@@ -373,6 +376,11 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		iamName, iamPath = getAwsIamTokenVolume(pod)
 	}
 
+	noBaseEnvVars := false
+	if pod.Annotations[AnnotationAgentNoBaseEnvVars] == "true" {
+		noBaseEnvVars = true
+	}
+
 	agent := &Agent{
 		Annotations:               pod.Annotations,
 		ConfigMapName:             pod.Annotations[AnnotationAgentConfigMap],
@@ -395,6 +403,7 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		AwsIamTokenAccountPath:    iamPath,
 		JsonPatch:                 pod.Annotations[AnnotationAgentJsonPatch],
 		InitJsonPatch:             pod.Annotations[AnnotationAgentInitJsonPatch],
+		NoBaseEnvVars:             noBaseEnvVars,
 		Vault: Vault{
 			Address:          pod.Annotations[AnnotationVaultService],
 			ProxyAddress:     pod.Annotations[AnnotationProxyAddress],
