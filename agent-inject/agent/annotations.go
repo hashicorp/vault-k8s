@@ -367,6 +367,8 @@ type AgentConfig struct {
 	ResourceLimitCPU           string
 	ResourceLimitMem           string
 	ResourceLimitEphemeral     string
+	DefaultLogLevel            string
+	DefaultLogFormat           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	MaxConnectionsPerHost      int64
@@ -477,11 +479,19 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogLevel]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = DefaultAgentLogLevel
+		defaultLogLevel := cfg.DefaultLogLevel
+		if defaultLogLevel == "" {
+			defaultLogLevel = DefaultAgentLogLevel
+		}
+		pod.ObjectMeta.Annotations[AnnotationVaultLogLevel] = defaultLogLevel
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationVaultLogFormat]; !ok {
-		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = DefaultAgentLogFormat
+		defaultLogFormat := cfg.DefaultLogFormat
+		if defaultLogFormat == "" {
+			defaultLogFormat = DefaultAgentLogFormat
+		}
+		pod.ObjectMeta.Annotations[AnnotationVaultLogFormat] = defaultLogFormat
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentServiceAccountTokenVolumeName]; !ok {

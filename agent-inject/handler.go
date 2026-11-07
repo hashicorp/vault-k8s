@@ -71,6 +71,8 @@ type Handler struct {
 	ResourceLimitCPU           string
 	ResourceLimitMem           string
 	ResourceLimitEphemeral     string
+	DefaultLogLevel            string
+	DefaultLogFormat           string
 	ExitOnRetryFailure         bool
 	StaticSecretRenderInterval string
 	MaxConnectionsPerHost      int64
@@ -242,6 +244,8 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) MutateResponse {
 		ResourceLimitCPU:           h.ResourceLimitCPU,
 		ResourceLimitMem:           h.ResourceLimitMem,
 		ResourceLimitEphemeral:     h.ResourceLimitEphemeral,
+		DefaultLogLevel:            h.DefaultLogLevel,
+		DefaultLogFormat:           h.DefaultLogFormat,
 		ExitOnRetryFailure:         h.ExitOnRetryFailure,
 		StaticSecretRenderInterval: h.StaticSecretRenderInterval,
 		MaxConnectionsPerHost:      h.MaxConnectionsPerHost,

@@ -107,6 +107,29 @@ func TestCommandLogLevel(t *testing.T) {
 	}
 }
 
+func TestCommandAgentLogFlags(t *testing.T) {
+	var cmd Command
+	cmd.init()
+
+	if cmd.flagAgentLogLevel != "info" {
+		t.Errorf("wrong default agent log level: got %q, expected %q", cmd.flagAgentLogLevel, "info")
+	}
+	if cmd.flagAgentLogFormat != "standard" {
+		t.Errorf("wrong default agent log format: got %q, expected %q", cmd.flagAgentLogFormat, "standard")
+	}
+
+	if err := cmd.flagSet.Parse([]string{"-agent-log-level", "debug", "-agent-log-format", "json"}); err != nil {
+		t.Fatalf("got error parsing flags, shouldn't have: %s", err)
+	}
+
+	if cmd.flagAgentLogLevel != "debug" {
+		t.Errorf("agent log level flag wasn't parsed: got %q, expected %q", cmd.flagAgentLogLevel, "debug")
+	}
+	if cmd.flagAgentLogFormat != "json" {
+		t.Errorf("agent log format flag wasn't parsed: got %q, expected %q", cmd.flagAgentLogFormat, "json")
+	}
+}
+
 func TestCommandEnvs(t *testing.T) {
 	var cmd Command
 	tests := []struct {
@@ -128,6 +151,8 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_TLS_AUTO", value: "mutationWebhook", cmdPtr: &cmd.flagAutoName},
 		{env: "AGENT_INJECT_LOG_LEVEL", value: "info", cmdPtr: &cmd.flagLogLevel},
 		{env: "AGENT_INJECT_LOG_FORMAT", value: "standard", cmdPtr: &cmd.flagLogFormat},
+		{env: "AGENT_INJECT_AGENT_LOG_LEVEL", value: "debug", cmdPtr: &cmd.flagAgentLogLevel},
+		{env: "AGENT_INJECT_AGENT_LOG_FORMAT", value: "json", cmdPtr: &cmd.flagAgentLogFormat},
 		{env: "AGENT_INJECT_RUN_AS_USER", value: "1000", cmdPtr: &cmd.flagRunAsUser},
 		{env: "AGENT_INJECT_RUN_AS_GROUP", value: "1001", cmdPtr: &cmd.flagRunAsGroup},
 		{env: "AGENT_INJECT_TELEMETRY_PATH", value: "/metrics", cmdPtr: &cmd.flagTelemetryPath},

@@ -48,6 +48,8 @@ type Command struct {
 	flagListen                     string   // Address of Vault Server
 	flagLogLevel                   string   // Log verbosity
 	flagLogFormat                  string   // Log format
+	flagAgentLogLevel              string   // Default log level for injected Vault Agent containers
+	flagAgentLogFormat             string   // Default log format for injected Vault Agent containers
 	flagCACertFile                 string   // TLS CA Certificate to serve
 	flagCertFile                   string   // TLS Certificate to serve
 	flagKeyFile                    string   // TLS private key to serve
@@ -220,6 +222,8 @@ func (c *Command) Run(args []string) int {
 		ResourceLimitCPU:           c.flagResourceLimitCPU,
 		ResourceLimitMem:           c.flagResourceLimitMem,
 		ResourceLimitEphemeral:     c.flagResourceLimitEphemeral,
+		DefaultLogLevel:            c.flagAgentLogLevel,
+		DefaultLogFormat:           c.flagAgentLogFormat,
 		ExitOnRetryFailure:         c.flagExitOnRetryFailure,
 		StaticSecretRenderInterval: c.flagStaticSecretRenderInterval,
 		MaxConnectionsPerHost:      c.flagMaxConnectionsPerHost,
