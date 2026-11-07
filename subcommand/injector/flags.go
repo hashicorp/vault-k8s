@@ -38,6 +38,12 @@ type Specification struct {
 	// LogFormat is the AGENT_INJECT_LOG_FORMAT environment variable
 	LogFormat string `split_words:"true"`
 
+	// AgentLogLevel is the AGENT_INJECT_AGENT_LOG_LEVEL environment variable.
+	AgentLogLevel string `split_words:"true"`
+
+	// AgentLogFormat is the AGENT_INJECT_AGENT_LOG_FORMAT environment variable.
+	AgentLogFormat string `split_words:"true"`
+
 	// TemplateConfigExitOnRetryFailure is the
 	// AGENT_INJECT_TEMPLATE_CONFIG_EXIT_ON_RETRY_FAILURE environment variable.
 	TemplateConfigExitOnRetryFailure string `split_words:"true"`
@@ -161,6 +167,13 @@ func (c *Command) init() {
 		`(in order of detail) are "trace", "debug", "info", "warn", and "err".`)
 	c.flagSet.StringVar(&c.flagLogFormat, "log-format", DefaultLogFormat, "Log output format. "+
 		`Supported log formats: "standard", "json".`)
+	c.flagSet.StringVar(&c.flagAgentLogLevel, "agent-log-level", agent.DefaultAgentLogLevel,
+		"Default log level for injected Vault Agent containers. Supported values "+
+			`(in order of detail) are "trace", "debug", "info", "warn", and "err". `+
+			"This can be overridden per pod with the vault.hashicorp.com/log-level annotation.")
+	c.flagSet.StringVar(&c.flagAgentLogFormat, "agent-log-format", agent.DefaultAgentLogFormat,
+		`Default log format for injected Vault Agent containers. Supported log formats: "standard", "json". `+
+			"This can be overridden per pod with the vault.hashicorp.com/log-format annotation.")
 	c.flagSet.BoolVar(&c.flagExitOnRetryFailure, "template-config-exit-on-retry-failure", agent.DefaultTemplateConfigExitOnRetryFailure,
 		fmt.Sprintf("Value for Agent's template_config.exit_on_retry_failure. Defaults to %t.", agent.DefaultTemplateConfigExitOnRetryFailure))
 	c.flagSet.StringVar(&c.flagStaticSecretRenderInterval, "template-static-secret-render-interval", "",
@@ -282,6 +295,14 @@ func (c *Command) parseEnvs() error {
 
 	if envs.LogFormat != "" {
 		c.flagLogFormat = envs.LogFormat
+	}
+
+	if envs.AgentLogLevel != "" {
+		c.flagAgentLogLevel = envs.AgentLogLevel
+	}
+
+	if envs.AgentLogFormat != "" {
+		c.flagAgentLogFormat = envs.AgentLogFormat
 	}
 
 	if envs.TemplateConfigExitOnRetryFailure != "" {

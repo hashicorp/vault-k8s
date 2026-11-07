@@ -76,6 +76,47 @@ func TestInitCanSet(t *testing.T) {
 	}
 }
 
+func TestInitAgentLogDefaults(t *testing.T) {
+	annotations := make(map[string]string)
+	pod := testPod(annotations)
+
+	agentConfig := basicAgentConfig()
+	agentConfig.DefaultLogLevel = "debug"
+	agentConfig.DefaultLogFormat = "json"
+
+	err := Init(pod, agentConfig)
+	require.NoError(t, err)
+	assert.Equal(t, "debug", pod.Annotations[AnnotationVaultLogLevel])
+	assert.Equal(t, "json", pod.Annotations[AnnotationVaultLogFormat])
+}
+
+func TestInitAgentLogDefaultFallback(t *testing.T) {
+	annotations := make(map[string]string)
+	pod := testPod(annotations)
+
+	err := Init(pod, basicAgentConfig())
+	require.NoError(t, err)
+	assert.Equal(t, DefaultAgentLogLevel, pod.Annotations[AnnotationVaultLogLevel])
+	assert.Equal(t, DefaultAgentLogFormat, pod.Annotations[AnnotationVaultLogFormat])
+}
+
+func TestInitAgentLogAnnotationsOverrideDefaults(t *testing.T) {
+	annotations := map[string]string{
+		AnnotationVaultLogLevel:  "warn",
+		AnnotationVaultLogFormat: "standard",
+	}
+	pod := testPod(annotations)
+
+	agentConfig := basicAgentConfig()
+	agentConfig.DefaultLogLevel = "debug"
+	agentConfig.DefaultLogFormat = "json"
+
+	err := Init(pod, agentConfig)
+	require.NoError(t, err)
+	assert.Equal(t, "warn", pod.Annotations[AnnotationVaultLogLevel])
+	assert.Equal(t, "standard", pod.Annotations[AnnotationVaultLogFormat])
+}
+
 func TestInitDefaults(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)
