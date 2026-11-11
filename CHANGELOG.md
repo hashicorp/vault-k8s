@@ -1,3 +1,8 @@
+## Unreleased
+
+Improvements:
+* Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`.
+
 ## 1.7.7 (October 27, 2026)
 
 Changes:

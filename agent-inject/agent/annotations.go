@@ -110,6 +110,8 @@ const (
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
+	AnnotationAgentBinary = "vault.hashicorp.com/agent-binary"
+
 	// AnnotationAgentRequestNamespace is the Kubernetes namespace where the request
 	// originated from.
 	AnnotationAgentRequestNamespace = "vault.hashicorp.com/agent-request-namespace"
@@ -348,6 +350,7 @@ const (
 
 type AgentConfig struct {
 	Image                      string
+	Binary                     string
 	Address                    string
 	AuthType                   string
 	AuthPath                   string
@@ -434,6 +437,12 @@ func Init(pod *corev1.Pod, cfg AgentConfig) error {
 			cfg.Image = DefaultVaultImage
 		}
 		pod.ObjectMeta.Annotations[AnnotationAgentImage] = cfg.Image
+	}
+	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentBinary]; !ok {
+		if cfg.Binary == "" {
+			cfg.Binary = DefaultVaultBinary
+		}
+		pod.ObjectMeta.Annotations[AnnotationAgentBinary] = cfg.Binary
 	}
 
 	if _, ok := pod.ObjectMeta.Annotations[AnnotationAgentRequestNamespace]; !ok {

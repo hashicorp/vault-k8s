@@ -61,6 +61,7 @@ type Command struct {
 	flagVaultCACertBytes           string   // CA Cert to trust for TLS with Vault.
 	flagProxyAddress               string   // HTTP proxy address used to talk to the Vault service
 	flagVaultImage                 string   // Name of the Vault Image to use
+	flagVaultBinary                string
 	flagVaultAuthType              string   // Type of Vault Auth Method to use
 	flagVaultAuthPath              string   // Mount path of the Vault Auth Method
 	flagVaultNamespace             string   // Vault enterprise namespace
@@ -108,6 +109,10 @@ func (c *Command) Run(args []string) int {
 
 	if c.flagVaultService == "" {
 		c.UI.Error("No Vault service configured")
+		return 1
+	}
+	if c.flagVaultBinary != "vault" && c.flagVaultBinary != "vault-client" {
+		c.UI.Error(fmt.Sprintf("Invalid agent binary %q: must be vault or vault-client", c.flagVaultBinary))
 		return 1
 	}
 
@@ -205,6 +210,7 @@ func (c *Command) Run(args []string) int {
 		VaultNamespace:             c.flagVaultNamespace,
 		ProxyAddress:               c.flagProxyAddress,
 		ImageVault:                 c.flagVaultImage,
+		BinaryVault:                c.flagVaultBinary,
 		Clientset:                  clientset,
 		RequireAnnotation:          true,
 		Log:                        logger,
