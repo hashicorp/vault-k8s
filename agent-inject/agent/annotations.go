@@ -110,6 +110,8 @@ const (
 	// AnnotationAgentImage is the name of the Vault docker image to use.
 	AnnotationAgentImage = "vault.hashicorp.com/agent-image"
 
+	// AnnotationAgentBinary selects the executable used to run the injected Agent.
+	// Supported values are "vault" and "vault-client"; defaults to "vault".
 	AnnotationAgentBinary = "vault.hashicorp.com/agent-binary"
 
 	// AnnotationAgentRequestNamespace is the Kubernetes namespace where the request
