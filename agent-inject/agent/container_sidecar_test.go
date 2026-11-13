@@ -19,6 +19,55 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 )
 
+func TestAgentBinaryCommands(t *testing.T) {
+	for _, binary := range []string{"", "vault", "vault-client"} {
+		for _, configMap := range []string{"", "agent-config"} {
+			t.Run(fmt.Sprintf("binary=%s/configMap=%s", binary, configMap), func(t *testing.T) {
+				annotations := map[string]string{
+					AnnotationVaultRole:      "foobar",
+					AnnotationAgentConfigMap: configMap,
+				}
+				if binary != "" {
+					annotations[AnnotationAgentBinary] = binary
+				}
+				pod := testPod(annotations)
+				require.NoError(t, Init(pod, basicAgentConfig()))
+				agent, err := New(pod)
+				require.NoError(t, err)
+				require.NoError(t, agent.Validate())
+				wantBinary := binary
+				if wantBinary == "" {
+					wantBinary = "vault"
+				}
+				for _, init := range []bool{false, true} {
+					var container corev1.Container
+					if init {
+						container, err = agent.ContainerInitSidecar()
+					} else {
+						container, err = agent.ContainerSidecar()
+					}
+					require.NoError(t, err)
+					want := fmt.Sprintf("echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && %s agent -config=/home/vault/config.json", wantBinary)
+					if configMap != "" {
+						config := "config.hcl"
+						if init {
+							config = "config-init.hcl"
+						}
+						want = fmt.Sprintf("touch %s && %s agent -config=%s/%s", TokenFile, wantBinary, configVolumePath, config)
+					}
+					assert.Equal(t, []string{"/bin/sh", "-ec"}, container.Command)
+					assert.Equal(t, []string{want}, container.Args)
+					if init {
+						assert.Nil(t, container.Lifecycle)
+					} else {
+						assert.Equal(t, []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep 5 && /bin/%s token revoke -address=http://foobar:8200 -self", wantBinary)}, container.Lifecycle.PreStop.Exec.Command)
+					}
+				}
+			})
+		}
+	}
+}
+
 func TestContainerSidecarVolume(t *testing.T) {
 	annotations := map[string]string{
 		AnnotationVaultRole: "foobar",
