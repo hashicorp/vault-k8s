@@ -739,6 +739,11 @@ func (a *Agent) Patch() ([]byte, error) {
 	return nil, nil
 }
 
+// IsInvalidBinary reports whether binary is not a supported Vault executable name.
+func IsInvalidBinary(binary string) bool {
+	return binary != DefaultVaultBinary && binary != "vault-client"
+}
+
 // Validate the instance of Agent to ensure we have everything needed
 // for basic functionality.
 func (a *Agent) Validate() error {
@@ -756,7 +761,7 @@ func (a *Agent) Validate() error {
 	if a.ImageName == "" {
 		return errors.New("no Vault image found")
 	}
-	if a.binary() != "vault" && a.binary() != "vault-client" {
+	if IsInvalidBinary(a.binary()) {
 		return fmt.Errorf("invalid agent binary %q: must be vault or vault-client", a.Binary)
 	}
 

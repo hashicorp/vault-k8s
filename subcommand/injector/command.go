@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/tlsutil"
 	agentInject "github.com/hashicorp/vault-k8s/agent-inject"
+	"github.com/hashicorp/vault-k8s/agent-inject/agent"
 	"github.com/hashicorp/vault-k8s/helper/cert"
 	"github.com/hashicorp/vault-k8s/leader"
 	"github.com/hashicorp/vault-k8s/version"
@@ -111,7 +112,7 @@ func (c *Command) Run(args []string) int {
 		c.UI.Error("No Vault service configured")
 		return 1
 	}
-	if c.flagVaultBinary != "vault" && c.flagVaultBinary != "vault-client" {
+	if agent.IsInvalidBinary(c.flagVaultBinary) {
 		c.UI.Error(fmt.Sprintf("Invalid agent binary %q: must be vault or vault-client", c.flagVaultBinary))
 		return 1
 	}
