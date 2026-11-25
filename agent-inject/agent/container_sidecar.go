@@ -20,7 +20,9 @@ const (
 	DefaultResourceLimitMem   = "128Mi"
 	DefaultResourceRequestCPU = "250m"
 	DefaultResourceRequestMem = "64Mi"
-	DefaultContainerArg       = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && vault agent -config=/home/vault/config.json"
+	defaultContainerArgPrefix = "echo ${VAULT_CONFIG?} | base64 -d > /home/vault/config.json && "
+	defaultContainerArgSuffix = " agent -config=/home/vault/config.json"
+	DefaultContainerArg       = defaultContainerArgPrefix + DefaultVaultBinary + defaultContainerArgSuffix
 	DefaultRevokeGrace        = 5
 	DefaultAgentLogLevel      = "info"
 	DefaultAgentLogFormat     = "standard"
@@ -62,7 +64,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 		volumeMounts = append(volumeMounts, a.copyVolumeMounts(a.CopyVolumeMounts)...)
 	}
 
-	arg := DefaultContainerArg
+	arg := defaultContainerArgPrefix + a.binary() + defaultContainerArgSuffix
 
 	if a.ConfigMapName != "" {
 		volumeMounts = append(volumeMounts, corev1.VolumeMount{
@@ -70,7 +72,7 @@ func (a *Agent) ContainerSidecar() (corev1.Container, error) {
 			MountPath: configVolumePath,
 			ReadOnly:  true,
 		})
-		arg = fmt.Sprintf("touch %s && vault agent -config=%s/config.hcl", TokenFile, configVolumePath)
+		arg = fmt.Sprintf("touch %s && %s agent -config=%s/config.hcl", TokenFile, a.binary(), configVolumePath)
 	}
 
 	if a.Vault.TLSSecret != "" {
@@ -209,6 +211,13 @@ func parseQuantity(raw string) (resource.Quantity, error) {
 	return resource.ParseQuantity(raw)
 }
 
+func (a *Agent) binary() string {
+	if a.Binary == "" {
+		return DefaultVaultBinary
+	}
+	return a.Binary
+}
+
 // This should only be run for a sidecar container
 func (a *Agent) createLifecycle() corev1.Lifecycle {
 	lifecycle := corev1.Lifecycle{}
@@ -219,7 +228,7 @@ func (a *Agent) createLifecycle() corev1.Lifecycle {
 
 		lifecycle.PreStop = &corev1.LifecycleHandler{
 			Exec: &corev1.ExecAction{
-				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/vault token revoke %s", a.RevokeGrace, strings.Join(flags[:], " "))},
+				Command: []string{"/bin/sh", "-c", fmt.Sprintf("/bin/sleep %d && /bin/%s token revoke %s", a.RevokeGrace, a.binary(), strings.Join(flags[:], " "))},
 			},
 		}
 	}

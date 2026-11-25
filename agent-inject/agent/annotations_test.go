@@ -43,6 +43,36 @@ func basicAgentConfig() AgentConfig {
 	}
 }
 
+func TestAgentBinaryConfiguration(t *testing.T) {
+	for _, defaultBinary := range []string{"", "vault", "vault-client", "invalid"} {
+		for _, override := range []string{"unset", "", "vault", "vault-client", "invalid", "vault; echo unsafe", "/bin/vault-client"} {
+			t.Run(fmt.Sprintf("default=%s/override=%s", defaultBinary, override), func(t *testing.T) {
+				annotations := map[string]string{AnnotationVaultRole: "foobar"}
+				want := defaultBinary
+				if want == "" {
+					want = DefaultVaultBinary
+				}
+				if override != "unset" {
+					annotations[AnnotationAgentBinary] = override
+					want = override
+				}
+				pod := testPod(annotations)
+				cfg := basicAgentConfig()
+				cfg.Binary = defaultBinary
+				require.NoError(t, Init(pod, cfg))
+				agent, err := New(pod)
+				require.NoError(t, err)
+				assert.Equal(t, want, agent.Binary)
+				if want == "" || want == "vault" || want == "vault-client" {
+					require.NoError(t, agent.Validate())
+				} else {
+					require.ErrorContains(t, agent.Validate(), "invalid agent binary")
+				}
+			})
+		}
+	}
+}
+
 func TestInitCanSet(t *testing.T) {
 	annotations := make(map[string]string)
 	pod := testPod(annotations)

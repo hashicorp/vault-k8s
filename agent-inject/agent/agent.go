@@ -18,6 +18,7 @@ import (
 
 const (
 	DefaultVaultImage                       = "hashicorp/vault:2.2.1"
+	DefaultVaultBinary                      = "vault"
 	DefaultVaultAuthType                    = "kubernetes"
 	DefaultVaultAuthPath                    = "auth/kubernetes"
 	DefaultAgentRunAsUser                   = 100
@@ -53,6 +54,7 @@ type Agent struct {
 	// ImageName is the name of the Vault image to use for the
 	// sidecar container.
 	ImageName string
+	Binary    string
 
 	// Containers determine which containers should be injected
 	Containers []string
@@ -377,6 +379,7 @@ func New(pod *corev1.Pod) (*Agent, error) {
 		Annotations:               pod.Annotations,
 		ConfigMapName:             pod.Annotations[AnnotationAgentConfigMap],
 		ImageName:                 pod.Annotations[AnnotationAgentImage],
+		Binary:                    pod.Annotations[AnnotationAgentBinary],
 		DefaultTemplate:           pod.Annotations[AnnotationAgentInjectDefaultTemplate],
 		LimitsCPU:                 pod.Annotations[AnnotationAgentLimitsCPU],
 		LimitsMem:                 pod.Annotations[AnnotationAgentLimitsMem],
@@ -736,6 +739,11 @@ func (a *Agent) Patch() ([]byte, error) {
 	return nil, nil
 }
 
+// IsInvalidBinary reports whether binary is not a supported Vault executable name.
+func IsInvalidBinary(binary string) bool {
+	return binary != DefaultVaultBinary && binary != "vault-client"
+}
+
 // Validate the instance of Agent to ensure we have everything needed
 // for basic functionality.
 func (a *Agent) Validate() error {
@@ -752,6 +760,9 @@ func (a *Agent) Validate() error {
 
 	if a.ImageName == "" {
 		return errors.New("no Vault image found")
+	}
+	if IsInvalidBinary(a.binary()) {
+		return fmt.Errorf("invalid agent binary %q: must be vault or vault-client", a.Binary)
 	}
 
 	if a.ConfigMapName == "" {

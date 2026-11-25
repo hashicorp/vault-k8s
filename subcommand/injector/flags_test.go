@@ -9,7 +9,56 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
+
+func TestCommandRejectsInvalidVaultBinary(t *testing.T) {
+	for _, binary := range []string{"", "invalid", "/bin/vault-client", "vault; echo unsafe"} {
+		t.Run(binary, func(t *testing.T) {
+			t.Setenv("AGENT_INJECT_VAULT_BINARY", "")
+			ui := cli.NewMockUi()
+			cmd := Command{UI: ui}
+			require.Equal(t, 1, cmd.Run([]string{"-vault-address=http://vault:8200", "-vault-binary=" + binary}))
+			require.Contains(t, ui.ErrorWriter.String(), "Invalid agent binary")
+		})
+	}
+	t.Run("environment", func(t *testing.T) {
+		t.Setenv("AGENT_INJECT_VAULT_BINARY", "invalid")
+		ui := cli.NewMockUi()
+		cmd := Command{UI: ui}
+		require.Equal(t, 1, cmd.Run([]string{"-vault-address=http://vault:8200"}))
+		require.Contains(t, ui.ErrorWriter.String(), "Invalid agent binary")
+	})
+}
+
+func TestCommandVaultBinary(t *testing.T) {
+	for _, binary := range []string{"", "vault", "vault-client"} {
+		t.Run(binary, func(t *testing.T) {
+			var cmd Command
+			cmd.init()
+			args := []string{}
+			want := "vault"
+			if binary != "" {
+				args = append(args, "-vault-binary="+binary)
+				want = binary
+			}
+			if err := cmd.flagSet.Parse(args); err != nil {
+				t.Fatal(err)
+			}
+			if cmd.flagVaultBinary != want {
+				t.Fatalf("got binary %q, want %q", cmd.flagVaultBinary, want)
+			}
+			t.Setenv("AGENT_INJECT_VAULT_BINARY", "vault-client")
+			if err := cmd.parseEnvs(); err != nil {
+				t.Fatal(err)
+			}
+			if cmd.flagVaultBinary != "vault-client" {
+				t.Fatalf("environment did not override binary: %q", cmd.flagVaultBinary)
+			}
+		})
+	}
+}
 
 func TestCommandLogLevel(t *testing.T) {
 	tests := []struct {
@@ -120,6 +169,7 @@ func TestCommandEnvs(t *testing.T) {
 		{env: "AGENT_INJECT_PROXY_ADDR", value: "http://proxy:3128", cmdPtr: &cmd.flagProxyAddress},
 		{env: "AGENT_INJECT_VAULT_AUTH_PATH", value: "auth-path-test", cmdPtr: &cmd.flagVaultAuthPath},
 		{env: "AGENT_INJECT_VAULT_IMAGE", value: "hashicorp/vault:2.2.1", cmdPtr: &cmd.flagVaultImage},
+		{env: "AGENT_INJECT_VAULT_BINARY", value: "vault-client", cmdPtr: &cmd.flagVaultBinary},
 		{env: "AGENT_INJECT_VAULT_NAMESPACE", value: "test-namespace", cmdPtr: &cmd.flagVaultNamespace},
 		{env: "AGENT_INJECT_TLS_KEY_FILE", value: "server.key", cmdPtr: &cmd.flagKeyFile},
 		{env: "AGENT_INJECT_TLS_CERT_FILE", value: "server.crt", cmdPtr: &cmd.flagCertFile},

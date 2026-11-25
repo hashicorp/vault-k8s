@@ -30,6 +30,56 @@ func basicHandler() Handler {
 	}
 }
 
+func TestHandlerAgentBinary(t *testing.T) {
+	for _, defaultBinary := range []string{"", "vault-client"} {
+		for _, override := range []string{"unset", "vault", "vault-client", "invalid"} {
+			t.Run(defaultBinary+"/"+override, func(t *testing.T) {
+				handler := basicHandler()
+				handler.BinaryVault = defaultBinary
+				handler.RevokeOnShutdown = true
+				annotations := map[string]string{
+					agent.AnnotationAgentInject: "true",
+					agent.AnnotationVaultRole:   "demo",
+				}
+				want := defaultBinary
+				if want == "" {
+					want = "vault"
+				}
+				if override != "unset" {
+					annotations[agent.AnnotationAgentBinary] = override
+					want = override
+				}
+				pod := corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{Annotations: annotations},
+					Spec: corev1.PodSpec{Containers: []corev1.Container{{
+						Name:         "app",
+						VolumeMounts: []corev1.VolumeMount{{Name: "serviceaccount", MountPath: "/var/run/secrets/kubernetes.io/serviceaccount"}},
+					}}},
+				}
+				request := admissionv1.AdmissionRequest{Namespace: "default", Object: encodeRaw(t, &pod)}
+				response := handler.Mutate(&request).Resp
+				if want == "invalid" {
+					require.False(t, response.Allowed)
+					require.Contains(t, response.Result.Message, "invalid agent binary")
+					return
+				}
+				require.True(t, response.Allowed, "%v", response.Result)
+				patch, err := jsonpatch.DecodePatch(response.Patch)
+				require.NoError(t, err)
+				mutated, err := patch.Apply(request.Object.Raw)
+				require.NoError(t, err)
+				require.NoError(t, json.Unmarshal(mutated, &pod))
+				require.Len(t, pod.Spec.InitContainers, 1)
+				require.Len(t, pod.Spec.Containers, 2)
+				require.Contains(t, pod.Spec.InitContainers[0].Args[0], "&& "+want+" agent -config=")
+				sidecar := pod.Spec.Containers[1]
+				require.Contains(t, sidecar.Args[0], "&& "+want+" agent -config=")
+				require.Contains(t, sidecar.Lifecycle.PreStop.Exec.Command[2], "&& /bin/"+want+" token revoke ")
+			})
+		}
+	}
+}
+
 func TestHandlerHandle(t *testing.T) {
 	basicSpec := corev1.PodSpec{
 		InitContainers: []corev1.Container{

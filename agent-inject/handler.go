@@ -56,6 +56,7 @@ type Handler struct {
 	VaultNamespace             string
 	ProxyAddress               string
 	ImageVault                 string
+	BinaryVault                string
 	Clientset                  *kubernetes.Clientset
 	Log                        hclog.Logger
 	RevokeOnShutdown           bool
@@ -223,6 +224,7 @@ func (h *Handler) Mutate(req *admissionv1.AdmissionRequest) MutateResponse {
 	h.Log.Debug("setting default annotations..")
 	cfg := agent.AgentConfig{
 		Image:                      h.ImageVault,
+		Binary:                     h.BinaryVault,
 		Address:                    h.VaultAddress,
 		AuthType:                   h.VaultAuthType,
 		AuthPath:                   h.VaultAuthPath,

@@ -84,6 +84,8 @@ type Specification struct {
 	// VaultImage is the AGENT_INJECT_VAULT_IMAGE environment variable.
 	VaultImage string `split_words:"true"`
 
+	VaultBinary string `split_words:"true"`
+
 	// VaultAuthType is the AGENT_INJECT_VAULT_AUTH_TYPE environment variable.
 	VaultAuthType string `split_words:"true"`
 
@@ -177,6 +179,8 @@ func (c *Command) init() {
 		"PEM-encoded TLS private key to serve. If blank, will generate random cert.")
 	c.flagSet.StringVar(&c.flagVaultImage, "vault-image", agent.DefaultVaultImage,
 		fmt.Sprintf("Docker image for Vault. Defaults to %q.", agent.DefaultVaultImage))
+	c.flagSet.StringVar(&c.flagVaultBinary, "vault-binary", agent.DefaultVaultBinary,
+		"Executable for injected agents and token revocation: vault or vault-client. Defaults to vault.")
 	c.flagSet.StringVar(&c.flagVaultService, "vault-address", "",
 		"Address of the Vault server.")
 	c.flagSet.StringVar(&c.flagVaultCACertBytes, "vault-cacert-bytes", "",
@@ -331,6 +335,9 @@ func (c *Command) parseEnvs() error {
 
 	if envs.VaultImage != "" {
 		c.flagVaultImage = envs.VaultImage
+	}
+	if envs.VaultBinary != "" {
+		c.flagVaultBinary = envs.VaultBinary
 	}
 
 	if envs.VaultAddr != "" {
