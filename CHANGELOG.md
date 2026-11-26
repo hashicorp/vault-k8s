@@ -13,9 +13,9 @@ Improvements:
 Dependency updates:
 * container image `alpine` 3.24.3 => 3.24.4
 * container image `ubi8/ubi-minimal` 1792742899 => 1795498863 [GH-933](https://github.com/hashicorp/vault-k8s/pull/933)
-* k8s.io/api v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931)
-* k8s.io/apimachinery v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931)
-* k8s.io/client-go v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931)
+* k8s.io/api v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
+* k8s.io/apimachinery v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
+* k8s.io/client-go v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/utils v0.0.0-20260626114624-be93311217bd => v0.0.0-20261023123148-ca04ba58ecab
 * sigs.k8s.io/controller-runtime v0.25.2 => v0.25.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931)
 * CI: update GitHub Actions to latest versions
