@@ -1,7 +1,32 @@
-## Unreleased
+## 1.8.0 (November 26, 2026)
 
-Improvements:
-* Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`. [GH-928](https://github.com/hashicorp/vault-k8s/pull/928)
+IMPROVEMENTS:
+
+* Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`. [GH-928](https://github.com/hashicorp/vault-k8s/pull/928) ([#928](https://github.com/hashicorp/vault-k8s/pull/928))
+
+DEPENDENCY UPDATES:
+
+* Bump ubi8/ubi-minimal from 1792742899 to 1795498863. ([#933](https://github.com/hashicorp/vault-k8s/pull/933))
+* Bump k8s.io/api from 0.37.1 to 0.37.2; Bump k8s.io/apimachinery from 0.37.1 to 0.37.2; Bump k8s.io/client-go from 0.37.1 to 0.37.2; Bump sigs.k8s.io/controller-runtime from 0.25.2 to 0.25.3. ([#931](https://github.com/hashicorp/vault-k8s/pull/931))
+
+<!-- release-prep changes: start -->
+* Bump actions/setup-node from 820762786026740c76f36085b0efc47a31fe5020 to 949feb2413d6458794dcd2491c4babbbce0c15c1
+* Bump actions/download-artifact from 3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c to 9000827ccba6bdab643e8b6fd33ac0654aef8333
+* Bump actions/upload-artifact from 043fb46d1a93c77aae656e7c1c64a875d1fc6a0a to cf430e030ddbb5b0abf93d22962f4752f3646cd9
+* Bump actions/setup-python from 5fda3b95a4ea91299a34e894583c3862153e4b97 to 6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+* Bump helm/kind-action from ef37e7f390d99f746eb8b610417061a60e82a6cc to ea822c7bf1874f08e5a491df991c228edffc3376
+* Bump actions/setup-go from b7ad1dad31e06c5925ef5d2fc7ad053ef454303e to d8cbb8045d7f43706b9177cceb36c1f91a6644d5
+* Bump hashicorp/actions-docker-build from 2 to 2.2.1
+* Bump actions/checkout from 9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 to 3d3c42e5aac5ba805825da76410c181273ba90b1
+* Bump hashicorp/actions-generate-metadata from 1 to 1.3.0
+* Test with Vault 2.2.2, 1.21.14, 1.19.26 (previously 2.2.1, 1.21.13, 1.19.24)
+* Build with Go v1.27.4 (from 1.27.3)
+* Bump alpine from 3.24.3 to 3.24.4
+* Bump k8s.io/api from 0.37.2 to 0.37.3
+* Bump k8s.io/apimachinery from 0.37.2 to 0.37.3
+* Bump k8s.io/client-go from 0.37.2 to 0.37.3
+* Bump k8s.io/utils from 0.0.0-20260626114624-be93311217bd to 0.0.0-20261023123148-ca04ba58ecab
+<!-- release-prep changes: end -->
 
 ## 1.7.7 (October 27, 2026)
 
