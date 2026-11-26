@@ -1,8 +1,8 @@
-## 1.8.0 (November 26, 2026)
+## 1.8.0 (November 27, 2026)
 
 IMPROVEMENTS:
 
-* Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`. [GH-928](https://github.com/hashicorp/vault-k8s/pull/928) ([#928](https://github.com/hashicorp/vault-k8s/pull/928))
+* Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`. ([#928](https://github.com/hashicorp/vault-k8s/pull/928))
 
 DEPENDENCY UPDATES:
 
