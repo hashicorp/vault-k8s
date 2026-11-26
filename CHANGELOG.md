@@ -28,7 +28,6 @@ Dependency updates:
   * hashicorp/actions-docker-build v2 => v2.3.0 (pinned to commit SHA)
   * hashicorp/actions-generate-metadata v1 => v1.3.1 (pinned to commit SHA)
   * helm/kind-action v1.14.0 => v1.15.2
-* CI: Dependabot now also updates actions used by composite actions under `.github/actions/`
 
 ## 1.7.7 (October 27, 2026)
 
