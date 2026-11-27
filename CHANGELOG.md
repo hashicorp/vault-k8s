@@ -5,6 +5,7 @@ Changes:
 * Default Vault version updated to 2.2.2
 * Test with Vault 2.2.2, 1.21.14, 1.20.17, 1.19.26
 * Test with K8s 1.37.0, 1.36.4, 1.35.8, 1.34.11, 1.33.12
+* The UBI image is now based on UBI 10. On amd64, UBI 10 requires an x86-64-v3 compatible CPU.
 
 Improvements:
 * Support `vault-client` agent images with the `vault.hashicorp.com/agent-binary` pod annotation and the injector's `-vault-binary` flag or `AGENT_INJECT_VAULT_BINARY` environment variable. Agent init, sidecar, and token-revoke commands use the selected binary; the default remains `vault`. [GH-928](https://github.com/hashicorp/vault-k8s/pull/928)
@@ -13,6 +14,7 @@ Dependency updates:
 * container image `alpine` 3.24.3 => 3.24.4
 * container image package `zlib` 1.3.2-r1 => 1.4-r0
 * container image `ubi8/ubi-minimal` 1792742899 => 1795498863 [GH-933](https://github.com/hashicorp/vault-k8s/pull/933)
+* container image `ubi8/ubi-minimal:1795498863` => `ubi10/ubi-minimal:1795197047` (UBI 10.3)
 * k8s.io/api v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/apimachinery v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/client-go v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
