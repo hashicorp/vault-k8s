@@ -4,7 +4,6 @@ Changes:
 * Building with Go 1.27.4
 * Default Vault version updated to 2.2.2
 * Test with Vault 2.2.2, 1.21.14, 1.20.17, 1.19.26
-* Test with Kind v0.33.0
 * Test with K8s 1.37.0, 1.36.4, 1.35.8, 1.34.11, 1.33.12
 
 Improvements:
@@ -18,6 +17,11 @@ Dependency updates:
 * k8s.io/client-go v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/utils v0.0.0-20260626114624-be93311217bd => v0.0.0-20261023123148-ca04ba58ecab
 * sigs.k8s.io/controller-runtime v0.25.2 => v0.25.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931)
+* golang.org/x/crypto v0.57.0 => v0.59.0
+* golang.org/x/net v0.60.0 => v0.63.0
+* golang.org/x/sys v0.48.0 => v0.50.0
+* golang.org/x/term v0.46.0 => v0.48.0
+* golang.org/x/text v0.42.0 => v0.44.0
 * CI: update GitHub Actions to latest versions
   * actions/checkout v7.0.0 => v7.0.1
   * actions/download-artifact v8.0.1 => v8.0.2
