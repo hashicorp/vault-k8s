@@ -57,7 +57,7 @@ RUN addgroup vault && \
 RUN set -eux && \
     apk update && \
     apk add --no-cache ca-certificates libcap su-exec iputils && \
-    apk upgrade --no-cache libcrypto3
+    apk upgrade --no-cache libcrypto3 zlib
 
 COPY dist/$TARGETOS/$TARGETARCH/vault-k8s /bin/
 
