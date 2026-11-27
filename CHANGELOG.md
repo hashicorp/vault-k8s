@@ -13,6 +13,7 @@ Dependency updates:
 * container image `alpine` 3.24.3 => 3.24.4
 * container image package `zlib` 1.3.2-r1 => 1.4-r0
 * container image `ubi8/ubi-minimal` 1792742899 => 1795498863 [GH-933](https://github.com/hashicorp/vault-k8s/pull/933)
+* container image `ubi8/ubi-minimal:1795498863` => `ubi10/ubi-minimal:1795197047` (UBI 10.3)
 * k8s.io/api v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/apimachinery v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
 * k8s.io/client-go v0.37.1 => v0.37.3 [GH-931](https://github.com/hashicorp/vault-k8s/pull/931) [GH-934](https://github.com/hashicorp/vault-k8s/pull/934)
